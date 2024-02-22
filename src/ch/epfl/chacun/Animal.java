@@ -1,12 +1,16 @@
 package ch.epfl.chacun;
 
-public class Animal {
+public record Animal(int id, Kind kind) {
 
     public enum Kind {
+        MAMMOTH,
         AUROCHS,
         DEER,
-        MAMMOTH,
         TIGER
+    }
+
+    public int tileId() {
+
     }
 
 }

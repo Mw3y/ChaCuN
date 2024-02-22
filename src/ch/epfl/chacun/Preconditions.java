@@ -4,8 +4,8 @@ public final class Preconditions {
 
     private Preconditions() {}
 
-    public static void checkArgument(boolean isPreconditionFullfilled) {
-        if (!isPreconditionFullfilled) {
+    public static void checkArgument(boolean precondition) {
+        if (!precondition) {
             throw new IllegalArgumentException();
         }
     }

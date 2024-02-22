@@ -10,17 +10,18 @@ public interface Zone {
         RAFT;
     }
 
+    int id();
+
     static int tileId(int zoneId) {
-        // zoneId = 10 * tileId + localId
-        return (zoneId - localId(zoneId) / 10);
+        // Since a zoneId is obtained using zoneId = 10 * tileId + localId and localId is between 0 and 9
+        // We can use integer division to obtain the tileId
+        return (int) (zoneId /10);
     }
 
     static int localId(int zoneId) {
         // zoneId = 10 * tileId + localId
         return zoneId - 10 * tileId(zoneId);
     }
-
-    int id();
 
     default int tileId() {
         return tileId(id());
