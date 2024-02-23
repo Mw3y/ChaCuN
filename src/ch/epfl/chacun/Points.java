@@ -10,16 +10,16 @@ public final class Points {
 
     // Forest points
     private final static int CLOSED_FOREST_POINTS_BY_MAJORITY_OCCUPANTS = 2;
-    private final static int CLOSED_RIVER_POINTS_BY_MUSHROOM = 3;
+    private final static int CLOSED_FOREST_POINTS_BY_MUSHROOM = 3;
 
     // River points
     private final static int CLOSED_RIVER_POINTS_BY_MAJORITY_OCCUPANTS = 1;
     private final static int CLOSED_RIVER_POINTS_BY_FISH = 1;
 
     // Meadow points
-    private final static int CLOSED_MEADOW_POINTS_BY_MAMMOTH = 3;
-    private final static int CLOSED_MEADOW_POINTS_BY_AUROCHS = 2;
-    private final static int CLOSED_MEADOW_POINTS_BY_DEER = 1;
+    private final static int MEADOW_POINTS_BY_MAMMOTH = 3;
+    private final static int MEADOW_POINTS_BY_AUROCHS = 2;
+    private final static int MEADOW_POINTS_BY_DEER = 1;
 
     // Logboat points
     private final static int LOGBOAT_POINTS_BY_LAKE = 2;
@@ -45,7 +45,7 @@ public final class Points {
     public static int forClosedForest(int tileCount, int mushroomGroupCount) {
         Preconditions.checkArgument(tileCount > 1);
         Preconditions.checkArgument(mushroomGroupCount >= 0);
-        return CLOSED_FOREST_POINTS_BY_MAJORITY_OCCUPANTS * tileCount + CLOSED_RIVER_POINTS_BY_MUSHROOM * mushroomGroupCount;
+        return CLOSED_FOREST_POINTS_BY_MAJORITY_OCCUPANTS * tileCount + CLOSED_FOREST_POINTS_BY_MUSHROOM * mushroomGroupCount;
     }
 
     /**
@@ -82,7 +82,7 @@ public final class Points {
         Preconditions.checkArgument(mammothCount >= 0);
         Preconditions.checkArgument(aurochsCount >= 0);
         Preconditions.checkArgument(deerCount >= 0);
-        return CLOSED_MEADOW_POINTS_BY_MAMMOTH * mammothCount + CLOSED_MEADOW_POINTS_BY_AUROCHS * aurochsCount + CLOSED_MEADOW_POINTS_BY_DEER * deerCount;
+        return MEADOW_POINTS_BY_MAMMOTH * mammothCount + MEADOW_POINTS_BY_AUROCHS * aurochsCount + MEADOW_POINTS_BY_DEER * deerCount;
     }
 
     /**
