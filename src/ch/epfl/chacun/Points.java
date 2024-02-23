@@ -35,7 +35,7 @@ public final class Points {
 
     /**
      * Returns the number of points obtained by the majority pickers in a closed
-     * forest made up of `tileCount` tiles and `mushroomGroupCount` mushroom groups.
+     * forest made up of {@code tileCount} tiles and {@code mushroomGroupCount} mushroom groups.
      *
      * @param tileCount          the number of tiles in the closed forest
      * @param mushroomGroupCount the number of mushroom groups in the closed forest
@@ -50,7 +50,7 @@ public final class Points {
 
     /**
      * Returns the number of points obtained by the majority anglers in
-     * a closed river made up of `tileCount` tiles and in which `fishCount` fish swim.
+     * a closed river made up of {@code tileCount} tiles and in which {@code fishCount} fish swim.
      *
      * @param tileCount the number of tiles in the closed river
      * @param fishCount the number of fish in the closed river
@@ -66,7 +66,7 @@ public final class Points {
 
     /**
      * Returns the number of points obtained by the majority hunters in a
-     * meadow containing `mammothCount` mammoths, `aurochsCount` aurochs and `deerCount` deer.
+     * meadow containing {@code mammothCount} mammoths, {@code aurochsCount} aurochs and {@code deerCount} deer.
      * <p>
      * Deer eaten by smilodons are not included in deerCount.
      *
@@ -87,7 +87,7 @@ public final class Points {
 
     /**
      * Returns the number of points obtained by the majority of anglers in a
-     * river system in which `fishCount` fish swim.
+     * river system in which {@code fishCount} fish swim.
      *
      * @param fishCount the number of fish in the lake
      * @return the points given to a player for a river system
@@ -100,7 +100,7 @@ public final class Points {
 
     /**
      * Returns the number of points obtained by the player depositing the
-     * logboat in a river system containing `lakeCount` lakes.
+     * logboat in a river system containing {@code lakeCount} lakes.
      *
      * @param lakeCount the number of lakes in the river system
      * @return the points given to a player for a logboat
@@ -113,7 +113,7 @@ public final class Points {
 
     /**
      * Returns the number of additional points obtained by the majority anglers
-     * on the river network containing the raft and including `lakeCount` lakes.
+     * on the river network containing the raft and including {@code lakeCount} lakes.
      *
      * @param lakeCount the number of lakes in the river network
      * @return the points given to a player for a raft
