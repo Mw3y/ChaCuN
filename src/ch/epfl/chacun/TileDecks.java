@@ -17,9 +17,9 @@ public record TileDecks(List<Tile> startTiles, List<Tile> normalTiles, List<Tile
     /**
      * Makes a defensive copy of the tile lists.
      *
-     * @param startTiles
-     * @param normalTiles
-     * @param menhirTiles
+     * @param startTiles the deck containing the start tiles
+     * @param normalTiles the deck containing the normal tiles
+     * @param menhirTiles the deck containing the menhir tiles
      */
     public TileDecks {
         startTiles = List.copyOf(startTiles);
