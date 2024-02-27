@@ -26,6 +26,11 @@ public sealed interface TileSide {
      */
     List<Zone> zones();
 
+    /**
+     * Represents a side of a tile that is a forest.
+     *
+     * @param forest the forest zone
+     */
     record Forest(Zone.Forest forest) implements TileSide {
         @Override
         public boolean isSameKindAs(TileSide that) {
@@ -38,6 +43,11 @@ public sealed interface TileSide {
         }
     }
 
+    /**
+     * Represents a side of a tile that is a meadow.
+     *
+     * @param meadow the meadow zone
+     */
     record Meadow(Zone.Meadow meadow) implements TileSide {
         @Override
         public boolean isSameKindAs(TileSide that) {
@@ -50,6 +60,13 @@ public sealed interface TileSide {
         }
     }
 
+    /**
+     * Represents a side which contains a river between two meadows.
+     *
+     * @param meadow1 the first meadow zone found clockwise
+     * @param river   the river zone
+     * @param meadow2 the second meadow zone found clockwise
+     */
     record River(Zone.Meadow meadow1, Zone.River river, Zone.Meadow meadow2) implements TileSide {
         @Override
         public boolean isSameKindAs(TileSide that) {

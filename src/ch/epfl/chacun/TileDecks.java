@@ -2,6 +2,7 @@ package ch.epfl.chacun;
 
 import java.util.List;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 /**
  * Represents the three decks of tiles.
@@ -17,7 +18,7 @@ public record TileDecks(List<Tile> startTiles, List<Tile> normalTiles, List<Tile
     /**
      * Makes a defensive copy of the tile lists.
      *
-     * @param startTiles the deck containing the start tiles
+     * @param startTiles  the deck containing the start tiles
      * @param normalTiles the deck containing the normal tiles
      * @param menhirTiles the deck containing the menhir tiles
      */
@@ -50,15 +51,14 @@ public record TileDecks(List<Tile> startTiles, List<Tile> normalTiles, List<Tile
      * or null if the deck is empty
      */
     public Tile topTile(Tile.Kind kind) {
-        if (this.deckSize(kind) <= 0) {
+        if (deckSize(kind) <= 0) {
             return null;
-        } else {
-            return switch (kind) {
-                case START -> startTiles.getFirst();
-                case NORMAL -> normalTiles.getFirst();
-                case MENHIR -> menhirTiles.getFirst();
-            };
         }
+        return switch (kind) {
+            case START -> startTiles.getFirst();
+            case NORMAL -> normalTiles.getFirst();
+            case MENHIR -> menhirTiles.getFirst();
+        };
     }
 
     /**
@@ -67,11 +67,11 @@ public record TileDecks(List<Tile> startTiles, List<Tile> normalTiles, List<Tile
      *
      * @param kind the kind of tile
      * @return a new triplet of decks after removing from the receiver triplet the top tile of the deck
-     *         containing tiles of a given kind
+     * containing tiles of a given kind
      * @throws IllegalArgumentException if the receiver deck of the given tile kind is empty
      */
     public TileDecks withTopTileDrawn(Tile.Kind kind) {
-        if (this.deckSize(kind) <= 0) {
+        if (deckSize(kind) <= 0) {
             throw new IllegalArgumentException("The deck of the given tile is empty");
         }
         switch (kind) {
@@ -84,9 +84,9 @@ public record TileDecks(List<Tile> startTiles, List<Tile> normalTiles, List<Tile
 
     /**
      * Returns a new triplet of decks after testing on the receiver deck containing the given tile kind a
-     * given predicate using testPredicateOnDeck.
+     * given predicate using the {@code testPredicateOnDeck} function.
      *
-     * @param kind the kind of tile
+     * @param kind      the kind of tile
      * @param predicate the predicate to test
      * @return a new triplet of decks after testing a given predicate on the receiver triplet
      */
@@ -102,17 +102,17 @@ public record TileDecks(List<Tile> startTiles, List<Tile> normalTiles, List<Tile
     /**
      * Returns a new deck of tiles after removing the tiles that does not respect a given predicate.
      *
-     * @param deck the deck of tiles
+     * @param deck      the deck of tiles
      * @param predicate the predicate to check
      * @return a new deck of tiles after removing the tiles that does not respect a given predicate
      */
     private List<Tile> testPredicateOnDeck(List<Tile> deck, Predicate predicate) {
-        List<Tile> newdeck = deck;
-        for (int i = 0; i < newdeck.size(); ++i) {
-            if (!predicate.test(newdeck.get(i))) {
-                newdeck.remove(i);
+        List<Tile> newDeck = List.copyOf(deck);
+        for (int i = 0; i < newDeck.size(); ++i) {
+            if (!predicate.test(newDeck.get(i))) {
+                newDeck.remove(i);
             }
         }
-        return newdeck;
+        return newDeck;
     }
 }
