@@ -2,7 +2,6 @@ package ch.epfl.chacun;
 
 import java.util.List;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 /**
  * Represents the three decks of tiles.
@@ -14,7 +13,6 @@ import java.util.stream.Collectors;
  * @author Balthazar Baillat (sciper: 373420)
  */
 public record TileDecks(List<Tile> startTiles, List<Tile> normalTiles, List<Tile> menhirTiles) {
-
     /**
      * Makes a defensive copy of the tile lists.
      *
@@ -72,14 +70,21 @@ public record TileDecks(List<Tile> startTiles, List<Tile> normalTiles, List<Tile
      */
     public TileDecks withTopTileDrawn(Tile.Kind kind) {
         if (deckSize(kind) <= 0) {
-            throw new IllegalArgumentException("The deck of the given tile is empty");
+            throw new IllegalArgumentException("The deck of the given tile kind is empty");
         }
+
+        // Copy to prevent modification of the original list since this class is immutable
+        List<Tile> startTiles = List.copyOf(this.startTiles);
+        List<Tile> normalTiles = List.copyOf(this.normalTiles);
+        List<Tile> menhirTiles = List.copyOf(this.menhirTiles);
+
         switch (kind) {
-            case START -> this.startTiles.remove(0);
-            case NORMAL -> this.normalTiles.remove(0);
-            case MENHIR -> this.menhirTiles.remove(0);
+            case START -> startTiles.removeFirst();
+            case NORMAL -> normalTiles.removeFirst();
+            case MENHIR -> menhirTiles.removeFirst();
         }
-        return this;
+
+        return new TileDecks(startTiles, normalTiles, menhirTiles);
     }
 
     /**
@@ -91,28 +96,31 @@ public record TileDecks(List<Tile> startTiles, List<Tile> normalTiles, List<Tile
      * @return a new triplet of decks after testing a given predicate on the receiver triplet
      */
     public TileDecks withTopTileDrawnUntil(Tile.Kind kind, Predicate<Tile> predicate) {
+        // Copy to prevent modification of the original list since this class is immutable
+        List<Tile> startTiles = List.copyOf(this.startTiles);
+        List<Tile> normalTiles = List.copyOf(this.normalTiles);
+        List<Tile> menhirTiles = List.copyOf(this.menhirTiles);
+
         switch (kind) {
-            case START -> testPredicateOnDeck(this.startTiles, predicate);
-            case NORMAL -> testPredicateOnDeck(this.normalTiles, predicate);
-            case MENHIR -> testPredicateOnDeck(this.menhirTiles, predicate);
+            case START -> filterDeckUsingPredicate(startTiles, predicate);
+            case NORMAL -> filterDeckUsingPredicate(normalTiles, predicate);
+            case MENHIR -> filterDeckUsingPredicate(menhirTiles, predicate);
         }
-        return this;
+
+        return new TileDecks(startTiles, normalTiles, menhirTiles);
     }
 
     /**
-     * Returns a new deck of tiles after removing the tiles that does not respect a given predicate.
+     * Modify a deck of tiles by removing the tiles that does not respect a given predicate.
      *
      * @param deck      the deck of tiles
      * @param predicate the predicate to check
-     * @return a new deck of tiles after removing the tiles that does not respect a given predicate
      */
-    private List<Tile> testPredicateOnDeck(List<Tile> deck, Predicate predicate) {
-        List<Tile> newDeck = List.copyOf(deck);
-        for (int i = 0; i < newDeck.size(); ++i) {
-            if (!predicate.test(newDeck.get(i))) {
-                newDeck.remove(i);
+    private void filterDeckUsingPredicate(List<Tile> deck, Predicate predicate) {
+        for (int i = 0; i < deck.size(); ++i) {
+            if (!predicate.test(deck.get(i))) {
+                deck.remove(i);
             }
         }
-        return newDeck;
     }
 }
