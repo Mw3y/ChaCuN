@@ -33,7 +33,7 @@ public record Tile(int id, Kind kind, TileSide n, TileSide e, TileSide s, TileSi
      * @return the set of all the zones that touch at least one side of the tile
      */
     public Set<Zone> sideZones() {
-        HashSet<Zone> zones = new HashSet<>();
+        Set<Zone> zones = new HashSet<>();
         zones.addAll(n.zones());
         zones.addAll(e.zones());
         zones.addAll(s.zones());
@@ -47,8 +47,9 @@ public record Tile(int id, Kind kind, TileSide n, TileSide e, TileSide s, TileSi
      * @return the set of all the zones that are contained in the tile
      */
     public Set<Zone> zones() {
-        Set<Zone> zones = Set.copyOf(sideZones());
-        for (Zone zone : sideZones()) {
+        Set<Zone> sideZones = sideZones();
+        Set<Zone> zones = new HashSet<>(sideZones);
+        for (Zone zone : sideZones) {
             if (zone instanceof Zone.River river) {
                 if (river.hasLake())
                     zones.add(river.lake());
