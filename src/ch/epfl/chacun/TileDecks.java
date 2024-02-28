@@ -50,10 +50,7 @@ public record TileDecks(List<Tile> startTiles, List<Tile> normalTiles, List<Tile
      * or null if the deck is empty
      */
     public Tile topTile(Tile.Kind kind) {
-        if (deckSize(kind) <= 0) {
-            return null;
-        }
-        return switch (kind) {
+        return deckSize(kind) <= 0 ? null : switch (kind) {
             case START -> startTiles.getFirst();
             case NORMAL -> normalTiles.getFirst();
             case MENHIR -> menhirTiles.getFirst();
@@ -105,10 +102,9 @@ public record TileDecks(List<Tile> startTiles, List<Tile> normalTiles, List<Tile
      * @return a new deck of tiles after removing the tiles that does not respect the given predicate
      */
     private List<Tile> filterDeck(List<Tile> deck, Predicate<Tile> predicate) {
-        List<Tile> filteredDeck = new ArrayList<>();
-        for (Tile tile : deck) {
-            if (predicate.test(tile))
-                filteredDeck.add(tile);
+        List<Tile> filteredDeck = List.copyOf(deck);
+        while (!filteredDeck.isEmpty() && !predicate.test(filteredDeck.getFirst())) {
+            filteredDeck = removeDeckFirstTile(filteredDeck);
         }
         return filteredDeck;
     }
