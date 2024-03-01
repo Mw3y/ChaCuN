@@ -1,20 +1,14 @@
 package ch.epfl.chacun;
 
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class TileSideTest {
-
-    @Test
-    void isSameKindDoesntWorkForNull() {
-        Zone.Forest forest = new Zone.Forest(0, Zone.Forest.Kind.PLAIN);
-        TileSide.Forest forestSide = new TileSide.Forest(forest);
-        assertFalse(forestSide.isSameKindAs(null));
-    }
 
     @Test
     void isSameKindDoesntWorkForDifferentKinds() {

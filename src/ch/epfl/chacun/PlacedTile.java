@@ -39,6 +39,11 @@ public record PlacedTile(Tile tile, PlayerColor placer, Rotation rotation, Pos p
         Objects.requireNonNull(tile);
         Objects.requireNonNull(rotation);
         Objects.requireNonNull(pos);
+
+        // Prevent a null placer
+        if (placer == null && !pos.equals(Pos.ORIGIN)) {
+            throw new IllegalArgumentException("A tile must have a placer except for the origin.");
+        }
     }
 
     /**
@@ -66,7 +71,7 @@ public record PlacedTile(Tile tile, PlayerColor placer, Rotation rotation, Pos p
      * @return the direction of each side of the placed tile considering the rotation
      */
     public TileSide side(Direction direction) {
-        Direction rotatedDirection = direction.rotated(rotation);
+        Direction rotatedDirection = direction.rotated(rotation.negated());
         return switch (rotatedDirection) {
             case N -> tile.n();
             case E -> tile.e();
@@ -95,7 +100,6 @@ public record PlacedTile(Tile tile, PlayerColor placer, Rotation rotation, Pos p
      */
     public Zone specialPowerZone() {
         return tile.zones().stream().filter(z -> z.specialPower() != null).findFirst().orElse(null);
-
     }
 
     /**
@@ -134,27 +138,20 @@ public record PlacedTile(Tile tile, PlayerColor placer, Rotation rotation, Pos p
      * @return each potential occupant of each zone of the tile
      */
     public Set<Occupant> potentialOccupants() {
-        // The origin tile cannot be occupied
-        if (placer == null) {
-            return null;
-        }
         // Calculate all the potential occupants
         Set<Occupant> potentialOccupants = new HashSet<>();
-        for (Zone zone : tile.zones()) {
-            // A pawn can only be placed on a meadow, a forest or a river
-            Occupant potentialPawn = switch (zone) {
-                case Zone.Meadow m -> new Occupant(Occupant.Kind.PAWN, zone.id());
-                case Zone.Forest f -> new Occupant(Occupant.Kind.PAWN, zone.id());
-                case Zone.River r -> new Occupant(Occupant.Kind.PAWN, zone.id());
-                default -> null;
-            };
-            // A HUT can only be placed on a river with at least one lake
-            if (zone instanceof Zone.River river && river.hasLake()) {
-                potentialOccupants.add(new Occupant(Occupant.Kind.HUT, zone.id()));
-            }
-            // Add the potential pawn
-            if (potentialPawn != null) {
-                potentialOccupants.add(potentialPawn);
+        // The origin tile cannot be occupied
+        if (placer != null) {
+            for (Zone zone : tile.zones()) {
+                // A pawn can only be placed on a meadow, a forest or a river
+                if (!(zone instanceof Zone.River)) {
+                    potentialOccupants.add(new Occupant(Occupant.Kind.PAWN, zone.id()));
+                }
+                // A hut can only be placed on a lake if it is connected to a river
+                // or on a river if there's no lake
+                if (zone instanceof Zone.Lake || (zone instanceof Zone.River river && river.hasLake())) {
+                    potentialOccupants.add(new Occupant(Occupant.Kind.HUT, zone.id()));
+                }
             }
         }
         return potentialOccupants;
