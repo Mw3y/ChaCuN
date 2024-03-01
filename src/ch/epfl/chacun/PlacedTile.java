@@ -144,12 +144,12 @@ public record PlacedTile(Tile tile, PlayerColor placer, Rotation rotation, Pos p
         if (placer != null) {
             for (Zone zone : tile.zones()) {
                 // A pawn can only be placed on a meadow, a forest or a river
-                if (!(zone instanceof Zone.River)) {
+                if (!(zone instanceof Zone.Lake)) {
                     potentialOccupants.add(new Occupant(Occupant.Kind.PAWN, zone.id()));
                 }
                 // A hut can only be placed on a lake if it is connected to a river
                 // or on a river if there's no lake
-                if (zone instanceof Zone.Lake || (zone instanceof Zone.River river && river.hasLake())) {
+                if (zone instanceof Zone.Lake || (zone instanceof Zone.River river && !river.hasLake())) {
                     potentialOccupants.add(new Occupant(Occupant.Kind.HUT, zone.id()));
                 }
             }

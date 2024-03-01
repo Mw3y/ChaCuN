@@ -84,16 +84,14 @@ public class TileDecksTest {
         normalTiles1.add(new Tile(1, Tile.Kind.NORMAL, null, null, null, null));
         menhirTiles1.add(new Tile(2, Tile.Kind.MENHIR, null, null, null, null));
 
-        startTiles1.add(new Tile(3, Tile.Kind.START, null, null, null, null));
-        normalTiles1.add(new Tile(4, Tile.Kind.NORMAL, null, null, null, null));
-        menhirTiles1.add(new Tile(5, Tile.Kind.MENHIR, null, null, null, null));
-
         TileDecks tileDecks1 = new TileDecks(startTiles1, normalTiles1, menhirTiles1);
         TileDecks tileDecks2 = new TileDecks(startTiles2, normalTiles2, menhirTiles2);
 
         assertEquals(tileDecks2.deckSize(Tile.Kind.START), tileDecks1.withTopTileDrawn(Tile.Kind.START)
                 .deckSize(Tile.Kind.START));
-        assertEquals(tileDecks2.deckSize(Tile.Kind.START), tileDecks1.withTopTileDrawn(Tile.Kind.START)
-                .deckSize(Tile.Kind.START));
+        assertEquals(tileDecks2.deckSize(Tile.Kind.NORMAL), tileDecks1.withTopTileDrawn(Tile.Kind.NORMAL)
+                .deckSize(Tile.Kind.NORMAL));
+        assertEquals(tileDecks2.deckSize(Tile.Kind.MENHIR), tileDecks1.withTopTileDrawn(Tile.Kind.MENHIR)
+                .deckSize(Tile.Kind.MENHIR));
     }
 }
