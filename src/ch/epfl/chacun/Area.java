@@ -38,7 +38,7 @@ public record Area<Z extends Zone>(Set<Z> zones, List<PlayerColor> occupants, in
      * @param forest the forest area to check
      * @return {@code true} if the forest contains a menhir, {@code false} otherwise
      */
-    static boolean hasMenhir(Area<Zone.Forest> forest) {
+    public static boolean hasMenhir(Area<Zone.Forest> forest) {
         return forest.zones.stream()
                 .anyMatch(zone -> zone.kind() == Zone.Forest.Kind.WITH_MENHIR);
     }
@@ -49,7 +49,7 @@ public record Area<Z extends Zone>(Set<Z> zones, List<PlayerColor> occupants, in
      * @param forest the forest area to check
      * @return the number of mushroom groups in the forest
      */
-    static int mushroomGroupCount(Area<Zone.Forest> forest) {
+    public static int mushroomGroupCount(Area<Zone.Forest> forest) {
         return (int) forest.zones.stream()
                 .filter(zone -> zone.kind() == Zone.Forest.Kind.WITH_MUSHROOMS).count();
     }
@@ -62,7 +62,7 @@ public record Area<Z extends Zone>(Set<Z> zones, List<PlayerColor> occupants, in
      * @param cancelledAnimals the set of animals to exclude
      * @return the number of animals in the meadow, excluding the cancelled animals
      */
-    static Set<Animal> animals(Area<Zone.Meadow> meadow, Set<Animal> cancelledAnimals) {
+    public static Set<Animal> animals(Area<Zone.Meadow> meadow, Set<Animal> cancelledAnimals) {
         return meadow.zones.stream()
                 .flatMap(zone -> zone.animals().stream())
                 .filter(animal -> !cancelledAnimals.contains(animal))
@@ -76,7 +76,7 @@ public record Area<Z extends Zone>(Set<Z> zones, List<PlayerColor> occupants, in
      * @param river the river area to count fish in
      * @return the total number of fish in the river, lakes included
      */
-    static int riverFishCount(Area<Zone.River> river) {
+    public static int riverFishCount(Area<Zone.River> river) {
         // Make sure a lake appears only once
         Set<Zone.Lake> lakes = river.zones.stream()
                 .filter(Zone.River::hasLake).map(Zone.River::lake).collect(Collectors.toSet());
@@ -93,7 +93,7 @@ public record Area<Z extends Zone>(Set<Z> zones, List<PlayerColor> occupants, in
      * @param riverSystem the river system area to count fish in
      * @return the total number of fish in the river system
      */
-    static int riverSystemFishCount(Area<Zone.Water> riverSystem) {
+    public static int riverSystemFishCount(Area<Zone.Water> riverSystem) {
         return riverSystem.zones.stream().mapToInt(Zone.Water::fishCount).sum();
     }
 
@@ -103,7 +103,7 @@ public record Area<Z extends Zone>(Set<Z> zones, List<PlayerColor> occupants, in
      * @param riverSystem the river system area to count lakes in
      * @return the total number of lakes in the river system
      */
-    static int lakeCount(Area<Zone.Water> riverSystem) {
+    public static int lakeCount(Area<Zone.Water> riverSystem) {
         return (int) riverSystem.zones.stream().filter(Zone.Lake.class::isInstance).count();
     }
 
@@ -179,24 +179,66 @@ public record Area<Z extends Zone>(Set<Z> zones, List<PlayerColor> occupants, in
      *
      * @param occupant the occupant to put into the new area
      * @return an area identical to the receiver, except that it is occupied only by the given occupant
+     * @throws IllegalArgumentException if the area is already occupied
      */
     public Area<Z> withInitialOccupant(PlayerColor occupant) {
         if (!occupants.isEmpty()) {
-            throw new IllegalArgumentException("The area is all ready occupied.");
+            throw new IllegalArgumentException("The area is already occupied.");
         }
         return new Area<>(zones, List.of(occupant), this.openConnections);
     }
 
     /**
+     * Returns an area identical to the receiver, except that an occupant of the given color is removed.
      *
-     * @param occupant
-     * @return
+     * @param occupant the color of the occupant to remove
+     * @return an area identical to the receiver, except that an occupant of the given color is removed
+     * @throws IllegalArgumentException if the area does not contain an occupant of the given color
      */
     public Area<Z> withoutOccupant(PlayerColor occupant) {
         if (!occupants.contains(occupant)) {
             throw new IllegalArgumentException("The are does not contain an occupant of the given color.");
         }
-        List<PlayerColor> filteredOccupants = occupants.stream().filter(o -> occupant != o).toList();
+        List<PlayerColor> filteredOccupants = List.copyOf(occupants);
+        // Find the first occupant of the given color which will be removed
+        PlayerColor occupantToRemove = filteredOccupants.stream().filter(o -> occupant == o).findFirst().get();
+        // Remove the occupant from the list
+        filteredOccupants.remove(occupantToRemove);
+
         return new Area<>(zones, filteredOccupants, openConnections);
     }
+
+    /**
+     * Returns an area identical to the receiver, except that all its occupants are removed.
+     *
+     * @return an area identical to the receiver, except that all its occupants are removed
+     */
+    public Area<Z> withoutOccupants() {
+        List<PlayerColor> filteredOccupants = List.copyOf(occupants);
+        // Remove all the occupants of the list
+        filteredOccupants.removeAll(occupants);
+
+        return new Area<>(zones, filteredOccupants, openConnections);
+    }
+
+    /**
+     * Returns the set of all the tiles ids containing the area.
+     *
+     * @return the set of all the tiles ids containing the area
+     */
+    public Set<Integer> tileIds() {
+        return zones.stream().map(Zone::tileId).collect(Collectors.toSet());
+    }
+
+    /**
+     * Returns the zone of the area containing the given special power or null if it does not exist any
+     * special power.
+     *
+     * @param specialPower the special power
+     * @return the zone of the area containing the given special power
+     */
+    public Zone zoneWithSpecialPower(Zone.SpecialPower specialPower) {
+        return zones.stream().filter(z -> z.specialPower() == specialPower).findAny().orElse(null);
+    }
+
 }
