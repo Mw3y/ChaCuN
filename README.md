@@ -1,2 +1,2 @@
 # ChaCuN
-An amazing project.
+An amazing project by epfl.
