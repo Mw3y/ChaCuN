@@ -81,7 +81,7 @@ public record PlacedTile(Tile tile, PlayerColor placer, Rotation rotation, Pos p
     }
 
     /**
-     * Returns the area of the placed tile whose id is given, or throws IllegalArgumentException
+     * Returns the area of the placed tile whose id is given, or throws {@link IllegalArgumentException}
      * if the tile has no area with this id.
      *
      * @param id the id of the placed tile
