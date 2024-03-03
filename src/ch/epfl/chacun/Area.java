@@ -22,16 +22,13 @@ public record Area<Z extends Zone>(Set<Z> zones, List<PlayerColor> occupants, in
      * @throws IllegalArgumentException if the number of open connections is negative
      */
     public Area {
-        Objects.requireNonNull(openConnections);
         if (openConnections < 0) {
             throw new IllegalArgumentException("Negative number of open connections");
         }
 
         zones = Set.copyOf(zones);
-        List<PlayerColor> sortedOccupants = new ArrayList<>(occupants);
-        Collections.sort(sortedOccupants);
-        occupants = List.copyOf(sortedOccupants);
-
+        occupants = new ArrayList<>(occupants);
+        Collections.sort(occupants);
     }
 
     /**
@@ -136,21 +133,15 @@ public record Area<Z extends Zone>(Set<Z> zones, List<PlayerColor> occupants, in
         int max = 0;
         // Count occurrences of each player color
         int[] occupantCount = new int[PlayerColor.ALL.size()];
-        /**for (PlayerColor occupant : occupants) {
-            int newCount = occupantCount[occupant.ordinal()]++;
-            if (max < newCount)
-                max = newCount;
-        }*/
         for (PlayerColor occupant : occupants) {
-            int newCount = (int) occupants.stream().filter(o -> o == occupant).count();
-            occupantCount[occupant.ordinal()] = newCount;
-            if(newCount > max)
+            int newCount = ++occupantCount[occupant.ordinal()];
+            if (max < newCount)
                 max = newCount;
         }
         // Find the majority occupants
         Set<PlayerColor> majorityOccupants = new HashSet<>();
         for (int i = 0; i < occupantCount.length; i++) {
-            if (occupantCount[i] == max){
+            if (occupantCount[i] == max) {
                 majorityOccupants.add(PlayerColor.ALL.get(i));
             }
         }
@@ -194,7 +185,7 @@ public record Area<Z extends Zone>(Set<Z> zones, List<PlayerColor> occupants, in
         if (!occupants.isEmpty()) {
             throw new IllegalArgumentException("The area is already occupied.");
         }
-        return new Area<>(zones, List.of(occupant), this.openConnections);
+        return new Area<>(zones, List.of(occupant), openConnections);
     }
 
     /**
@@ -208,11 +199,10 @@ public record Area<Z extends Zone>(Set<Z> zones, List<PlayerColor> occupants, in
         if (!occupants.contains(occupant)) {
             throw new IllegalArgumentException("The are does not contain an occupant of the given color.");
         }
-        List<PlayerColor> filteredOccupants = List.copyOf(occupants);
-        // Find the first occupant of the given color which will be removed
-        PlayerColor occupantToRemove = filteredOccupants.stream().filter(o -> occupant == o).findFirst().get();
-        // Remove the occupant from the list
-        filteredOccupants.remove(occupantToRemove);
+        // Copy the list of occupant since this class is immutable
+        // and remove the first occurrence of the given occupant
+        List<PlayerColor> filteredOccupants = new ArrayList<>(occupants);
+        filteredOccupants.remove(occupant);
 
         return new Area<>(zones, filteredOccupants, openConnections);
     }
@@ -223,11 +213,7 @@ public record Area<Z extends Zone>(Set<Z> zones, List<PlayerColor> occupants, in
      * @return an area identical to the receiver, except that all its occupants are removed
      */
     public Area<Z> withoutOccupants() {
-        List<PlayerColor> filteredOccupants = List.copyOf(occupants);
-        // Remove all the occupants of the list
-        filteredOccupants.removeAll(occupants);
-
-        return new Area<>(zones, filteredOccupants, openConnections);
+        return new Area<>(zones, new ArrayList<>(), openConnections);
     }
 
     /**

@@ -45,11 +45,13 @@ public record ZonePartition<Z extends Zone>(Set<Area<Z>> areas) {
      * Represents the builder of ZonePartition.
      *
      * @param <Z> the zone type
+     * @author Maxence Espagnet (sciper: 372808)
+     * @author Balthazar Baillat (sciper: 373420)
      */
-
     public static final class Builder<Z extends Zone> {
         // The set of areas constituting the partition
-        private Set<Area<Z>> areas;
+        // TODO?: final?
+        private final Set<Area<Z>> areas;
 
         /**
          * Initialises the builder's area set with the one of the given partition.
@@ -86,16 +88,20 @@ public record ZonePartition<Z extends Zone>(Set<Area<Z>> areas) {
             // Create a zone partition (needed to use areaContaining method) containing the set of areas
             ZonePartition<Z> zonePartition = new ZonePartition<>(areas);
             try {
-                zonePartition.areaContaining(zone);
+                return zonePartition.areaContaining(zone);
             } catch (IllegalArgumentException e) {
                 throw new IllegalArgumentException("Zone is not assigned to any area of the partition.");
             }
-            Area<Z> areaContainingZone = zonePartition.areaContaining(zone);
+        }
+
+        private Area<Z> findAreaContainingZoneWithoutOccupant(Z zone) {
+            Area<Z> areaContainingZone = findAreaContainingZone(zone);
             if (areaContainingZone.isOccupied()) {
                 throw new IllegalArgumentException("The area is already occupied.");
             }
             return areaContainingZone;
         }
+
 
         /**
          * Adds to the area containing the given zone an initial occupant of the given color after checking
@@ -106,8 +112,7 @@ public record ZonePartition<Z extends Zone>(Set<Area<Z>> areas) {
          */
         public void addInitialOccupant(Z zone, PlayerColor color) {
             // Check if the zone is available in the partition and find the area containing the given zone
-            Area<Z> areaContainingZone = findAreaContainingZone(zone);
-
+            Area<Z> areaContainingZone = findAreaContainingZoneWithoutOccupant(zone);
             // Create a new area without the occupant of the given color
             Area<Z> newArea = areaContainingZone.withInitialOccupant(color);
             // Replace the area containing the given zone by the new one in the set of areas
@@ -124,14 +129,12 @@ public record ZonePartition<Z extends Zone>(Set<Area<Z>> areas) {
          */
         public void removeOccupant(Z zone, PlayerColor color) {
             // Check if the zone is available in the partition and find the area containing the given zone
-            Area<Z> areaContainingZone = findAreaContainingZone(zone);
-
+            Area<Z> areaContainingZone = findAreaContainingZoneWithoutOccupant(zone);
             // Create a new area without the occupant of the given color
             Area<Z> newArea = areaContainingZone.withoutOccupant(color);
             // Replace the area containing the given zone by the new one in the set of areas
             areas.remove(areaContainingZone);
             areas.add(newArea);
-
         }
 
         /**
@@ -145,7 +148,6 @@ public record ZonePartition<Z extends Zone>(Set<Area<Z>> areas) {
             if (!areas.contains(area)) {
                 throw new IllegalArgumentException("The area is not part of the partition.");
             }
-
             // Create a new area with no occupants
             Area<Z> unoccupiedArea = area.withoutOccupants();
             // Replace the area containing the given zone by the new one in the set of areas
@@ -163,22 +165,11 @@ public record ZonePartition<Z extends Zone>(Set<Area<Z>> areas) {
          *                                  of the partition
          */
         public void union(Z zone1, Z zone2) {
-            // Create a zone partition (needed to use areaContaining method) containing the set of areas
-            ZonePartition<Z> zonePartition = new ZonePartition<>(areas);
-            try {
-                zonePartition.areaContaining(zone1);
-                zonePartition.areaContaining(zone2);
-            } catch (IllegalArgumentException e) {
-                throw new IllegalArgumentException("At least one of the zones is not assigned to any area.");
-            }
-            // If zone1 and zone2 are part of the same area, connect this area to itself
-            if (zonePartition.areaContaining(zone1).equals(zonePartition.areaContaining(zone2))) {
-                zonePartition.areaContaining(zone1).connectTo(zonePartition.areaContaining(zone1));
-            }
-            // Otherwise connect to each other the two areas containing respectively zone1 and zone2
-            else {
-                zonePartition.areaContaining(zone1).connectTo(zonePartition.areaContaining(zone2));
-            }
+            Area<Z> area1 = findAreaContainingZone(zone1);
+            Area<Z> area2 = findAreaContainingZone(zone2);
+            // If the two zones are not assigned to the same area, connect the two areas
+            // Otherwise connect the area to itself
+            area1.connectTo(area1.equals(area2) ? area1 : area2);
         }
 
         /**
