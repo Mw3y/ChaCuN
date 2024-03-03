@@ -16,20 +16,22 @@ import java.util.stream.Collectors;
 public record Area<Z extends Zone>(Set<Z> zones, List<PlayerColor> occupants, int openConnections) {
 
     /**
-     * Defensive copy of zones and occupants. Validates the number of open connections.
+     * Defensive copy of zones and occupants. Validates the number of open connections and sorts
+     * the occupants by color.
      *
      * @throws IllegalArgumentException if the number of open connections is negative
      */
     public Area {
         Objects.requireNonNull(openConnections);
-
-        zones = Set.copyOf(zones);
-        occupants = List.copyOf(occupants);
-        Collections.sort(occupants);
-
         if (openConnections < 0) {
             throw new IllegalArgumentException("Negative number of open connections");
         }
+
+        zones = Set.copyOf(zones);
+        List<PlayerColor> sortedOccupants = new ArrayList<>(occupants);
+        Collections.sort(sortedOccupants);
+        occupants = List.copyOf(sortedOccupants);
+
     }
 
     /**
@@ -55,12 +57,12 @@ public record Area<Z extends Zone>(Set<Z> zones, List<PlayerColor> occupants, in
     }
 
     /**
-     * Counts the number of animals in a given meadow area, excluding cancelled animals.
+     * Returns the set of animals in a given meadow area, excluding cancelled animals.
      * <p>Cancelled animals can be, for example, deer eaten by smilodons.
      *
      * @param meadow           the meadow area to count animals in
      * @param cancelledAnimals the set of animals to exclude
-     * @return the number of animals in the meadow, excluding the cancelled animals
+     * @return the set of animals in the meadow, excluding the cancelled animals
      */
     public static Set<Animal> animals(Area<Zone.Meadow> meadow, Set<Animal> cancelledAnimals) {
         return meadow.zones.stream()
@@ -134,16 +136,23 @@ public record Area<Z extends Zone>(Set<Z> zones, List<PlayerColor> occupants, in
         int max = 0;
         // Count occurrences of each player color
         int[] occupantCount = new int[PlayerColor.ALL.size()];
-        for (PlayerColor occupant : occupants) {
+        /**for (PlayerColor occupant : occupants) {
             int newCount = occupantCount[occupant.ordinal()]++;
             if (max < newCount)
+                max = newCount;
+        }*/
+        for (PlayerColor occupant : occupants) {
+            int newCount = (int) occupants.stream().filter(o -> o == occupant).count();
+            occupantCount[occupant.ordinal()] = newCount;
+            if(newCount > max)
                 max = newCount;
         }
         // Find the majority occupants
         Set<PlayerColor> majorityOccupants = new HashSet<>();
         for (int i = 0; i < occupantCount.length; i++) {
-            if (occupantCount[i] == max)
+            if (occupantCount[i] == max){
                 majorityOccupants.add(PlayerColor.ALL.get(i));
+            }
         }
 
         return majorityOccupants;
