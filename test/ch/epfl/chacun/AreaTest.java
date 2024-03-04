@@ -225,6 +225,14 @@ public class AreaTest {
     }
 
     @Test
+    void majorityOccupantsWorksWithoutOccupants() {
+        List<PlayerColor> occupants = new ArrayList<>();
+        Area<Forest> forestArea = new Area<>(new HashSet<>(), occupants, 3);
+
+        assertEquals(Set.of(PlayerColor.BLUE, PlayerColor.YELLOW, PlayerColor.RED, PlayerColor.GREEN, PlayerColor.PURPLE), forestArea.majorityOccupants());
+    }
+
+    @Test
     void connectToWorksWithOtherArea() {
         Set<Forest> forestZones1 = new HashSet<>();
         Set<Forest> forestZones2 = new HashSet<>();
