@@ -224,4 +224,53 @@ public class AreaTest {
         assertEquals(Set.of(PlayerColor.BLUE, PlayerColor.YELLOW), forestArea.majorityOccupants());
     }
 
+    @Test
+    void connectToWorksWithOtherArea() {
+        Set<Forest> forestZones1 = new HashSet<>();
+        Set<Forest> forestZones2 = new HashSet<>();
+        Set<Forest> forestZones3 = new HashSet<>();
+        forestZones1.add(new Forest(0, Forest.Kind.PLAIN));
+        forestZones2.add(new Forest(1, Forest.Kind.PLAIN));
+        forestZones3.add(new Forest(0, Forest.Kind.PLAIN));
+        forestZones3.add(new Forest(1, Forest.Kind.PLAIN));
+        List<PlayerColor> occupants = new ArrayList<>();
+        Area<Forest> forestArea1 = new Area<>(forestZones1, occupants, 4);
+        Area<Forest> forestArea2 = new Area<>(forestZones2, occupants, 4);
+        Area<Forest> forestArea3 = new Area<>(forestZones3, occupants, 6);
+
+        assertEquals(forestArea3, forestArea1.connectTo(forestArea2));
+
+    }
+    @Test
+    void connectToWorksWithItself() {
+        Set<Forest> forestZones1 = new HashSet<>();
+        Set<Forest> forestZones2 = new HashSet<>();
+        forestZones1.add(new Forest(0, Forest.Kind.PLAIN));
+        forestZones1.add(new Forest(1, Forest.Kind.PLAIN));
+        forestZones1.add(new Forest(2, Forest.Kind.PLAIN));
+        forestZones1.add(new Forest(3, Forest.Kind.PLAIN));
+        forestZones2.add(new Forest(0, Forest.Kind.PLAIN));
+        forestZones2.add(new Forest(1, Forest.Kind.PLAIN));
+        forestZones2.add(new Forest(2, Forest.Kind.PLAIN));
+        forestZones2.add(new Forest(3, Forest.Kind.PLAIN));
+        List<PlayerColor> occupants = new ArrayList<>();
+        Area<Forest> forestArea1 = new Area<>(forestZones1, occupants, 10);
+        Area<Forest> forestArea2 = new Area<>(forestZones2, occupants, 8);
+
+
+        assertEquals(forestArea2, forestArea1.connectTo(forestArea1));
+
+    }
+    @Test
+    void withInitialOccupantThrowsOnOccupiedArea(){
+        Set<Forest> forestZones = new HashSet<>();
+        forestZones.add(new Forest(0, Forest.Kind.PLAIN));
+        List<PlayerColor> occupants = new ArrayList<>(List.of(PlayerColor.RED));
+        Area<Forest> forestArea = new Area<>(forestZones, occupants, 3);
+
+        assertThrows(IllegalArgumentException.class, () -> forestArea.withInitialOccupant(PlayerColor.BLUE));
+
+    }
+
+
 }
