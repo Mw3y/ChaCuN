@@ -22,9 +22,7 @@ public record Area<Z extends Zone>(Set<Z> zones, List<PlayerColor> occupants, in
      * @throws IllegalArgumentException if the number of open connections is negative
      */
     public Area {
-        if (openConnections < 0) {
-            throw new IllegalArgumentException("Negative number of open connections");
-        }
+        Preconditions.checkArgument(openConnections >= 0);
 
         zones = Set.copyOf(zones);
         occupants = new ArrayList<>(occupants);
@@ -182,9 +180,7 @@ public record Area<Z extends Zone>(Set<Z> zones, List<PlayerColor> occupants, in
      * @throws IllegalArgumentException if the area is already occupied
      */
     public Area<Z> withInitialOccupant(PlayerColor occupant) {
-        if (!occupants.isEmpty()) {
-            throw new IllegalArgumentException("The area is already occupied.");
-        }
+        Preconditions.checkArgument(occupants.isEmpty());
         return new Area<>(zones, List.of(occupant), openConnections);
     }
 
@@ -196,9 +192,7 @@ public record Area<Z extends Zone>(Set<Z> zones, List<PlayerColor> occupants, in
      * @throws IllegalArgumentException if the area does not contain an occupant of the given color
      */
     public Area<Z> withoutOccupant(PlayerColor occupant) {
-        if (!occupants.contains(occupant)) {
-            throw new IllegalArgumentException("The are does not contain an occupant of the given color.");
-        }
+        Preconditions.checkArgument(occupants.contains(occupant));
         // Copy the list of occupant since this class is immutable
         // and remove the first occurrence of the given occupant
         List<PlayerColor> filteredOccupants = new ArrayList<>(occupants);
