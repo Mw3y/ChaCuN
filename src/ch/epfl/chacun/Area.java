@@ -211,12 +211,13 @@ public record Area<Z extends Zone>(Set<Z> zones, List<PlayerColor> occupants, in
     }
 
     /**
-     * Returns the set of all the tiles ids containing the area.
+     * Returns the set of the ids of all the tiles containing the area.
      *
-     * @return the set of all the tiles ids containing the area
+     * @return the set of the ids of all the tiles containing the area
      */
     public Set<Integer> tileIds() {
         return zones.stream().map(Zone::tileId).collect(Collectors.toSet());
+
     }
 
     /**

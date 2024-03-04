@@ -249,6 +249,7 @@ public class AreaTest {
         assertEquals(forestArea3, forestArea1.connectTo(forestArea2));
 
     }
+
     @Test
     void connectToWorksWithItself() {
         Set<Forest> forestZones1 = new HashSet<>();
@@ -269,8 +270,9 @@ public class AreaTest {
         assertEquals(forestArea2, forestArea1.connectTo(forestArea1));
 
     }
+
     @Test
-    void withInitialOccupantThrowsOnOccupiedArea(){
+    void withInitialOccupantThrowsOnOccupiedArea() {
         Set<Forest> forestZones = new HashSet<>();
         forestZones.add(new Forest(0, Forest.Kind.PLAIN));
         List<PlayerColor> occupants = new ArrayList<>(List.of(PlayerColor.RED));
@@ -280,5 +282,37 @@ public class AreaTest {
 
     }
 
+    @Test
+    void withInitialOccupantWorks() {
+        Set<Forest> forestZones = new HashSet<>();
+        forestZones.add(new Forest(0, Forest.Kind.PLAIN));
+        List<PlayerColor> occupants1 = new ArrayList<>();
+        List<PlayerColor> occupants2 = new ArrayList<>(List.of(PlayerColor.YELLOW));
+        Area<Forest> forestArea1 = new Area<>(forestZones, occupants1, 3);
+        Area<Forest> forestArea2 = new Area<>(forestZones, occupants2, 3);
+
+        assertEquals(forestArea2, forestArea1.withInitialOccupant(PlayerColor.YELLOW));
+    }
+
+    @Test
+    void withoutOccupantThrowsWhenNoOccupantOfGivenColor() {
+        Set<Forest> forestZones = new HashSet<>();
+        forestZones.add(new Forest(0, Forest.Kind.PLAIN));
+        List<PlayerColor> occupants = new ArrayList<>(List.of(PlayerColor.RED));
+        Area<Forest> forestArea = new Area<>(forestZones, occupants, 3);
+        assertThrows(IllegalArgumentException.class, () -> forestArea.withoutOccupant(PlayerColor.YELLOW));
+    }
+
+    @Test
+    void withoutOccupantWorks() {
+        Set<Forest> forestZones = new HashSet<>();
+        forestZones.add(new Forest(0, Forest.Kind.PLAIN));
+        List<PlayerColor> occupants1 = new ArrayList<>(List.of(PlayerColor.YELLOW));
+        List<PlayerColor> occupants2 = new ArrayList<>();
+        Area<Forest> forestArea1 = new Area<>(forestZones, occupants1, 3);
+        Area<Forest> forestArea2 = new Area<>(forestZones, occupants2, 3);
+
+        assertEquals(forestArea2, forestArea1.withoutOccupant(PlayerColor.YELLOW));
+    }
 
 }
