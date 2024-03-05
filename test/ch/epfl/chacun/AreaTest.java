@@ -229,7 +229,7 @@ public class AreaTest {
         List<PlayerColor> occupants = new ArrayList<>();
         Area<Forest> forestArea = new Area<>(new HashSet<>(), occupants, 3);
 
-        assertEquals(Set.of(PlayerColor.BLUE, PlayerColor.YELLOW, PlayerColor.RED, PlayerColor.GREEN, PlayerColor.PURPLE), forestArea.majorityOccupants());
+        assertEquals(Set.of(), forestArea.majorityOccupants());
     }
 
     @Test

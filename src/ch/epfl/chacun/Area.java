@@ -27,6 +27,8 @@ public record Area<Z extends Zone>(Set<Z> zones, List<PlayerColor> occupants, in
         zones = Set.copyOf(zones);
         occupants = new ArrayList<>(occupants);
         Collections.sort(occupants);
+        // Make occupants immutable
+        occupants = List.copyOf(occupants);
     }
 
     /**
@@ -128,6 +130,10 @@ public record Area<Z extends Zone>(Set<Z> zones, List<PlayerColor> occupants, in
      * @return the players that have the majority of occupants in the area
      */
     public Set<PlayerColor> majorityOccupants() {
+        // Special case: no occupants
+        if (occupants.isEmpty())
+            return new HashSet<>();
+
         int max = 0;
         // Count occurrences of each player color
         int[] occupantCount = new int[PlayerColor.ALL.size()];
@@ -154,20 +160,22 @@ public record Area<Z extends Zone>(Set<Z> zones, List<PlayerColor> occupants, in
      * @return the new area resulting from the connection
      */
     public Area<Z> connectTo(Area<Z> newArea) {
-        // Merge the zones of both areas into one
         Set<Z> zones = new HashSet<>();
         zones.addAll(this.zones);
-        zones.addAll(newArea.zones);
-        // Add the new occupants to the current ones
+
         List<PlayerColor> occupants = new ArrayList<>();
         occupants.addAll(this.occupants);
-        occupants.addAll(newArea.occupants);
         // Calculate the new number of open connections
         // The new area will have 2 less open connections, as each area had at least one open connection
-        // In case both areas are not the same, we need to add the open connections of the new area
-        int openConnections = this.equals(newArea)
-                ? this.openConnections - 2
-                : this.openConnections + newArea.openConnections - 2;
+        int openConnections = this.openConnections - 2;
+        // Merge the zones of both areas into one
+        // Add the new occupants to the current ones
+        if(!this.equals(newArea)) {
+            zones.addAll(newArea.zones);
+            occupants.addAll(newArea.occupants);
+            // In case both areas are not the same, we need to add the open connections of the new area
+            openConnections += newArea.openConnections;
+        }
         // Create the new area
         return new Area<>(zones, occupants, openConnections);
     }
