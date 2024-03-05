@@ -137,11 +137,11 @@ public record ZonePartition<Z extends Zone>(Set<Area<Z>> areas) {
          *
          * @param zone  the given zone
          * @param color the given occupant color
-         * @throws IllegalArgumentException if
+         * @throws IllegalArgumentException if the given zone is not assigned to any area
          */
         public void removeOccupant(Z zone, PlayerColor color) {
             // Check if the zone is available in the partition and find the area containing the given zone
-            Area<Z> areaContainingZone = findAreaContainingZoneWithoutOccupant(zone);
+            Area<Z> areaContainingZone = findAreaContainingZone(zone);
             // Create a new area without the occupant of the given color
             Area<Z> newArea = areaContainingZone.withoutOccupant(color);
             // Replace the area containing the given zone by the new one in the set of areas
@@ -157,7 +157,7 @@ public record ZonePartition<Z extends Zone>(Set<Area<Z>> areas) {
          * @throws IllegalArgumentException if the area is not part of the partition
          */
         public void removeAllOccupantsOf(Area<Z> area) {
-            Preconditions.checkArgument(!areas.contains(area));
+            Preconditions.checkArgument(areas.contains(area));
             // Create a new area with no occupants
             Area<Z> unoccupiedArea = area.withoutOccupants();
             // Replace the area containing the given zone by the new one in the set of areas
