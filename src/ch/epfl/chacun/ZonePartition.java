@@ -50,7 +50,6 @@ public record ZonePartition<Z extends Zone>(Set<Area<Z>> areas) {
      */
     public static final class Builder<Z extends Zone> {
         // The set of areas constituting the partition
-        // TODO?: final?
         private final Set<Area<Z>> areas;
 
         /**
@@ -129,7 +128,7 @@ public record ZonePartition<Z extends Zone>(Set<Area<Z>> areas) {
          */
         public void removeOccupant(Z zone, PlayerColor color) {
             // Check if the zone is available in the partition and find the area containing the given zone
-            Area<Z> areaContainingZone = findAreaContainingZoneWithoutOccupant(zone);
+            Area<Z> areaContainingZone = findAreaContainingZone(zone);
             // Create a new area without the occupant of the given color
             Area<Z> newArea = areaContainingZone.withoutOccupant(color);
             // Replace the area containing the given zone by the new one in the set of areas
