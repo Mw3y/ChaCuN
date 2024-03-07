@@ -50,7 +50,6 @@ public record ZonePartition<Z extends Zone>(Set<Area<Z>> areas) {
      */
     public static final class Builder<Z extends Zone> {
         // The set of areas constituting the partition
-        // TODO?: final?
         private final Set<Area<Z>> areas;
 
         /**
@@ -74,10 +73,11 @@ public record ZonePartition<Z extends Zone>(Set<Area<Z>> areas) {
         }
 
         /**
-         * Returns a valid area for the given zone.
+         * Checks the validity of a given zone and returns the area of the partition
+         * containing the given zone.
          * <p>
-         * Checks if the given zone is assigned to any area of the partition and returns the area containing
-         * the given zone.
+         * Verifies if the given zone is already occupied or not assigned to any area of the partition
+         * and throws {@link IllegalArgumentException} if so.
          *
          * @param zone the zone to check
          * @return the area of the partition containing the given zone
@@ -93,16 +93,6 @@ public record ZonePartition<Z extends Zone>(Set<Area<Z>> areas) {
             }
         }
 
-        /**
-         * Returns a valid area for the given zone.
-         * <p>
-         * Checks if the given zone is assigned to any area of the partition and if the area containing
-         * the given zone is already occupied.
-         * Returns the area containing the given zone.
-         *
-         * @param zone the zone to check
-         * @return the area containing the given zone
-         */
         private Area<Z> findAreaContainingZoneWithoutOccupant(Z zone) {
             Area<Z> areaContainingZone = findAreaContainingZone(zone);
             if (areaContainingZone.isOccupied()) {
@@ -118,8 +108,6 @@ public record ZonePartition<Z extends Zone>(Set<Area<Z>> areas) {
          *
          * @param zone  the given zone
          * @param color the given occupant color
-         * @throws IllegalArgumentException if the given zone is not assigned to any area or if the area
-         *                                  is already occupied
          */
         public void addInitialOccupant(Z zone, PlayerColor color) {
             // Check if the zone is available in the partition and find the area containing the given zone
@@ -137,7 +125,6 @@ public record ZonePartition<Z extends Zone>(Set<Area<Z>> areas) {
          *
          * @param zone  the given zone
          * @param color the given occupant color
-         * @throws IllegalArgumentException if the given zone is not assigned to any area
          */
         public void removeOccupant(Z zone, PlayerColor color) {
             // Check if the zone is available in the partition and find the area containing the given zone
@@ -179,7 +166,15 @@ public record ZonePartition<Z extends Zone>(Set<Area<Z>> areas) {
             Area<Z> area2 = findAreaContainingZone(zone2);
             // If the two zones are not assigned to the same area, connect the two areas
             // Otherwise connect the area to itself
-            area1.connectTo(area1.equals(area2) ? area1 : area2);
+            if(!area1.equals(area2)) {
+                // Remove the two areas from the set of areas and add the new one
+                areas.remove(area1);
+                areas.remove(area2);
+            } else {
+                // Remove the area from the set of areas and add the new one
+                areas.remove(area1);
+            }
+            areas.add(area1.connectTo(area2));
         }
 
         /**
