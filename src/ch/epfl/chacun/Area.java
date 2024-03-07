@@ -160,11 +160,8 @@ public record Area<Z extends Zone>(Set<Z> zones, List<PlayerColor> occupants, in
      * @return the new area resulting from the connection
      */
     public Area<Z> connectTo(Area<Z> newArea) {
-        Set<Z> zones = new HashSet<>();
-        zones.addAll(this.zones);
-
-        List<PlayerColor> occupants = new ArrayList<>();
-        occupants.addAll(this.occupants);
+        Set<Z> zones = new HashSet<>(this.zones);
+        List<PlayerColor> occupants = new ArrayList<>(this.occupants);
         // Calculate the new number of open connections
         // The new area will have 2 less open connections, as each area had at least one open connection
         int openConnections = this.openConnections - 2;

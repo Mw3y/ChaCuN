@@ -144,9 +144,7 @@ public record ZonePartition<Z extends Zone>(Set<Area<Z>> areas) {
          * @throws IllegalArgumentException if the area is not part of the partition
          */
         public void removeAllOccupantsOf(Area<Z> area) {
-            if (!areas.contains(area)) {
-                throw new IllegalArgumentException("The area is not part of the partition.");
-            }
+            Preconditions.checkArgument(areas.contains(area));
             // Create a new area with no occupants
             Area<Z> unoccupiedArea = area.withoutOccupants();
             // Replace the area containing the given zone by the new one in the set of areas
@@ -168,7 +166,15 @@ public record ZonePartition<Z extends Zone>(Set<Area<Z>> areas) {
             Area<Z> area2 = findAreaContainingZone(zone2);
             // If the two zones are not assigned to the same area, connect the two areas
             // Otherwise connect the area to itself
-            area1.connectTo(area1.equals(area2) ? area1 : area2);
+            if(!area1.equals(area2)) {
+                // Remove the two areas from the set of areas and add the new one
+                areas.remove(area1);
+                areas.remove(area2);
+            } else {
+                // Remove the area from the set of areas and add the new one
+                areas.remove(area1);
+            }
+            areas.add(area1.connectTo(area2));
         }
 
         /**

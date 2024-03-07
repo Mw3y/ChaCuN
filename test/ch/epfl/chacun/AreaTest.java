@@ -315,4 +315,35 @@ public class AreaTest {
         assertEquals(forestArea2, forestArea1.withoutOccupant(PlayerColor.YELLOW));
     }
 
+    @Test
+    void zoneWithSpecialPowerReturnsNullWhenNoSpecialPower() {
+        Set<Meadow> meadows = new HashSet<>();
+        meadows.add(new Meadow(0, new ArrayList<>(), null));
+        List<PlayerColor> occupants1 = new ArrayList<>(List.of(PlayerColor.YELLOW));
+        Area<Meadow> meadowArea = new Area<>(meadows, occupants1, 3);
+
+        assertNull(meadowArea.zoneWithSpecialPower(SpecialPower.HUNTING_TRAP));
+    }
+
+    @Test
+    void zoneWithSpecialPowerReturnsNullWhenDifferentSpecialPower() {
+        Set<Meadow> meadows = new HashSet<>();
+        meadows.add(new Meadow(0, new ArrayList<>(), SpecialPower.HUNTING_TRAP));
+        List<PlayerColor> occupants1 = new ArrayList<>(List.of(PlayerColor.YELLOW));
+        Area<Meadow> meadowArea = new Area<>(meadows, occupants1, 3);
+
+        assertNull(meadowArea.zoneWithSpecialPower(SpecialPower.LOGBOAT));
+    }
+
+    @Test
+    void zoneWithSpecialPowerWorks() {
+        Set<Meadow> meadows = new HashSet<>();
+        Meadow meadowWithSpecialPower = new Meadow(0, new ArrayList<>(), SpecialPower.HUNTING_TRAP);
+        meadows.add(meadowWithSpecialPower);
+        List<PlayerColor> occupants1 = new ArrayList<>(List.of(PlayerColor.YELLOW));
+        Area<Meadow> meadowArea = new Area<>(meadows, occupants1, 3);
+
+        assertEquals(meadowWithSpecialPower, meadowArea.zoneWithSpecialPower(SpecialPower.HUNTING_TRAP));
+    }
+
 }
