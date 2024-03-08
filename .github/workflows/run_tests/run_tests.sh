@@ -5,7 +5,7 @@ echo "Build in progress..."
 javac -version
 
 # ChaCuN/scripts/run_tests
-ROOT_DIR=../..
+ROOT_DIR=../../..
 
 find "${ROOT_DIR}/src/ch/epfl/chacun" -name "*.java" > src_files.txt
 find "${ROOT_DIR}/test/ch/epfl/chacun" -name "*.java" > test_files.txt
