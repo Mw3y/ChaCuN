@@ -16,6 +16,6 @@ jobs:
           distribution: 'temurin'
 
       - name: Run tests
-        working-directory: ./run_tests
+        working-directory: .github/workflows/run_tests
         run: |
           ./run_tests.sh
