@@ -73,13 +73,21 @@ public record ZonePartitions(ZonePartition<Zone.Forest> forests, ZonePartition<Z
                         // Create the union between the river and the lake
                         riverSystems.addSingleton(r, openConnections[r.id()]);
                         riverSystems.addSingleton(r.lake(), openConnections[r.lake().id()]);
-                        riverSystems.union(r.lake(), r);
+                        riverSystems.union(r, r.lake());
                     }
                     // A lake should not be in the side zones
                     default -> throw new IllegalArgumentException("A lake shouldn't be in the side zones");
                 }
             }
         }
+
+        /**
+         * Connects each other the two given tile sides by connecting the corresponding areas.
+         *
+         * @param s1 the first tile side
+         * @param s2 the second tile side
+         * @throws IllegalArgumentException if the two given tile sides are not of the same kind
+         */
 
         public void connectSides(TileSide s1, TileSide s2) {
             switch (s1) {
@@ -89,10 +97,11 @@ public record ZonePartitions(ZonePartition<Zone.Forest> forests, ZonePartition<Z
                 case TileSide.Forest(Zone.Forest f1) when s2 instanceof TileSide.Forest(Zone.Forest f2) -> {
                     forests.union(f1, f2);
                 }
-                case TileSide.River(Zone.Meadow m1, Zone.River r1, Zone.Meadow m2) -> {
-                    if (s2 instanceof TileSide.River(Zone.Meadow m3, Zone.River r2, Zone.Meadow m4)) {
-                        rivers.union(r1, r2);
-                    }
+                case TileSide.River(Zone.Meadow m3, Zone.River r1, Zone.Meadow m4)
+                        when s2 instanceof TileSide.River(Zone.Meadow m5, Zone.River r2, Zone.Meadow m6) -> {
+                    rivers.union(r1, r2);
+                    meadows.union(m3, m5);
+                    meadows.union(m4, m6);
                 }
                 default -> throw new IllegalArgumentException("The tile sides are not of the same kind");
             }
