@@ -26,12 +26,12 @@ public class ZonePartitionsTest {
 
         Tile tile = new Tile(56, Tile.Kind.START, nSide, eSide, sSide, wSide);
 
-        Set<Zone.Meadow> meadows1 = new HashSet<>(Set.of(meadow0));
-        Set<Zone.Meadow> meadows2 = new HashSet<>(Set.of(meadow2));
-        Set<Zone.Forest> forests = new HashSet<>(Set.of(forest1));
-        Set<Zone.River> rivers = new HashSet<>(Set.of(river3));
-        Set<Zone.Lake> lakes = new HashSet<>(Set.of(lake8));
-        Set<Zone.Water> waterZones = new HashSet<>(Set.of(river3, lake8));
+        Set<Zone.Meadow> meadows1 = Set.of(meadow0);
+        Set<Zone.Meadow> meadows2 = Set.of(meadow2);
+        Set<Zone.Forest> forests = Set.of(forest1);
+        Set<Zone.River> rivers = Set.of(river3);
+        Set<Zone.Lake> lakes = Set.of(lake8);
+        Set<Zone.Water> waterZones = Set.of(river3, lake8);
 
         Area<Zone.Meadow> meadowArea1 = new Area<>(meadows1, new ArrayList<>(), 2);
         Area<Zone.Meadow> meadowArea2 = new Area<>(meadows2, new ArrayList<>(), 1);
