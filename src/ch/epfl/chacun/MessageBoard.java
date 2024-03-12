@@ -26,8 +26,7 @@ public record MessageBoard(TextMaker textMaker, List<Message> messages) {
         Map<PlayerColor, Integer> scorers = new HashMap<>();
         for (Message message : messages) {
             for (PlayerColor scorer : message.scorers) {
-                scorers.putIfAbsent(scorer, 0);
-                scorers.put(scorer, scorers.get(scorer) + message.points);
+                scorers.put(scorer, scorers.getOrDefault(scorer, 0) + message.points);
             }
         }
         return scorers;
@@ -209,8 +208,7 @@ public record MessageBoard(TextMaker textMaker, List<Message> messages) {
             Set<PlayerColor> scorers = meadow.majorityOccupants();
             // Don't create a message if no points are scored
             if (points > 0) {
-                String messageContent = textMaker
-                        .playersScoredMeadow(scorers, points, animalCount);
+                String messageContent = textMaker.playersScoredMeadow(scorers, points, animalCount);
                 // Create the message
                 ArrayList<Message> messages = new ArrayList<>(this.messages);
                 messages.add(new Message(messageContent, points, scorers, meadow.tileIds()));
@@ -243,7 +241,9 @@ public record MessageBoard(TextMaker textMaker, List<Message> messages) {
                     animalCount.get(Animal.Kind.MAMMOTH),
                     animalCount.get(Animal.Kind.AUROCHS),
                     animalCount.get(Animal.Kind.DEER));
+
             Set<PlayerColor> scorers = adjacentMeadow.majorityOccupants();
+            // Don't create a message if no points are scored
             if (points > 0) {
                 String messageContent = textMaker.playersScoredPitTrap(scorers, points, animalCount);
                 ArrayList<Message> messages = new ArrayList<>(this.messages);
