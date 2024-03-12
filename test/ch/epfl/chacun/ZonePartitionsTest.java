@@ -50,5 +50,26 @@ public class ZonePartitionsTest {
         testBuilder.addTile(tile);
 
         assertEquals(expectedZonePartitions, testBuilder.build());
+
     }
+
+    @Test
+    void connectSidesWorks() {
+        // Meadows
+        Zone.Meadow meadow1 = new Zone.Meadow(0, new ArrayList<>(List.of(new Animal(0
+                , Animal.Kind.AUROCHS))), null);
+        Zone.Meadow meadow2 = new Zone.Meadow(1, new ArrayList<>(), null);
+
+        TileSide.Meadow meadowSide1 = new TileSide.Meadow(meadow1);
+        TileSide.Meadow meadowSide2 = new TileSide.Meadow(meadow2);
+
+        Set<Zone.Meadow> meadows1 = Set.of(meadow1);
+        Set<Zone.Meadow> meadows2 = Set.of(meadow2);
+
+        Area<Zone.Meadow> meadowArea1 = new Area<>(meadows1, new ArrayList<>(), 1);
+        Area<Zone.Meadow> meadowArea2 = new Area<>(meadows2, new ArrayList<>(), 1);
+
+        ZonePartition<Zone.Meadow> meadowZonePartition = new ZonePartition<>(Set.of(meadowArea1, meadowArea2));   
+    }
+
 }

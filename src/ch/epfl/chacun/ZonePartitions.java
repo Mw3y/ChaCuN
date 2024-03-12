@@ -21,13 +21,13 @@ public record ZonePartitions(ZonePartition<Zone.Forest> forests, ZonePartition<Z
      */
     public static final class Builder {
         // The builder of the forests partition
-        private ZonePartition.Builder<Zone.Forest> forests;
+        private final ZonePartition.Builder<Zone.Forest> forests;
         // The builder of the meadows partition
-        private ZonePartition.Builder<Zone.Meadow> meadows;
+        private final ZonePartition.Builder<Zone.Meadow> meadows;
         // The builder of the rivers partition
-        private ZonePartition.Builder<Zone.River> rivers;
+        private final ZonePartition.Builder<Zone.River> rivers;
         // The builder of the river systems partition
-        private ZonePartition.Builder<Zone.Water> riverSystems;
+        private final ZonePartition.Builder<Zone.Water> riverSystems;
 
         /**
          * Returns a new builder whose four partitions are initially identical to those of the given
@@ -82,7 +82,7 @@ public record ZonePartitions(ZonePartition<Zone.Forest> forests, ZonePartition<Z
         }
 
         /**
-         * Connects each other the two given tile sides by connecting the corresponding areas.
+         * Connects to each other the two given tile sides by connecting the corresponding areas.
          *
          * @param s1 the first tile side
          * @param s2 the second tile side
