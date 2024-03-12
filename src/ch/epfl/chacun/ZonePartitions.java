@@ -74,13 +74,13 @@ public record ZonePartitions(ZonePartition<Zone.Forest> forests, ZonePartition<Z
                     case Zone.River r -> {
                         // If a river has a lake, the river has in fact one less open connection
                         rivers.addSingleton(r, openConnections[r.localId()] - 1);
-                        // Create the union between the river and the lake
                         riverSystems.addSingleton(r, openConnections[r.localId()]);
                         // Prevent the same lake from being added twice
                         if (!lakes.contains(r.lake())) {
                             riverSystems.addSingleton(r.lake(), openConnections[r.lake().localId()]);
                             lakes.add(r.lake());
                         }
+                        // Create the union between the river and the lake
                         riverSystems.union(r, r.lake());
                     }
                     // A lake should not be in the side zones
