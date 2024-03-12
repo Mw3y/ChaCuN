@@ -25,7 +25,7 @@ public record ZonePartition<Z extends Zone>(Set<Area<Z>> areas) {
      * Additional constructor to construct a partition with an empty set of areas.
      */
     public ZonePartition() {
-        this(new HashSet<>());
+        this(Set.of());
     }
 
     /**
@@ -145,6 +145,7 @@ public record ZonePartition<Z extends Zone>(Set<Area<Z>> areas) {
          */
         public void removeAllOccupantsOf(Area<Z> area) {
             Preconditions.checkArgument(areas.contains(area));
+            System.out.println(area);
             // Create a new area with no occupants
             Area<Z> unoccupiedArea = area.withoutOccupants();
             // Replace the area containing the given zone by the new one in the set of areas

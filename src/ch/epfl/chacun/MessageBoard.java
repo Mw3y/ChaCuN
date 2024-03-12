@@ -122,7 +122,7 @@ public record MessageBoard(TextMaker textMaker, List<Message> messages) {
     public MessageBoard withScoredHuntingTrap(PlayerColor scorer, Area<Zone.Meadow> adjacentMeadow) {
         Set<Animal> animals = Area.animals(adjacentMeadow, new HashSet<>());
         if (!animals.isEmpty()) {
-            ArrayList<Message> messages = new ArrayList<>(messages());
+            ArrayList<Message> messages = new ArrayList<>(this.messages);
             // Calculate the data needed
             Map<Animal.Kind, Integer> animalCount = countAnimals(animals);
             int points = Points.forMeadow(
@@ -132,6 +132,7 @@ public record MessageBoard(TextMaker textMaker, List<Message> messages) {
             // Create the message
             String messageContent = textMaker.playerScoredHuntingTrap(scorer, points, animalCount);
             messages.add(new Message(messageContent, points, Set.of(scorer), adjacentMeadow.tileIds()));
+            return new MessageBoard(textMaker, messages);
         }
         return this;
     }
