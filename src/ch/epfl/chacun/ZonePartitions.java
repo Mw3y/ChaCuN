@@ -1,5 +1,8 @@
 package ch.epfl.chacun;
 
+import java.util.HashSet;
+import java.util.Set;
+
 /**
  * Represents the partition which regroups the four partitions of the different zones.
  *
@@ -52,27 +55,32 @@ public record ZonePartitions(ZonePartition<Zone.Forest> forests, ZonePartition<Z
             // Calculate the number of open connections for each zone
             for (TileSide side : tile.sides()) {
                 for (Zone zone : side.zones()) {
-                    ++openConnections[zone.id()];
-                    // A lake can have a connection to a river
-                    // And vice versa
+                    ++openConnections[zone.localId()];
+                    // A lake can have a connection to a river and vice versa
                     if (zone instanceof Zone.River river && river.hasLake()) {
-                        ++openConnections[river.lake().id()];
-                        ++openConnections[zone.id()];
+                        ++openConnections[river.lake().localId()];
+                        ++openConnections[zone.localId()];
                     }
                 }
             }
-            // Add the zones to the partitions
+            Set<Zone.Lake> lakes = new HashSet<>();
+            // Add zones to partitions
             for (Zone zone : tile.sideZones()) {
                 switch (zone) {
-                    case Zone.Forest f -> forests.addSingleton(f, openConnections[zone.id()]);
-                    case Zone.Meadow m -> meadows.addSingleton(m, openConnections[zone.id()]);
-                    case Zone.River r when !r.hasLake() -> rivers.addSingleton(r, openConnections[r.id()]);
+                    case Zone.Forest f -> forests.addSingleton(f, openConnections[zone.localId()]);
+                    case Zone.Meadow m -> meadows.addSingleton(m, openConnections[zone.localId()]);
+                    case Zone.River r when !r.hasLake() ->
+                            rivers.addSingleton(r, openConnections[r.localId()]);
                     case Zone.River r -> {
-                        // If the river has a lake, the river has one less open connection
-                        rivers.addSingleton(r, openConnections[r.id()] - 1);
+                        // If a river has a lake, the river has in fact one less open connection
+                        rivers.addSingleton(r, openConnections[r.localId()] - 1);
                         // Create the union between the river and the lake
-                        riverSystems.addSingleton(r, openConnections[r.id()]);
-                        riverSystems.addSingleton(r.lake(), openConnections[r.lake().id()]);
+                        riverSystems.addSingleton(r, openConnections[r.localId()]);
+                        // Prevent the same lake from being added twice
+                        if (!lakes.contains(r.lake())) {
+                            riverSystems.addSingleton(r.lake(), openConnections[r.lake().localId()]);
+                            lakes.add(r.lake());
+                        }
                         riverSystems.union(r, r.lake());
                     }
                     // A lake should not be in the side zones
@@ -97,8 +105,9 @@ public record ZonePartitions(ZonePartition<Zone.Forest> forests, ZonePartition<Z
                 case TileSide.Forest(Zone.Forest f1) when s2 instanceof TileSide.Forest(Zone.Forest f2) -> {
                     forests.union(f1, f2);
                 }
-                case TileSide.River(Zone.Meadow m3, Zone.River r1, Zone.Meadow m4)
-                        when s2 instanceof TileSide.River(Zone.Meadow m5, Zone.River r2, Zone.Meadow m6) -> {
+                case TileSide.River(
+                        Zone.Meadow m3, Zone.River r1, Zone.Meadow m4
+                ) when s2 instanceof TileSide.River(Zone.Meadow m5, Zone.River r2, Zone.Meadow m6) -> {
                     rivers.union(r1, r2);
                     meadows.union(m3, m5);
                     meadows.union(m4, m6);
@@ -129,7 +138,7 @@ public record ZonePartitions(ZonePartition<Zone.Forest> forests, ZonePartition<Z
                 switch (occupiedZone) {
                     case Zone.River river when !river.hasLake() -> rivers.addInitialOccupant(river, player);
                     case Zone.River river -> riverSystems.addInitialOccupant(river.lake(), player);
-                    default -> throw new IllegalArgumentException("A hut can only be on a lake or a river");
+                    default -> throw new IllegalArgumentException("A hut can only be on a lake or river");
                 }
             }
         }
