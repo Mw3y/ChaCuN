@@ -109,8 +109,8 @@ public record ZonePartitions(ZonePartition<Zone.Forest> forests, ZonePartition<Z
                         Zone.Meadow m3, Zone.River r1, Zone.Meadow m4
                 ) when s2 instanceof TileSide.River(Zone.Meadow m5, Zone.River r2, Zone.Meadow m6) -> {
                     rivers.union(r1, r2);
-                    meadows.union(m3, m5);
-                    meadows.union(m4, m6);
+                    meadows.union(m3, m6);
+                    meadows.union(m4, m5);
                 }
                 default -> throw new IllegalArgumentException("The tile sides are not of the same kind");
             }
