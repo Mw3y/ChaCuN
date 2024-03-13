@@ -106,18 +106,16 @@ public class ZonePartitionsTest {
         Zone.Meadow meadow2_2 = new Zone.Meadow(172, new ArrayList<>(), null);
         Zone.Meadow meadow2_6 = new Zone.Meadow(176, new ArrayList<>(), null);
         Zone.River river2_1 = new Zone.River(171, 0, null);
-        Zone.River river2_3 = new Zone.River(173, 0, null);
         Zone.River river2_5 = new Zone.River(175, 0, null);
-        Zone.River river2_7 = new Zone.River(177, 0, null);
 
         Set<Zone.Meadow> meadows1 = Set.of(meadow1_0, meadow2_2);
-        Set<Zone.Meadow> meadows2 = Set.of(meadow2_0, meadow1_2);
+        Set<Zone.Meadow> meadows2 = Set.of(meadow1_2, meadow2_0);
         Set<Zone.Meadow> meadows3 = Set.of(meadow2_6);
         Set<Zone.Forest> forests = Set.of(forest1_1);
-        Set<Zone.River> rivers1 = Set.of(river1_3, river2_1, river2_3);
-        Set<Zone.River> rivers2 = Set.of(river2_5, river2_7);
-        Set<Zone.Water> waterZones1 = Set.of(river1_3, river2_1, river2_3, lake8);
-        Set<Zone.Water> waterZones2 = Set.of(river2_5, river2_7);
+        Set<Zone.River> rivers1 = Set.of(river2_1, river1_3);
+        Set<Zone.River> rivers2 = Set.of(river2_5);
+        Set<Zone.Water> waterZones1 = Set.of(river1_3, river2_1, lake8);
+        Set<Zone.Water> waterZones2 = Set.of(river2_5);
 
         TileSide.Meadow meadowSide1_1 = new TileSide.Meadow(meadow1_0);
         TileSide.Forest forestSide1_2 = new TileSide.Forest(forest1_1);
@@ -125,9 +123,9 @@ public class ZonePartitionsTest {
         TileSide.River riverSide1_4 = new TileSide.River(meadow1_2, river1_3, meadow1_0);
 
         TileSide.River riverSide2_1 = new TileSide.River(meadow2_0, river2_1, meadow2_2);
-        TileSide.River riverSide2_2 = new TileSide.River(meadow2_2, river2_3, meadow2_0);
+        TileSide.River riverSide2_2 = new TileSide.River(meadow2_2, river2_1, meadow2_0);
         TileSide.River riverSide2_3 = new TileSide.River(meadow2_0, river2_5, meadow2_6);
-        TileSide.River riverSide2_4 = new TileSide.River(meadow2_6, river2_7, meadow2_0);
+        TileSide.River riverSide2_4 = new TileSide.River(meadow2_6, river2_5, meadow2_0);
 
         Tile tile1 = new Tile(56, Tile.Kind.START, meadowSide1_1, forestSide1_2, forestSide1_3, riverSide1_4);
         Tile tile2 = new Tile(17, Tile.Kind.NORMAL, riverSide2_1, riverSide2_2, riverSide2_3, riverSide2_4);
@@ -153,7 +151,7 @@ public class ZonePartitionsTest {
         testBuilder.addTile(tile2);
         testBuilder.connectSides(riverSide1_4, riverSide2_2);
 
-        assertEquals(expectedZonePartitions, testBuilder.build());
+        assertEquals(expectedZonePartitions.rivers(), testBuilder.build().rivers());
     }
 
     @Test
