@@ -147,8 +147,7 @@ public record PlacedTile(Tile tile, PlayerColor placer, Rotation rotation, Pos p
                 if (!(zone instanceof Zone.Lake)) {
                     potentialOccupants.add(new Occupant(Occupant.Kind.PAWN, zone.id()));
                 }
-                // A hut can only be placed on a lake if it is connected to a river
-                // or on a river if there's no lake
+                // A hut can only be placed on a lake or on a river if there's no lake
                 if (zone instanceof Zone.Lake || (zone instanceof Zone.River river && !river.hasLake())) {
                     potentialOccupants.add(new Occupant(Occupant.Kind.HUT, zone.id()));
                 }

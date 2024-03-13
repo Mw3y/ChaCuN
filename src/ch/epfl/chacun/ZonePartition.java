@@ -25,7 +25,7 @@ public record ZonePartition<Z extends Zone>(Set<Area<Z>> areas) {
      * Additional constructor to construct a partition with an empty set of areas.
      */
     public ZonePartition() {
-        this(new HashSet<>());
+        this(Set.of());
     }
 
     /**
