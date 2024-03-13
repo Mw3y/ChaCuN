@@ -69,19 +69,24 @@ public record ZonePartitions(ZonePartition<Zone.Forest> forests, ZonePartition<Z
                 switch (zone) {
                     case Zone.Forest f -> forests.addSingleton(f, openConnections[zone.localId()]);
                     case Zone.Meadow m -> meadows.addSingleton(m, openConnections[zone.localId()]);
-                    case Zone.River r when !r.hasLake() ->
-                            rivers.addSingleton(r, openConnections[r.localId()]);
                     case Zone.River r -> {
-                        // If a river has a lake, the river has in fact one less open connection
-                        rivers.addSingleton(r, openConnections[r.localId()] - 1);
-                        riverSystems.addSingleton(r, openConnections[r.localId()]);
-                        // Prevent the same lake from being added twice
-                        if (!lakes.contains(r.lake())) {
-                            riverSystems.addSingleton(r.lake(), openConnections[r.lake().localId()]);
-                            lakes.add(r.lake());
+                        // Check if the river has a lake
+                        if (r.hasLake()) {
+                            // If a river has a lake, the river has in fact one less open connection
+                            rivers.addSingleton(r, openConnections[r.localId()] - 1);
+                            riverSystems.addSingleton(r, openConnections[r.localId()]);
+                            // Prevent the same lake from being added twice
+                            if (!lakes.contains(r.lake())) {
+                                riverSystems.addSingleton(r.lake(), openConnections[r.lake().localId()]);
+                                lakes.add(r.lake());
+                            }
+                            // Create the union between the river and the lake
+                            riverSystems.union(r, r.lake());
                         }
-                        // Create the union between the river and the lake
-                        riverSystems.union(r, r.lake());
+                        else {
+                            rivers.addSingleton(r, openConnections[r.localId()]);
+                            riverSystems.addSingleton(r, openConnections[r.localId()]);
+                        }
                     }
                     // A lake should not be in the side zones
                     default -> throw new IllegalArgumentException("A lake shouldn't be in the side zones");
@@ -96,7 +101,6 @@ public record ZonePartitions(ZonePartition<Zone.Forest> forests, ZonePartition<Z
          * @param s2 the second tile side
          * @throws IllegalArgumentException if the two given tile sides are not of the same kind
          */
-
         public void connectSides(TileSide s1, TileSide s2) {
             switch (s1) {
                 case TileSide.Meadow(Zone.Meadow m1) when s2 instanceof TileSide.Meadow(Zone.Meadow m2) -> {
@@ -108,6 +112,7 @@ public record ZonePartitions(ZonePartition<Zone.Forest> forests, ZonePartition<Z
                 case TileSide.River(
                         Zone.Meadow m3, Zone.River r1, Zone.Meadow m4
                 ) when s2 instanceof TileSide.River(Zone.Meadow m5, Zone.River r2, Zone.Meadow m6) -> {
+                    riverSystems.union(r1, r2);
                     rivers.union(r1, r2);
                     meadows.union(m3, m6);
                     meadows.union(m4, m5);
