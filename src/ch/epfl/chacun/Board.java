@@ -1,5 +1,7 @@
 package ch.epfl.chacun;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -82,7 +84,7 @@ public final class Board {
      */
     public Set<Animal> cancelledAnimals() {
         // Defensive copy
-        return Set.copyOf(cancelledAnimals);
+        return Collections.unmodifiableSet(cancelledAnimals);
     }
 
     /**
@@ -236,7 +238,6 @@ public final class Board {
     }
 
     public Set<Area<Zone.Forest>> forestsClosedByLastTile() {
-        PlacedTile lastTile = lastPlacedTile();
         // TODO: implement this method
         return Set.of();
     }
@@ -311,16 +312,42 @@ public final class Board {
         PlacedTile[] newPlacedTiles = placedTiles.clone();
         newPlacedTiles[newTileIndex] = tile;
         // Create the new tile indices array
-        int[] newTileIndices = new int[tileIndices.length + 1];
-        System.arraycopy(tileIndices, 0, newTileIndices, 0, tileIndices.length);
+        int[] newTileIndices = Arrays.copyOf(tileIndices, tileIndices.length + 1);
         newTileIndices[tileIndices.length] = newTileIndex;
+        // Update zone partitions
+        ZonePartitions.Builder builder = new ZonePartitions.Builder(zonePartitions);
+        builder.addTile(tile.tile());
+        for (Direction direction : Direction.ALL) {
+            TileSide side = tile.side(direction);
+            PlacedTile adjacentTile = tileAt(tile.pos().neighbor(direction));
+            if (adjacentTile != null) {
+                builder.connectSides(side, adjacentTile.side(direction.opposite()));
+            }
+        }
         // Create a new board with the new tile
-        return new Board(newPlacedTiles, newTileIndices, zonePartitions, cancelledAnimals());
+        return new Board(newPlacedTiles, newTileIndices, builder.build(), cancelledAnimals());
     }
 
+    /**
+     * Returns the same board, but with the given occupant on the given tile.
+     *
+     * @param occupant the occupant to place
+     * @return the same board, but with the given occupant on the given tile
+     */
     public Board withOccupant(Occupant occupant) {
-        // TODO: implement this method
-        return null;
+        int tileId = Zone.tileId(occupant.zoneId());
+        PlacedTile placedTile = tileWithId(tileId);
+        if (placedTile.occupant() != null) {
+            throw new IllegalArgumentException("The tile already has an occupant.");
+        }
+        // Update zone partitions
+        ZonePartitions.Builder builder = new ZonePartitions.Builder(zonePartitions);
+        builder.addInitialOccupant(placedTile.placer(), occupant.kind(), placedTile.zoneWithId(occupant.zoneId()));
+        // Create the new placed tiles array
+        PlacedTile[] newPlacedTile = placedTiles.clone();
+        newPlacedTile[calculateRowMajorIndex(placedTile.pos())] = placedTile.withOccupant(occupant);
+        // Create the new board
+        return new Board(newPlacedTile, tileIndices.clone(), builder.build(), cancelledAnimals());
     }
 
     public Board withoutOccupant(Occupant occupant) {
@@ -345,6 +372,7 @@ public final class Board {
         for (Area<Zone.River> river : rivers) {
             builder.clearFishers(river);
         }
+        // TODO: Sync placedTile
         // Create the new board
         return new Board(placedTiles.clone(), tileIndices.clone(), builder.build(), cancelledAnimals());
     }
@@ -356,8 +384,19 @@ public final class Board {
      * @return the same board, but with more cancelled animals
      */
     public Board withMoreCancelledAnimals(Set<Animal> newlyCancelledAnimals) {
-        Set<Animal> newCancelledAnimals = new HashSet<>(cancelledAnimals());
+        Set<Animal> newCancelledAnimals = new HashSet<>(cancelledAnimals);
         newCancelledAnimals.addAll(newlyCancelledAnimals);
         return new Board(placedTiles.clone(), tileIndices.clone(), zonePartitions, newCancelledAnimals);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof Board board) {
+            // TODO: Compare zonePartitions
+            return Arrays.equals(placedTiles, board.placedTiles)
+                    && Arrays.equals(tileIndices, board.tileIndices)
+                    && Arrays.equals(cancelledAnimals.toArray(), board.cancelledAnimals.toArray());
+        }
+        return false;
     }
 }
