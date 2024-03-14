@@ -82,7 +82,7 @@ public final class Board {
      */
     public Set<Animal> cancelledAnimals() {
         // Defensive copy
-        return new HashSet<>(cancelledAnimals);
+        return Set.copyOf(cancelledAnimals);
     }
 
     /**
@@ -193,6 +193,7 @@ public final class Board {
         int occupantCount = 0;
         for (int placedTileIndex : tileIndices) {
             PlacedTile placedTile = placedTiles[placedTileIndex];
+            // If a tile has an occupant, it has been placed by the tile placer
             if (placedTile.occupant().kind() == occupantKind && placedTile.placer() == player) {
                 occupantCount++;
             }
@@ -314,10 +315,15 @@ public final class Board {
         System.arraycopy(tileIndices, 0, newTileIndices, 0, tileIndices.length);
         newTileIndices[tileIndices.length] = newTileIndex;
         // Create a new board with the new tile
-        return new Board(newPlacedTiles, newTileIndices, zonePartitions, Set.copyOf(cancelledAnimals));
+        return new Board(newPlacedTiles, newTileIndices, zonePartitions, cancelledAnimals());
     }
 
     public Board withOccupant(Occupant occupant) {
+        // TODO: implement this method
+        return null;
+    }
+
+    public Board withoutOccupant(Occupant occupant) {
         // TODO: implement this method
         return null;
     }
@@ -340,6 +346,18 @@ public final class Board {
             builder.clearFishers(river);
         }
         // Create the new board
-        return new Board(placedTiles.clone(), tileIndices.clone(), builder.build(), Set.copyOf(cancelledAnimals));
+        return new Board(placedTiles.clone(), tileIndices.clone(), builder.build(), cancelledAnimals());
+    }
+
+    /**
+     * Returns the same board, but with more cancelled animals.
+     *
+     * @param newlyCancelledAnimals the set of animals to add to the cancelled animals
+     * @return the same board, but with more cancelled animals
+     */
+    public Board withMoreCancelledAnimals(Set<Animal> newlyCancelledAnimals) {
+        Set<Animal> newCancelledAnimals = new HashSet<>(cancelledAnimals());
+        newCancelledAnimals.addAll(newlyCancelledAnimals);
+        return new Board(placedTiles.clone(), tileIndices.clone(), zonePartitions, newCancelledAnimals);
     }
 }
