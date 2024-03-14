@@ -34,6 +34,7 @@ public record MessageBoard(TextMaker textMaker, List<Message> messages) {
 
     /**
      * Counts the number of animals of each kind in the given set of animals.
+     * Only consider an animal if there's more than one.
      *
      * @param animals the set of animals
      * @return the number of animals of each kind in the given set of animals
@@ -41,7 +42,9 @@ public record MessageBoard(TextMaker textMaker, List<Message> messages) {
     private Map<Animal.Kind, Integer> countAnimals(Set<Animal> animals) {
         Map<Animal.Kind, Integer> animalCount = new HashMap<>();
         for (Animal.Kind kind : Animal.Kind.values()) {
-            animalCount.put(kind, (int) animals.stream().filter(a -> a.kind() == kind).count());
+            int count = (int) animals.stream().filter(a -> a.kind() == kind).count();
+            if (count > 0)
+                animalCount.put(kind, count);
         }
         return animalCount;
     }
@@ -82,7 +85,7 @@ public record MessageBoard(TextMaker textMaker, List<Message> messages) {
         ArrayList<Message> messages = new ArrayList<>(this.messages);
         String messageContent = textMaker.playerClosedForestWithMenhir(player);
         // Create the message
-        messages.add(new Message(messageContent, 0, Set.of(player), forest.tileIds()));
+        messages.add(new Message(messageContent, 0, Set.of(), forest.tileIds()));
         return new MessageBoard(textMaker, messages);
     }
 
@@ -126,9 +129,9 @@ public record MessageBoard(TextMaker textMaker, List<Message> messages) {
             // Calculate the data needed
             Map<Animal.Kind, Integer> animalCount = countAnimals(animals);
             int points = Points.forMeadow(
-                    animalCount.get(Animal.Kind.MAMMOTH),
-                    animalCount.get(Animal.Kind.AUROCHS),
-                    animalCount.get(Animal.Kind.DEER));
+                    animalCount.getOrDefault(Animal.Kind.MAMMOTH, 0),
+                    animalCount.getOrDefault(Animal.Kind.AUROCHS, 0),
+                    animalCount.getOrDefault(Animal.Kind.DEER, 0));
             // Create the message
             String messageContent = textMaker.playerScoredHuntingTrap(scorer, points, animalCount);
             messages.add(new Message(messageContent, points, Set.of(scorer), adjacentMeadow.tileIds()));
@@ -150,7 +153,7 @@ public record MessageBoard(TextMaker textMaker, List<Message> messages) {
         // Calculate the data needed
         int lakeCount = Area.lakeCount(riverSystem);
         int points = Points.forLogboat(lakeCount);
-        String messageContent = textMaker.playerScoredLogboat(scorer, lakeCount, points);
+        String messageContent = textMaker.playerScoredLogboat(scorer, points, lakeCount);
         // Create the message
         messages.add(new Message(messageContent, points, Set.of(scorer), riverSystem.tileIds()));
         return new MessageBoard(textMaker, messages);
@@ -202,9 +205,9 @@ public record MessageBoard(TextMaker textMaker, List<Message> messages) {
             Set<Animal> animals = Area.animals(meadow, cancelledAnimals);
             Map<Animal.Kind, Integer> animalCount = countAnimals(animals);
             int points = Points.forMeadow(
-                    animalCount.get(Animal.Kind.MAMMOTH),
-                    animalCount.get(Animal.Kind.AUROCHS),
-                    animalCount.get(Animal.Kind.DEER));
+                    animalCount.getOrDefault(Animal.Kind.MAMMOTH, 0),
+                    animalCount.getOrDefault(Animal.Kind.AUROCHS, 0),
+                    animalCount.getOrDefault(Animal.Kind.DEER, 0));
 
             Set<PlayerColor> scorers = meadow.majorityOccupants();
             // Don't create a message if no points are scored
@@ -236,12 +239,12 @@ public record MessageBoard(TextMaker textMaker, List<Message> messages) {
      */
     public MessageBoard withScoredPitTrap(Area<Zone.Meadow> adjacentMeadow, Set<Animal> cancelledAnimals) {
         if (adjacentMeadow.isOccupied()) {
-            Set<Animal> animals = Area.animals(adjacentMeadow, new HashSet<>());
+            Set<Animal> animals = Area.animals(adjacentMeadow, cancelledAnimals);
             Map<Animal.Kind, Integer> animalCount = countAnimals(animals);
             int points = Points.forMeadow(
-                    animalCount.get(Animal.Kind.MAMMOTH),
-                    animalCount.get(Animal.Kind.AUROCHS),
-                    animalCount.get(Animal.Kind.DEER));
+                    animalCount.getOrDefault(Animal.Kind.MAMMOTH, 0),
+                    animalCount.getOrDefault(Animal.Kind.AUROCHS, 0),
+                    animalCount.getOrDefault(Animal.Kind.DEER, 0));
 
             Set<PlayerColor> scorers = adjacentMeadow.majorityOccupants();
             // Don't create a message if no points are scored
@@ -282,13 +285,13 @@ public record MessageBoard(TextMaker textMaker, List<Message> messages) {
      * Returns the same message board with a new message indicating that the given players have won the game.
      *
      * @param winners the set of players who have won the game
-     * @param points  the points of the winners
+     * @param points  the points of the winners added
      * @return the same message board with a game won message
      */
     public MessageBoard withWinners(Set<PlayerColor> winners, int points) {
         ArrayList<Message> messages = new ArrayList<>(this.messages);
         String messageContent = textMaker.playersWon(winners, points);
-        messages.add(new Message(messageContent, points, winners, Set.of()));
+        messages.add(new Message(messageContent, 0, Set.of(), Set.of()));
         return new MessageBoard(textMaker, messages);
     }
 
@@ -296,8 +299,8 @@ public record MessageBoard(TextMaker textMaker, List<Message> messages) {
      * Represents a message on the message board.
      *
      * @param text    the text of the message
-     * @param points  the points associated with the message
-     * @param scorers the players who have scored the points
+     * @param points  the points associated with the message (no points if the action doesn't grant any)
+     * @param scorers the players who have scored the points (no player if no points)
      * @param tileIds the ids of the tiles involved in the message
      */
     public record Message(String text, int points, Set<PlayerColor> scorers, Set<Integer> tileIds) {
