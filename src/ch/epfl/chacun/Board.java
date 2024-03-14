@@ -274,8 +274,22 @@ public final class Board {
         return true;
     }
 
+    /**
+     * Returns whether if the given tile could be placed on one of the board's
+     * insertion positions, possibly after rotation, or not.
+     *
+     * @param tile the tile to check for placement possibilities
+     * @return whether the given tile could be placed on one of the board's insertion positions or not
+     */
     public boolean couldPlaceTile(Tile tile) {
-        // TODO: implement this method
+        for (Pos insertionPosition : insertionPositions()) {
+            for (Rotation rotation : Rotation.ALL) {
+                PlacedTile placedTile = new PlacedTile(tile, null, rotation, insertionPosition);
+                if (canAddTile(placedTile)) {
+                    return true;
+                }
+            }
+        }
         return false;
     }
 
@@ -306,5 +320,26 @@ public final class Board {
     public Board withOccupant(Occupant occupant) {
         // TODO: implement this method
         return null;
+    }
+
+    /**
+     * Returns the same board but without any occupants in the given forests and rivers.
+     *
+     * @param forests the forest areas to remove gatherers from
+     * @param rivers  the river areas to remove fishers from
+     * @return the same board but without any occupants in the given forests and rivers
+     */
+    public Board withoutGatherersOrFishersIn(Set<Area<Zone.Forest>> forests, Set<Area<Zone.River>> rivers) {
+        ZonePartitions.Builder builder = new ZonePartitions.Builder(zonePartitions);
+        // Remove gatherers from all given areas
+        for (Area<Zone.Forest> forest : forests) {
+            builder.clearGatherers(forest);
+        }
+        // Remove fishers from all given areas
+        for (Area<Zone.River> river : rivers) {
+            builder.clearFishers(river);
+        }
+        // Create the new board
+        return new Board(placedTiles.clone(), tileIndices.clone(), builder.build(), Set.copyOf(cancelledAnimals));
     }
 }
