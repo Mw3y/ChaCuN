@@ -304,9 +304,7 @@ public final class Board {
      */
     public Board withNewTile(PlacedTile tile) {
         // Check if the tile can be placed on the board
-        if (placedTiles.length != 0 && !canAddTile(tile)) {
-            throw new IllegalArgumentException("The tile cannot be placed on the board.");
-        }
+        Preconditions.checkArgument(placedTiles.length == 0 || canAddTile(tile) );
         // Create the new placed tiles array
         int newTileIndex = calculateRowMajorIndex(tile.pos());
         PlacedTile[] newPlacedTiles = placedTiles.clone();
@@ -337,9 +335,8 @@ public final class Board {
     public Board withOccupant(Occupant occupant) {
         int tileId = Zone.tileId(occupant.zoneId());
         PlacedTile placedTile = tileWithId(tileId);
-        if (placedTile.occupant() != null) {
-            throw new IllegalArgumentException("The tile already has an occupant.");
-        }
+        // Check if there's already an occupant
+        Preconditions.checkArgument(placedTile.occupant() == null);
         // Update zone partitions
         ZonePartitions.Builder builder = new ZonePartitions.Builder(zonePartitions);
         builder.addInitialOccupant(placedTile.placer(), occupant.kind(), placedTile.zoneWithId(occupant.zoneId()));
