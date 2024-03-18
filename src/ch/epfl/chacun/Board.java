@@ -238,6 +238,7 @@ public final class Board {
     }
 
     public Set<Area<Zone.Forest>> forestsClosedByLastTile() {
+        PlacedTile lastTile = lastPlacedTile();
         // TODO: implement this method
         return Set.of();
     }
@@ -333,18 +334,16 @@ public final class Board {
      * @return the same board, but with the given occupant on the given tile
      */
     public Board withOccupant(Occupant occupant) {
-        int tileId = Zone.tileId(occupant.zoneId());
-        PlacedTile placedTile = tileWithId(tileId);
-        // Check if there's already an occupant
+        PlacedTile placedTile = tileWithId(Zone.tileId(occupant.zoneId()));
         Preconditions.checkArgument(placedTile.occupant() == null);
-        // Update zone partitions
+        // Create the updated placed tiles
+        PlacedTile[] newPlacedTiles = placedTiles.clone();
+        newPlacedTiles[calculateRowMajorIndex(placedTile.pos())] = placedTile.withOccupant(occupant);
+        // Create the updated zone partitions
         ZonePartitions.Builder builder = new ZonePartitions.Builder(zonePartitions);
         builder.addInitialOccupant(placedTile.placer(), occupant.kind(), placedTile.zoneWithId(occupant.zoneId()));
-        // Create the new placed tiles array
-        PlacedTile[] newPlacedTile = placedTiles.clone();
-        newPlacedTile[calculateRowMajorIndex(placedTile.pos())] = placedTile.withOccupant(occupant);
-        // Create the new board
-        return new Board(newPlacedTile, tileIndices.clone(), builder.build(), cancelledAnimals());
+        // Create the new Board instance
+        return new Board(newPlacedTiles, tileIndices.clone(), builder.build(), cancelledAnimals());
     }
 
     public Board withoutOccupant(Occupant occupant) {
