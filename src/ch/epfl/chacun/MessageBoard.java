@@ -37,7 +37,7 @@ public record MessageBoard(TextMaker textMaker, List<Message> messages) {
      * Only consider an animal if there's more than one.
      *
      * @param animals the set of animals
-     * @return the number of animals of each kind in the given set of animals
+     * @return a map which gives the number of each kind in the given set of animals
      */
     private Map<Animal.Kind, Integer> countAnimals(Set<Animal> animals) {
         Map<Animal.Kind, Integer> animalCount = new HashMap<>();
@@ -120,18 +120,20 @@ public record MessageBoard(TextMaker textMaker, List<Message> messages) {
      *
      * @param scorer         the player who laid the hunting trap
      * @param adjacentMeadow the meadow adjacent to the hunting trap
-     * @return
+     * @return a new message board if the hunting trap enabled the given player to score points or the same
+     * message board
      */
     public MessageBoard withScoredHuntingTrap(PlayerColor scorer, Area<Zone.Meadow> adjacentMeadow) {
         Set<Animal> animals = Area.animals(adjacentMeadow, new HashSet<>());
-        if (!animals.isEmpty()) {
-            ArrayList<Message> messages = new ArrayList<>(this.messages);
-            // Calculate the data needed
-            Map<Animal.Kind, Integer> animalCount = countAnimals(animals);
-            int points = Points.forMeadow(
-                    animalCount.getOrDefault(Animal.Kind.MAMMOTH, 0),
-                    animalCount.getOrDefault(Animal.Kind.AUROCHS, 0),
-                    animalCount.getOrDefault(Animal.Kind.DEER, 0));
+        ArrayList<Message> messages = new ArrayList<>(this.messages);
+        // Calculate the data needed
+        Map<Animal.Kind, Integer> animalCount = countAnimals(animals);
+        int points = Points.forMeadow(
+                animalCount.getOrDefault(Animal.Kind.MAMMOTH, 0),
+                animalCount.getOrDefault(Animal.Kind.AUROCHS, 0),
+                animalCount.getOrDefault(Animal.Kind.DEER, 0));
+        // Check if the hunting trap enabled the player to score points
+        if (points != 0) {
             // Create the message
             String messageContent = textMaker.playerScoredHuntingTrap(scorer, points, animalCount);
             messages.add(new Message(messageContent, points, Set.of(scorer), adjacentMeadow.tileIds()));
