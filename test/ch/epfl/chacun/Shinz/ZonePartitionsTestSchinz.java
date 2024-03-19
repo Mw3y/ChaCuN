@@ -8,7 +8,7 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-class ZonePartitionsTest {
+class ZonePartitionsTestSchinz {
     @Test
     void zonePartitionsEmptyContainsFourEmptyPartitions() {
         assertEquals(Set.of(), ZonePartitions.EMPTY.forests().areas());

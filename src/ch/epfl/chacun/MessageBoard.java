@@ -26,7 +26,7 @@ public record MessageBoard(TextMaker textMaker, List<Message> messages) {
         Map<PlayerColor, Integer> scorers = new HashMap<>();
         for (Message message : messages) {
             for (PlayerColor scorer : message.scorers) {
-                scorers.put(scorer, scorers.getOrDefault(scorer, 0) + message.points);
+                scorers.merge(scorer, message.points, Integer::sum);
             }
         }
         return scorers;
@@ -133,7 +133,7 @@ public record MessageBoard(TextMaker textMaker, List<Message> messages) {
                 animalCount.getOrDefault(Animal.Kind.AUROCHS, 0),
                 animalCount.getOrDefault(Animal.Kind.DEER, 0));
         // Check if the hunting trap enabled the player to score points
-        if (points != 0) {
+        if (points > 0) {
             // Create the message
             String messageContent = textMaker.playerScoredHuntingTrap(scorer, points, animalCount);
             messages.add(new Message(messageContent, points, Set.of(scorer), adjacentMeadow.tileIds()));

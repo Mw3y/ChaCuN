@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Represents the board of the game.
@@ -45,7 +46,13 @@ public final class Board {
         return originIndex + pos.x() + pos.y() * SIZE;
     }
 
-    private boolean isPosWithinBounds(Pos pos) {
+    /**
+     * Determines whether the given position is within the board.
+     *
+     * @param pos the position
+     * @return whether the given position is within the board
+     */
+    private boolean isPosWithinBoard(Pos pos) {
         return Math.abs(pos.x()) <= REACH && Math.abs(pos.y()) <= REACH;
     }
 
@@ -223,7 +230,7 @@ public final class Board {
             PlacedTile placedTile = placedTiles[placedTileIndex];
             for (Direction direction : Direction.ALL) {
                 Pos neighbor = placedTile.pos().neighbor(direction);
-                if (tileAt(neighbor) == null && isPosWithinBounds(neighbor)) {
+                if (tileAt(neighbor) == null && isPosWithinBoard(neighbor)) {
                     insertionPositions.add(neighbor);
                 }
             }
@@ -246,15 +253,44 @@ public final class Board {
         return null;
     }
 
+    /**
+     * Returns the set of all forests closed by the last placed tile.
+     *
+     * @return the set of all forests closed by the last placed tile
+     */
     public Set<Area<Zone.Forest>> forestsClosedByLastTile() {
+        // No forest has been closed if the board is empty
+        if (placedTiles.length == 0) {
+            return Set.of();
+        }
         PlacedTile lastTile = lastPlacedTile();
-        // TODO: implement this method
-        return Set.of();
+        // Create the updated zone partitions
+        ZonePartitions.Builder b = new ZonePartitions.Builder(zonePartitions);
+        b.addTile(lastTile.tile());
+        // Find the closed forest areas
+        return b.build().forests().areas().stream()
+                .filter(Area::isClosed)
+                .collect(Collectors.toSet());
     }
 
+    /**
+     * Returns the set of all river closed by the last placed tile.
+     *
+     * @return the set of all river closed by the last placed tile
+     */
     public Set<Area<Zone.River>> riversClosedByLastTile() {
-        // TODO: implement this method
-        return Set.of();
+        // No river has been closed if the board is empty
+        if (placedTiles.length == 0) {
+            return Set.of();
+        }
+        PlacedTile lastTile = lastPlacedTile();
+        // Create the updated zone partitions
+        ZonePartitions.Builder b = new ZonePartitions.Builder(zonePartitions);
+        b.addTile(lastTile.tile());
+        // Find the closed forest areas
+        return b.build().rivers().areas().stream()
+                .filter(Area::isClosed)
+                .collect(Collectors.toSet());
     }
 
     /**
@@ -296,8 +332,8 @@ public final class Board {
     public boolean couldPlaceTile(Tile tile) {
         for (Pos insertionPosition : insertionPositions()) {
             for (Rotation rotation : Rotation.ALL) {
-                PlacedTile placedTile = new PlacedTile(tile, null, rotation, insertionPosition);
-                if (canAddTile(placedTile)) {
+                PlacedTile potentialTile = new PlacedTile(tile, null, rotation, insertionPosition);
+                if (canAddTile(potentialTile)) {
                     return true;
                 }
             }
@@ -356,9 +392,25 @@ public final class Board {
         return new Board(newPlacedTiles, tileIndices.clone(), builder.build(), cancelledAnimals());
     }
 
+    /**
+     * Returns the same board, but without the given pawn on the given tile.
+     * <p>
+     * A hut cannot be removed from a tile.
+     *
+     * @param occupant the occupant to remove
+     * @return the same board, but without the given pawn on the given tile
+     */
     public Board withoutOccupant(Occupant occupant) {
-        // TODO: implement this method
-        return null;
+        PlacedTile placedTile = tileWithId(Zone.tileId(occupant.zoneId()));
+        Zone zone = placedTile.zoneWithId(occupant.zoneId());
+        // Create the updated placed tiles
+        PlacedTile[] newPlacedTiles = placedTiles.clone();
+        newPlacedTiles[calculateRowMajorIndex(placedTile.pos())] = placedTile.withNoOccupant();
+        // Create the updated zone partitions
+        ZonePartitions.Builder builder = new ZonePartitions.Builder(zonePartitions);
+        builder.removePawn(placedTile.placer(), zone);
+        // Create the new Board instance
+        return new Board(newPlacedTiles, tileIndices.clone(), builder.build(), cancelledAnimals());
     }
 
     /**
@@ -383,6 +435,7 @@ public final class Board {
         for (int tileIndex : tileIndices) {
             PlacedTile placedTile = placedTiles[tileIndex];
             int zoneOccupiedById = placedTile.idOfZoneOccupiedBy(Occupant.Kind.PAWN);
+            // Check if there is a pawn on the tile
             if (zoneOccupiedById != -1) {
                 Zone zone = placedTile.zoneWithId(zoneOccupiedById);
                 // Check if the zone occupied is a forest or a river
@@ -410,10 +463,12 @@ public final class Board {
     @Override
     public boolean equals(Object obj) {
         if (obj instanceof Board board) {
+            boolean isPlacedTilesEqual = Arrays.equals(placedTiles, board.placedTiles);
+            boolean isTileIndicesEqual = Arrays.equals(tileIndices, board.tileIndices);
+            boolean areCancelledAnimalsEqual =
+                    Arrays.equals(cancelledAnimals.toArray(), board.cancelledAnimals.toArray());
             // TODO: Compare zonePartitions
-            return Arrays.equals(placedTiles, board.placedTiles)
-                    && Arrays.equals(tileIndices, board.tileIndices)
-                    && Arrays.equals(cancelledAnimals.toArray(), board.cancelledAnimals.toArray());
+            return isPlacedTilesEqual && isTileIndicesEqual && areCancelledAnimalsEqual;
         }
         return false;
     }
