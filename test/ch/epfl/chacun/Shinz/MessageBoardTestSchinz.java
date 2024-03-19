@@ -9,7 +9,7 @@ import static ch.epfl.chacun.PlayerColor.*;
 import static ch.epfl.chacun.Zone.Forest.*;
 import static org.junit.jupiter.api.Assertions.*;
 
-class MessageBoardTest {
+class MessageBoardTestSchinz {
     @Test
     void messageBoardMessageConstructorThrowsIfTextIsNull() {
         assertThrows(NullPointerException.class, () -> {

@@ -45,6 +45,10 @@ public final class Board {
         return originIndex + pos.x() + pos.y() * SIZE;
     }
 
+    private boolean isPosWithinBounds(Pos pos) {
+        return Math.abs(pos.x()) <= REACH && Math.abs(pos.y()) <= REACH;
+    }
+
     /**
      * Returns the tile in the given position, or null if there is none or if the position is off the board.
      *
@@ -95,7 +99,9 @@ public final class Board {
     public Set<Occupant> occupants() {
         Set<Occupant> occupants = new HashSet<>();
         for (int placedTileIndex : tileIndices) {
-            occupants.add(placedTiles[placedTileIndex].occupant());
+            Occupant occupant = placedTiles[placedTileIndex].occupant();
+            if (occupant != null)
+                occupants.add(occupant);
         }
         return occupants;
     }
@@ -196,7 +202,9 @@ public final class Board {
         for (int placedTileIndex : tileIndices) {
             PlacedTile placedTile = placedTiles[placedTileIndex];
             // If a tile has an occupant, it has been placed by the tile placer
-            if (placedTile.occupant().kind() == occupantKind && placedTile.placer() == player) {
+            if (placedTile.occupant() != null
+                    && placedTile.occupant().kind() == occupantKind
+                    && placedTile.placer() == player) {
                 occupantCount++;
             }
         }
@@ -215,7 +223,7 @@ public final class Board {
             PlacedTile placedTile = placedTiles[placedTileIndex];
             for (Direction direction : Direction.ALL) {
                 Pos neighbor = placedTile.pos().neighbor(direction);
-                if (tileAt(neighbor) == null) {
+                if (tileAt(neighbor) == null && isPosWithinBounds(neighbor)) {
                     insertionPositions.add(neighbor);
                 }
             }
@@ -226,7 +234,8 @@ public final class Board {
     /**
      * Returns the last placed tile on the board.
      * <p>
-     * It can be the starting tile if the first normal tile has not yet been placed, or null if the board is empty
+     * It can be the starting tile if the first normal tile has not yet been placed,
+     * or null if the board is empty
      *
      * @return the last placed tile on the board
      */
@@ -260,7 +269,7 @@ public final class Board {
     public boolean canAddTile(PlacedTile tile) {
         // Check if the tile cannot be placed on the board
         if (!insertionPositions().contains(tile.pos())) {
-            return false;
+            return placedTiles.length != 0;
         }
         // Check for potential conflicts with adjacent tiles
         for (Direction direction : Direction.ALL) {
@@ -301,11 +310,11 @@ public final class Board {
      *
      * @param tile the tile to place
      * @return an identical board, but with the given tile in addition
-     * @throws IllegalArgumentException if the board is not empty and the given tile cannot be added to the board
+     * @throws IllegalArgumentException if the board is not empty and the given tile cannot be added
      */
     public Board withNewTile(PlacedTile tile) {
         // Check if the tile can be placed on the board
-        Preconditions.checkArgument(placedTiles.length == 0 || canAddTile(tile) );
+        Preconditions.checkArgument(placedTiles.length == 0 || canAddTile(tile));
         // Create the new placed tiles array
         int newTileIndex = calculateRowMajorIndex(tile.pos());
         PlacedTile[] newPlacedTiles = placedTiles.clone();
@@ -341,7 +350,8 @@ public final class Board {
         newPlacedTiles[calculateRowMajorIndex(placedTile.pos())] = placedTile.withOccupant(occupant);
         // Create the updated zone partitions
         ZonePartitions.Builder builder = new ZonePartitions.Builder(zonePartitions);
-        builder.addInitialOccupant(placedTile.placer(), occupant.kind(), placedTile.zoneWithId(occupant.zoneId()));
+        builder.addInitialOccupant(placedTile.placer(), occupant.kind(),
+                placedTile.zoneWithId(occupant.zoneId()));
         // Create the new Board instance
         return new Board(newPlacedTiles, tileIndices.clone(), builder.build(), cancelledAnimals());
     }
@@ -368,9 +378,21 @@ public final class Board {
         for (Area<Zone.River> river : rivers) {
             builder.clearFishers(river);
         }
-        // TODO: Sync placedTile
+        // Remove fishers and gatherers from placed tiles
+        PlacedTile[] newPlacedTiles = placedTiles.clone();
+        for (int tileIndex : tileIndices) {
+            PlacedTile placedTile = placedTiles[tileIndex];
+            int zoneOccupiedById = placedTile.idOfZoneOccupiedBy(Occupant.Kind.PAWN);
+            if (zoneOccupiedById != -1) {
+                Zone zone = placedTile.zoneWithId(zoneOccupiedById);
+                // Check if the zone occupied is a forest or a river
+                if (zone instanceof Zone.Forest || zone instanceof Zone.River) {
+                    newPlacedTiles[calculateRowMajorIndex(placedTile.pos())] = placedTile.withNoOccupant();
+                }
+            }
+        }
         // Create the new board
-        return new Board(placedTiles.clone(), tileIndices.clone(), builder.build(), cancelledAnimals());
+        return new Board(newPlacedTiles, tileIndices.clone(), builder.build(), cancelledAnimals());
     }
 
     /**
