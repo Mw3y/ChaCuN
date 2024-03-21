@@ -1,9 +1,6 @@
 package ch.epfl.chacun;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -20,9 +17,9 @@ public final class Board {
     public static final int REACH = 12;
     public static final Board EMPTY = new Board(new PlacedTile[625], new int[0], ZonePartitions.EMPTY, Set.of());
     private static final int SIZE = 25;
+    public final ZonePartitions zonePartitions;
     private final PlacedTile[] placedTiles;
     private final int[] tileIndices;
-    public final ZonePartitions zonePartitions;
     private final Set<Animal> cancelledAnimals;
 
     /**
@@ -473,5 +470,12 @@ public final class Board {
                     && areCancelledAnimalsEqual && areZonePartitionsEqual;
         }
         return false;
+    }
+
+    @Override
+    public int hashCode() {
+        int placedTilesHash = Arrays.hashCode(placedTiles);
+        int tileIndicesHash = Arrays.hashCode(tileIndices);
+        return Objects.hash(placedTilesHash, tileIndicesHash, zonePartitions, cancelledAnimals);
     }
 }
