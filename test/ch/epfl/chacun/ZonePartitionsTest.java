@@ -2,300 +2,958 @@ package ch.epfl.chacun;
 
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-public class ZonePartitionsTest {
-
+class ZonePartitionsTest {
     @Test
-    void addTileWorks() {
-        Zone.Meadow meadow0 = new Zone.Meadow(560, new ArrayList<>(List.of(new Animal(0
-                , Animal.Kind.AUROCHS))), null);
-        Zone.Meadow meadow2 = new Zone.Meadow(562, new ArrayList<>(), null);
-        Zone.Forest forest1 = new Zone.Forest(561, Zone.Forest.Kind.WITH_MENHIR);
-        Zone.Lake lake8 = new Zone.Lake(568, 1, null);
-        Zone.River river3 = new Zone.River(563, 0, lake8);
-
-        TileSide.Meadow nSide = new TileSide.Meadow(meadow0);
-        TileSide.Forest eSide = new TileSide.Forest(forest1);
-        TileSide.Forest sSide = new TileSide.Forest(forest1);
-        TileSide.River wSide = new TileSide.River(meadow2, river3, meadow0);
-
-        Tile tile = new Tile(56, Tile.Kind.START, nSide, eSide, sSide, wSide);
-
-        Set<Zone.Meadow> meadows1 = Set.of(meadow0);
-        Set<Zone.Meadow> meadows2 = Set.of(meadow2);
-        Set<Zone.Forest> forests = Set.of(forest1);
-        Set<Zone.River> rivers = Set.of(river3);
-        Set<Zone.Water> waterZones = Set.of(river3, lake8);
-
-        Area<Zone.Meadow> meadowArea1 = new Area<>(meadows1, new ArrayList<>(), 2);
-        Area<Zone.Meadow> meadowArea2 = new Area<>(meadows2, new ArrayList<>(), 1);
-        Area<Zone.Forest> forestArea = new Area<>(forests, new ArrayList<>(), 2);
-        Area<Zone.River> riverArea = new Area<>(rivers, new ArrayList<>(), 1);
-        Area<Zone.Water> waterArea = new Area<>(waterZones, new ArrayList<>(), 1);
-
-        ZonePartition<Zone.Meadow> meadowZonePartition = new ZonePartition<>(Set.of(meadowArea1, meadowArea2));
-        ZonePartition<Zone.Forest> forestZonePartition = new ZonePartition<>(Set.of(forestArea));
-        ZonePartition<Zone.River> riverZonePartition = new ZonePartition<>(Set.of(riverArea));
-        ZonePartition<Zone.Water> waterZonePartition = new ZonePartition<>(Set.of(waterArea));
-
-        ZonePartitions expectedZonePartitions = new ZonePartitions(forestZonePartition, meadowZonePartition,
-                riverZonePartition, waterZonePartition);
-        ZonePartitions.Builder testBuilder = new ZonePartitions.Builder(ZonePartitions.EMPTY);
-        testBuilder.addTile(tile);
-
-        assertTrue(expectedZonePartitions.meadows().equals(testBuilder.build().meadows()));
-
+    void zonePartitionsEmptyContainsFourEmptyPartitions() {
+        assertEquals(Set.of(), ZonePartitions.EMPTY.forests().areas());
+        assertEquals(Set.of(), ZonePartitions.EMPTY.meadows().areas());
+        assertEquals(Set.of(), ZonePartitions.EMPTY.rivers().areas());
+        assertEquals(Set.of(), ZonePartitions.EMPTY.riverSystems().areas());
     }
 
     @Test
-    void addTileWorksWith4Rivers() {
-        Zone.Meadow meadow0 = new Zone.Meadow(130, new ArrayList<>(), null);
-        Zone.Meadow meadow2 = new Zone.Meadow(132, new ArrayList<>(), null);
-        Zone.Meadow meadow4 = new Zone.Meadow(134, new ArrayList<>(), null);
-        Zone.Meadow meadow6 = new Zone.Meadow(136, new ArrayList<>(), null);
-        Zone.Lake lake8 = new Zone.Lake(138, 2, null);
-        Zone.River river1 = new Zone.River(131, 0, lake8);
-        Zone.River river3 = new Zone.River(133, 0, lake8);
-        Zone.River river5 = new Zone.River(135, 0, lake8);
-        Zone.River river7 = new Zone.River(137, 0, lake8);
+    void zonePartitionsBuilderAddTileWorksWithOneMeadowAndOneForest() {
+        // Tile 32
+        var z0 = new Zone.Forest(32_0, Zone.Forest.Kind.WITH_MENHIR);
+        var a1_0 = new Animal(32_1_0, Animal.Kind.TIGER);
+        var z1 = new Zone.Meadow(32_1, List.of(a1_0), null);
+        var sN = new TileSide.Forest(z0);
+        var sE = new TileSide.Meadow(z1);
+        var sS = new TileSide.Meadow(z1);
+        var sW = new TileSide.Forest(z0);
+        var tile = new Tile(32, Tile.Kind.NORMAL, sN, sE, sS, sW);
 
-        TileSide.River nSide = new TileSide.River(meadow0, river1, meadow2);
-        TileSide.River eSide = new TileSide.River(meadow2, river3, meadow4);
-        TileSide.River sSide = new TileSide.River(meadow4, river5, meadow6);
-        TileSide.River wSide = new TileSide.River(meadow6, river7, meadow0);
+        var emptyPartitions = new ZonePartitions(
+                new ZonePartition<>(),
+                new ZonePartition<>(),
+                new ZonePartition<>(),
+                new ZonePartition<>());
+        var b = new ZonePartitions.Builder(emptyPartitions);
+        b.addTile(tile);
+        var partitions = b.build();
 
-        Tile tile = new Tile(56, Tile.Kind.NORMAL, nSide, eSide, sSide, wSide);
+        var expectedMeadows = Set.of(new Area<>(Set.of(z1), List.of(), 2));
+        var expectedForests = Set.of(new Area<>(Set.of(z0), List.of(), 2));
 
-        Area<Zone.Meadow> meadowArea1 = new Area<>(Set.of(meadow0), new ArrayList<>(), 2);
-        Area<Zone.Meadow> meadowArea2 = new Area<>(Set.of(meadow2), new ArrayList<>(), 2);
-        Area<Zone.Meadow> meadowArea3 = new Area<>(Set.of(meadow4), new ArrayList<>(), 2);
-        Area<Zone.Meadow> meadowArea4 = new Area<>(Set.of(meadow6), new ArrayList<>(), 2);
-        Area<Zone.River> riverArea1 = new Area<>(Set.of(river1), new ArrayList<>(), 1);
-        Area<Zone.River> riverArea2 = new Area<>(Set.of(river3), new ArrayList<>(), 1);
-        Area<Zone.River> riverArea3 = new Area<>(Set.of(river5), new ArrayList<>(), 1);
-        Area<Zone.River> riverArea4 = new Area<>(Set.of(river7), new ArrayList<>(), 1);
-        Area<Zone.Water> waterArea = new Area<>(Set.of(river1, river3, river5, river7, lake8), new ArrayList<>(), 4);
-
-        ZonePartition<Zone.Meadow> meadowZonePartition = new ZonePartition<>(Set.of(meadowArea1, meadowArea2, meadowArea3, meadowArea4));
-        ZonePartition<Zone.Forest> forestZonePartition = new ZonePartition<>();
-        ZonePartition<Zone.River> riverZonePartition = new ZonePartition<>(Set.of(riverArea1, riverArea2, riverArea3, riverArea4));
-        ZonePartition<Zone.Water> waterZonePartition = new ZonePartition<>(Set.of(waterArea));
-
-        ZonePartitions expectedZonePartitions = new ZonePartitions(forestZonePartition, meadowZonePartition,
-                riverZonePartition, waterZonePartition);
-        ZonePartitions.Builder testBuilder = new ZonePartitions.Builder(ZonePartitions.EMPTY);
-        testBuilder.addTile(tile);
-
-        assertEquals(expectedZonePartitions, testBuilder.build());
-
+        assertEquals(expectedMeadows, partitions.meadows().areas());
+        assertEquals(expectedForests, partitions.forests().areas());
+        assertEquals(Set.of(), partitions.rivers().areas());
+        assertEquals(Set.of(), partitions.riverSystems().areas());
     }
 
     @Test
-    void connectSidesWorks() {
-        Zone.Meadow meadow1_0 = new Zone.Meadow(560, new ArrayList<>(), null);
-        Zone.Meadow meadow1_2 = new Zone.Meadow(562, new ArrayList<>(), null);
-        Zone.Forest forest1_1 = new Zone.Forest(561, Zone.Forest.Kind.WITH_MENHIR);
-        Zone.Lake lake8 = new Zone.Lake(568, 1, null);
-        Zone.River river1_3 = new Zone.River(563, 0, lake8);
-        Zone.Meadow meadow2_0 = new Zone.Meadow(170, new ArrayList<>(), null);
-        Zone.Meadow meadow2_2 = new Zone.Meadow(172, new ArrayList<>(), null);
-        Zone.Meadow meadow2_6 = new Zone.Meadow(176, new ArrayList<>(), null);
-        Zone.River river2_1 = new Zone.River(171, 0, null);
-        Zone.River river2_5 = new Zone.River(175, 0, null);
+    void zonePartitionsBuilderAddTileWorksWithOneRiverAndTwoMeadows() {
+        // Tile 52
+        var a0_0 = new Animal(52_0_0, Animal.Kind.DEER);
+        var z0 = new Zone.Meadow(52_0, List.of(a0_0), null);
+        var z1 = new Zone.River(52_1, 0, null);
+        var z2 = new Zone.Meadow(52_2, List.of(), null);
+        var sN = new TileSide.Meadow(z0);
+        var sE = new TileSide.River(z0, z1, z2);
+        var sS = new TileSide.Meadow(z2);
+        var sW = new TileSide.River(z2, z1, z0);
+        var tile = new Tile(52, Tile.Kind.NORMAL, sN, sE, sS, sW);
 
-        Set<Zone.Meadow> meadows1 = Set.of(meadow1_0, meadow2_2);
-        Set<Zone.Meadow> meadows2 = Set.of(meadow1_2, meadow2_0);
-        Set<Zone.Meadow> meadows3 = Set.of(meadow2_6);
-        Set<Zone.Forest> forests = Set.of(forest1_1);
-        Set<Zone.River> rivers1 = Set.of(river2_1, river1_3);
-        Set<Zone.River> rivers2 = Set.of(river2_5);
-        Set<Zone.Water> waterZones1 = Set.of(river1_3, river2_1, lake8);
-        Set<Zone.Water> waterZones2 = Set.of(river2_5);
+        var emptyPartitions = new ZonePartitions(
+                new ZonePartition<>(),
+                new ZonePartition<>(),
+                new ZonePartition<>(),
+                new ZonePartition<>());
+        var b = new ZonePartitions.Builder(emptyPartitions);
+        b.addTile(tile);
+        var partitions = b.build();
 
-        TileSide.Meadow meadowSide1_1 = new TileSide.Meadow(meadow1_0);
-        TileSide.Forest forestSide1_2 = new TileSide.Forest(forest1_1);
-        TileSide.Forest forestSide1_3 = new TileSide.Forest(forest1_1);
-        TileSide.River riverSide1_4 = new TileSide.River(meadow1_2, river1_3, meadow1_0);
+        var expectedMeadows = Set.of(
+                new Area<>(Set.of(z0), List.of(), 3),
+                new Area<>(Set.of(z2), List.of(), 3));
+        var expectedRivers = Set.of(new Area<>(Set.of(z1), List.of(), 2));
+        var expectedRiverSystems = Set.of(new Area<>(Set.of(z1), List.of(), 2));
 
-        TileSide.River riverSide2_1 = new TileSide.River(meadow2_0, river2_1, meadow2_2);
-        TileSide.River riverSide2_2 = new TileSide.River(meadow2_2, river2_1, meadow2_0);
-        TileSide.River riverSide2_3 = new TileSide.River(meadow2_0, river2_5, meadow2_6);
-        TileSide.River riverSide2_4 = new TileSide.River(meadow2_6, river2_5, meadow2_0);
-
-        Tile tile1 = new Tile(56, Tile.Kind.START, meadowSide1_1, forestSide1_2, forestSide1_3, riverSide1_4);
-        Tile tile2 = new Tile(17, Tile.Kind.NORMAL, riverSide2_1, riverSide2_2, riverSide2_3, riverSide2_4);
-
-        Area<Zone.Meadow> meadowArea1 = new Area<>(meadows1, new ArrayList<>(), 2);
-        Area<Zone.Meadow> meadowArea2 = new Area<>(meadows2, new ArrayList<>(), 3);
-        Area<Zone.Meadow> meadowArea3 = new Area<>(meadows3, new ArrayList<>(), 2);
-        Area<Zone.Forest> forestArea = new Area<>(forests, new ArrayList<>(), 2);
-        Area<Zone.River> riverArea1 = new Area<>(rivers1, new ArrayList<>(), 1);
-        Area<Zone.River> riverArea2 = new Area<>(rivers2, new ArrayList<>(), 2);
-        Area<Zone.Water> waterArea1 = new Area<>(waterZones1, new ArrayList<>(), 1);
-        Area<Zone.Water> waterArea2 = new Area<>(waterZones2, new ArrayList<>(), 2);
-
-        ZonePartition<Zone.Meadow> meadowZonePartition = new ZonePartition<>(Set.of(meadowArea3, meadowArea2, meadowArea1));
-        ZonePartition<Zone.Forest> forestZonePartition = new ZonePartition<>(Set.of(forestArea));
-        ZonePartition<Zone.River> riverZonePartition = new ZonePartition<>(Set.of(riverArea2, riverArea1));
-        ZonePartition<Zone.Water> waterZonePartition = new ZonePartition<>(Set.of(waterArea2, waterArea1));
-
-        ZonePartitions expectedZonePartitions = new ZonePartitions(forestZonePartition, meadowZonePartition,
-                riverZonePartition, waterZonePartition);
-        ZonePartitions.Builder testBuilder = new ZonePartitions.Builder(ZonePartitions.EMPTY);
-        testBuilder.addTile(tile1);
-        testBuilder.addTile(tile2);
-        testBuilder.connectSides(riverSide1_4, riverSide2_2);
-
-        assertEquals(expectedZonePartitions.rivers(), testBuilder.build().rivers());
+        assertEquals(expectedMeadows, partitions.meadows().areas());
+        assertEquals(expectedRivers, partitions.rivers().areas());
+        assertEquals(expectedRiverSystems, partitions.riverSystems().areas());
+        assertEquals(Set.of(), partitions.forests().areas());
     }
 
     @Test
-    void addInitialOccupantWorks() {
-        Zone.Meadow meadow0 = new Zone.Meadow(560, new ArrayList<>(List.of(new Animal(0
-                , Animal.Kind.AUROCHS))), null);
-        Zone.Forest forest1 = new Zone.Forest(561, Zone.Forest.Kind.WITH_MENHIR);
-        Zone.Meadow meadow2 = new Zone.Meadow(562, new ArrayList<>(), null);
-        Zone.Lake lake8 = new Zone.Lake(568, 1, null);
-        Zone.River river3 = new Zone.River(563, 0, lake8);
+    void zonePartitionsBuilderAddTileWorksWithOneForestOneMeadowOneRiverOneLake() {
+        // Tile 56
+        var l0 = new Zone.Lake(56_8, 1, null);
+        var a0_0 = new Animal(56_0_0, Animal.Kind.AUROCHS);
+        var z0 = new Zone.Meadow(56_0, List.of(a0_0), null);
+        var z1 = new Zone.Forest(56_1, Zone.Forest.Kind.WITH_MENHIR);
+        var z2 = new Zone.Meadow(56_2, List.of(), null);
+        var z3 = new Zone.River(56_3, 0, l0);
+        var sN = new TileSide.Meadow(z0);
+        var sE = new TileSide.Forest(z1);
+        var sS = new TileSide.Forest(z1);
+        var sW = new TileSide.River(z2, z3, z0);
+        var tile = new Tile(56, Tile.Kind.START, sN, sE, sS, sW);
 
-        TileSide.Meadow nSide = new TileSide.Meadow(meadow0);
-        TileSide.Forest eSide = new TileSide.Forest(forest1);
-        TileSide.Forest sSide = new TileSide.Forest(forest1);
-        TileSide.River wSide = new TileSide.River(meadow2, river3, meadow0);
+        var emptyPartitions = new ZonePartitions(
+                new ZonePartition<>(),
+                new ZonePartition<>(),
+                new ZonePartition<>(),
+                new ZonePartition<>());
+        var b = new ZonePartitions.Builder(emptyPartitions);
+        b.addTile(tile);
+        var partitions = b.build();
 
-        Tile tile = new Tile(56, Tile.Kind.START, nSide, eSide, sSide, wSide);
+        var expectedMeadows = Set.of(
+                new Area<>(Set.of(z0), List.of(), 2),
+                new Area<>(Set.of(z2), List.of(), 1));
+        var expectedRivers = Set.of(new Area<>(Set.of(z3), List.of(), 1));
+        var expectedRiverSystems = Set.of(new Area<>(Set.of(z3, l0), List.of(), 1));
+        var expectedForests = Set.of(new Area<>(Set.of(z1), List.of(), 2));
 
-        Set<Zone.Meadow> meadows1 = Set.of(meadow0);
-        Set<Zone.Meadow> meadows2 = Set.of(meadow2);
-        Set<Zone.Forest> forests = Set.of(forest1);
-        Set<Zone.River> rivers = Set.of(river3);
-        Set<Zone.Water> waterZones = Set.of(river3, lake8);
-
-        Area<Zone.Meadow> meadowArea1 = new Area<>(meadows1, List.of(PlayerColor.YELLOW), 2);
-        Area<Zone.Meadow> meadowArea2 = new Area<>(meadows2, List.of(PlayerColor.GREEN), 1);
-        Area<Zone.Forest> forestArea = new Area<>(forests, new ArrayList<>(), 2);
-        Area<Zone.River> riverArea = new Area<>(rivers, new ArrayList<>(), 1);
-        Area<Zone.Water> waterArea = new Area<>(waterZones, List.of(PlayerColor.RED), 1);
-
-        ZonePartition<Zone.Meadow> meadowZonePartition =
-                new ZonePartition<>(Set.of(meadowArea1, meadowArea2));
-        ZonePartition<Zone.Forest> forestZonePartition = new ZonePartition<>(Set.of(forestArea));
-        ZonePartition<Zone.River> riverZonePartition = new ZonePartition<>(Set.of(riverArea));
-        ZonePartition<Zone.Water> waterZonePartition = new ZonePartition<>(Set.of(waterArea));
-
-        ZonePartitions.Builder builder = new ZonePartitions.Builder(ZonePartitions.EMPTY);
-        builder.addTile(tile);
-        builder.addInitialOccupant(PlayerColor.YELLOW, Occupant.Kind.PAWN, meadow0);
-        builder.addInitialOccupant(PlayerColor.RED, Occupant.Kind.HUT, lake8);
-        builder.addInitialOccupant(PlayerColor.GREEN, Occupant.Kind.PAWN, meadow2);
-        ZonePartitions expectedZonePartitions = new ZonePartitions(forestZonePartition, meadowZonePartition,
-                riverZonePartition, waterZonePartition);
-
-        assertEquals(expectedZonePartitions, builder.build());
-        assertThrows(IllegalArgumentException.class, () -> builder.addInitialOccupant(PlayerColor.YELLOW, Occupant.Kind.PAWN, meadow0));
-        assertThrows(IllegalArgumentException.class, () -> builder.addInitialOccupant(PlayerColor.GREEN, Occupant.Kind.HUT, river3));
+        assertEquals(expectedMeadows, partitions.meadows().areas());
+        assertEquals(expectedRivers, partitions.rivers().areas());
+        assertEquals(expectedRiverSystems, partitions.riverSystems().areas());
+        assertEquals(expectedForests, partitions.forests().areas());
     }
 
     @Test
-    void removePawnWorks() {
-        Zone.Meadow meadow0 = new Zone.Meadow(560, new ArrayList<>(List.of(new Animal(0
-                , Animal.Kind.AUROCHS))), null);
-        Zone.Forest forest1 = new Zone.Forest(561, Zone.Forest.Kind.WITH_MENHIR);
-        Zone.Meadow meadow2 = new Zone.Meadow(562, new ArrayList<>(), null);
-        Zone.Lake lake8 = new Zone.Lake(568, 1, null);
-        Zone.River river3 = new Zone.River(563, 0, lake8);
+    void zonePartitionsBuilderAddTileWorksWithThreeMeadowsTwoLakes() {
+        // Tile 83
+        var l0 = new Zone.Lake(83_8, 2, null);
+        var l1 = new Zone.Lake(83_9, 2, null);
+        var a0_0 = new Animal(83_0_0, Animal.Kind.DEER);
+        var a0_1 = new Animal(83_0_1, Animal.Kind.DEER);
+        var z0 = new Zone.Meadow(83_0, List.of(a0_0, a0_1), null);
+        var z1 = new Zone.River(83_1, 0, l0);
+        var z2 = new Zone.Meadow(83_2, List.of(), null);
+        var z3 = new Zone.River(83_3, 0, l0);
+        var z4 = new Zone.River(83_4, 0, l1);
+        var z5 = new Zone.Meadow(83_5, List.of(), null);
+        var z6 = new Zone.River(83_6, 0, l1);
+        var sN = new TileSide.River(z0, z1, z2);
+        var sE = new TileSide.River(z2, z3, z0);
+        var sS = new TileSide.River(z0, z4, z5);
+        var sW = new TileSide.River(z5, z6, z0);
+        var tile = new Tile(83, Tile.Kind.MENHIR, sN, sE, sS, sW);
 
-        TileSide.Meadow nSide = new TileSide.Meadow(meadow0);
-        TileSide.Forest eSide = new TileSide.Forest(forest1);
-        TileSide.Forest sSide = new TileSide.Forest(forest1);
-        TileSide.River wSide = new TileSide.River(meadow2, river3, meadow0);
+        var emptyPartitions = new ZonePartitions(
+                new ZonePartition<>(),
+                new ZonePartition<>(),
+                new ZonePartition<>(),
+                new ZonePartition<>());
+        var b = new ZonePartitions.Builder(emptyPartitions);
+        b.addTile(tile);
+        var partitions = b.build();
 
-        Tile tile = new Tile(56, Tile.Kind.START, nSide, eSide, sSide, wSide);
+        var expectedMeadows = Set.of(
+                new Area<>(Set.of(z0), List.of(), 4),
+                new Area<>(Set.of(z2), List.of(), 2),
+                new Area<>(Set.of(z5), List.of(), 2));
+        var expectedRivers = Set.of(
+                new Area<>(Set.of(z1), List.of(), 1),
+                new Area<>(Set.of(z3), List.of(), 1),
+                new Area<>(Set.of(z4), List.of(), 1),
+                new Area<>(Set.of(z6), List.of(), 1));
+        var expectedRiverSystems = Set.of(
+                new Area<>(Set.of(z1, l0, z3), List.of(), 2),
+                new Area<>(Set.of(z4, l1, z6), List.of(), 2));
 
-        Set<Zone.Meadow> meadows1 = Set.of(meadow0);
-        Set<Zone.Meadow> meadows2 = Set.of(meadow2);
-        Set<Zone.Forest> forests = Set.of(forest1);
-        Set<Zone.River> rivers = Set.of(river3);
-        Set<Zone.Water> waterZones = Set.of(river3, lake8);
-
-        Area<Zone.Meadow> meadowArea1 = new Area<>(meadows1, List.of(), 2);
-        Area<Zone.Meadow> meadowArea2 = new Area<>(meadows2, List.of(), 1);
-        Area<Zone.Forest> forestArea = new Area<>(forests, List.of(), 2);
-        Area<Zone.River> riverArea = new Area<>(rivers, List.of(), 1);
-        Area<Zone.Water> waterArea = new Area<>(waterZones, List.of(PlayerColor.RED), 1);
-
-        ZonePartition<Zone.Meadow> meadowZonePartition =
-                new ZonePartition<>(Set.of(meadowArea1, meadowArea2));
-        ZonePartition<Zone.Forest> forestZonePartition = new ZonePartition<>(Set.of(forestArea));
-        ZonePartition<Zone.River> riverZonePartition = new ZonePartition<>(Set.of(riverArea));
-        ZonePartition<Zone.Water> waterZonePartition = new ZonePartition<>(Set.of(waterArea));
-
-        ZonePartitions.Builder builder = new ZonePartitions.Builder(ZonePartitions.EMPTY);
-        builder.addTile(tile);
-        builder.addInitialOccupant(PlayerColor.YELLOW, Occupant.Kind.PAWN, meadow0);
-        builder.addInitialOccupant(PlayerColor.RED, Occupant.Kind.HUT, lake8);
-        builder.addInitialOccupant(PlayerColor.GREEN, Occupant.Kind.PAWN, meadow2);
-        builder.removePawn(PlayerColor.YELLOW, meadow0);
-        builder.removePawn(PlayerColor.GREEN, meadow2);
-        ZonePartitions expectedZonePartitions = new ZonePartitions(forestZonePartition, meadowZonePartition,
-                riverZonePartition, waterZonePartition);
-
-        assertEquals(expectedZonePartitions, builder.build());
-        assertThrows(IllegalArgumentException.class, () -> builder.removePawn(PlayerColor.GREEN, meadow0));
-        assertThrows(IllegalArgumentException.class, () -> builder.removePawn(PlayerColor.BLUE, forest1));
+        assertEquals(expectedMeadows, partitions.meadows().areas());
+        assertEquals(expectedRivers, partitions.rivers().areas());
+        assertEquals(expectedRiverSystems, partitions.riverSystems().areas());
+        assertEquals(Set.of(), partitions.forests().areas());
     }
 
     @Test
-    void clearWorks() {
-        Zone.Meadow meadow0 = new Zone.Meadow(560, new ArrayList<>(List.of(new Animal(0
-                , Animal.Kind.AUROCHS))), null);
-        Zone.Forest forest1 = new Zone.Forest(561, Zone.Forest.Kind.WITH_MENHIR);
-        Zone.Meadow meadow2 = new Zone.Meadow(562, new ArrayList<>(), null);
-        Zone.Lake lake8 = new Zone.Lake(568, 1, null);
-        Zone.River river3 = new Zone.River(563, 0, lake8);
+    void zonePartitionsBuilderConnectSidesWorksWithMeadowSides() {
+        // Tile 46
+        var z46_0 = new Zone.Meadow(46_0, List.of(), null);
+        var z46_1 = new Zone.River(46_1, 0, null);
+        var z46_2 = new Zone.Meadow(46_2, List.of(), null);
+        var z46_3 = new Zone.Forest(46_3, Zone.Forest.Kind.PLAIN);
+        var s46_N = new TileSide.Meadow(z46_0);
+        var s46_E = new TileSide.River(z46_0, z46_1, z46_2);
+        var s46_S = new TileSide.Forest(z46_3);
+        var s46_W = new TileSide.River(z46_2, z46_1, z46_0);
 
-        TileSide.Meadow nSide = new TileSide.Meadow(meadow0);
-        TileSide.Forest eSide = new TileSide.Forest(forest1);
-        TileSide.Forest sSide = new TileSide.Forest(forest1);
-        TileSide.River wSide = new TileSide.River(meadow2, river3, meadow0);
+        // Tile 47
+        var z47_0 = new Zone.Meadow(47_0, List.of(), null);
+        var z47_1 = new Zone.River(47_1, 1, null);
+        var a47_2_0 = new Animal(47_2_0, Animal.Kind.DEER);
+        var z47_2 = new Zone.Meadow(47_2, List.of(a47_2_0), null);
+        var z47_3 = new Zone.Forest(47_3, Zone.Forest.Kind.PLAIN);
+        var s47_N = new TileSide.Meadow(z47_0);
+        var s47_E = new TileSide.River(z47_0, z47_1, z47_2);
+        var s47_S = new TileSide.Forest(z47_3);
+        var s47_W = new TileSide.River(z47_2, z47_1, z47_0);
 
-        Tile tile = new Tile(56, Tile.Kind.START, nSide, eSide, sSide, wSide);
+        var meadows = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_0), List.of(), 3),
+                new Area<>(Set.of(z46_2), List.of(), 2),
+                new Area<>(Set.of(z47_0), List.of(), 3),
+                new Area<>(Set.of(z47_2), List.of(), 2)));
+        var forests = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_3), List.of(), 1),
+                new Area<>(Set.of(z47_3), List.of(), 1)));
+        var rivers = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_1), List.of(), 2),
+                new Area<>(Set.of(z47_1), List.of(), 2)));
+        var riverSystems = new ZonePartition<>(Set.<Area<Zone.Water>>of(
+                new Area<>(Set.of(z46_1), List.of(), 2),
+                new Area<>(Set.of(z47_1), List.of(), 2)));
 
-        Set<Zone.Meadow> meadows1 = Set.of(meadow0);
-        Set<Zone.Meadow> meadows2 = Set.of(meadow2);
-        Set<Zone.Forest> forests = Set.of(forest1);
-        Set<Zone.River> rivers = Set.of(river3);
-        Set<Zone.Water> waterZones = Set.of(river3, lake8);
+        var b = new ZonePartitions.Builder(new ZonePartitions(forests, meadows, rivers, riverSystems));
+        b.connectSides(s46_N, s47_N);
+        var partitions = b.build();
 
-        Area<Zone.Meadow> meadowArea1 = new Area<>(meadows1, List.of(PlayerColor.YELLOW), 2);
-        Area<Zone.Meadow> meadowArea2 = new Area<>(meadows2, List.of(), 1);
-        Area<Zone.Forest> forestArea = new Area<>(forests, List.of(), 2);
-        Area<Zone.River> riverArea = new Area<>(rivers, List.of(), 1);
-        Area<Zone.Water> waterArea = new Area<>(waterZones, List.of(), 1);
+        var expectedMeadows = Set.of(
+                new Area<>(Set.of(z46_0, z47_0), List.of(), 4),
+                new Area<>(Set.of(z46_2), List.of(), 2),
+                new Area<>(Set.of(z47_2), List.of(), 2));
+        var expectedForests = Set.of(
+                new Area<>(Set.of(z46_3), List.of(), 1),
+                new Area<>(Set.of(z47_3), List.of(), 1));
+        var expectedRivers = Set.of(
+                new Area<>(Set.of(z46_1), List.of(), 2),
+                new Area<>(Set.of(z47_1), List.of(), 2));
+        var expectedRiverSystems = Set.of(
+                new Area<>(Set.of(z46_1), List.of(), 2),
+                new Area<>(Set.of(z47_1), List.of(), 2));
 
-        ZonePartition<Zone.Meadow> meadowZonePartition =
-                new ZonePartition<>(Set.of(meadowArea1, meadowArea2));
-        ZonePartition<Zone.Forest> forestZonePartition = new ZonePartition<>(Set.of(forestArea));
-        ZonePartition<Zone.River> riverZonePartition = new ZonePartition<>(Set.of(riverArea));
-        ZonePartition<Zone.Water> waterZonePartition = new ZonePartition<>(Set.of(waterArea));
-
-        ZonePartitions.Builder builder = new ZonePartitions.Builder(ZonePartitions.EMPTY);
-        builder.addTile(tile);
-        builder.addInitialOccupant(PlayerColor.YELLOW, Occupant.Kind.PAWN, meadow0);
-        builder.addInitialOccupant(PlayerColor.RED, Occupant.Kind.PAWN, river3);
-        builder.addInitialOccupant(PlayerColor.GREEN, Occupant.Kind.PAWN, forest1);
-        builder.clearGatherers(forestArea.withInitialOccupant(PlayerColor.GREEN));
-        builder.clearFishers(riverArea.withInitialOccupant(PlayerColor.RED));
-        ZonePartitions expectedZonePartitions = new ZonePartitions(forestZonePartition, meadowZonePartition,
-                riverZonePartition, waterZonePartition);
-
-        assertEquals(expectedZonePartitions, builder.build());
-        assertThrows(IllegalArgumentException.class, () -> builder.clearGatherers(forestArea.withInitialOccupant(PlayerColor.GREEN)));
+        assertEquals(expectedMeadows, partitions.meadows().areas());
+        assertEquals(expectedForests, partitions.forests().areas());
+        assertEquals(expectedRivers, partitions.rivers().areas());
+        assertEquals(expectedRiverSystems, partitions.riverSystems().areas());
     }
 
+    @Test
+    void zonePartitionsBuilderConnectSidesWorksWithForestSides() {
+        // Tile 46
+        var z46_0 = new Zone.Meadow(46_0, List.of(), null);
+        var z46_1 = new Zone.River(46_1, 0, null);
+        var z46_2 = new Zone.Meadow(46_2, List.of(), null);
+        var z46_3 = new Zone.Forest(46_3, Zone.Forest.Kind.PLAIN);
+        var s46_N = new TileSide.Meadow(z46_0);
+        var s46_E = new TileSide.River(z46_0, z46_1, z46_2);
+        var s46_S = new TileSide.Forest(z46_3);
+        var s46_W = new TileSide.River(z46_2, z46_1, z46_0);
+
+        // Tile 47
+        var z47_0 = new Zone.Meadow(47_0, List.of(), null);
+        var z47_1 = new Zone.River(47_1, 1, null);
+        var a47_2_0 = new Animal(47_2_0, Animal.Kind.DEER);
+        var z47_2 = new Zone.Meadow(47_2, List.of(a47_2_0), null);
+        var z47_3 = new Zone.Forest(47_3, Zone.Forest.Kind.PLAIN);
+        var s47_N = new TileSide.Meadow(z47_0);
+        var s47_E = new TileSide.River(z47_0, z47_1, z47_2);
+        var s47_S = new TileSide.Forest(z47_3);
+        var s47_W = new TileSide.River(z47_2, z47_1, z47_0);
+
+        var meadows = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_0), List.of(), 3),
+                new Area<>(Set.of(z46_2), List.of(), 2),
+                new Area<>(Set.of(z47_0), List.of(), 3),
+                new Area<>(Set.of(z47_2), List.of(), 2)));
+        var forests = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_3), List.of(), 1),
+                new Area<>(Set.of(z47_3), List.of(), 1)));
+        var rivers = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_1), List.of(), 2),
+                new Area<>(Set.of(z47_1), List.of(), 2)));
+        var riverSystems = new ZonePartition<>(Set.<Area<Zone.Water>>of(
+                new Area<>(Set.of(z46_1), List.of(), 2),
+                new Area<>(Set.of(z47_1), List.of(), 2)));
+
+        var b = new ZonePartitions.Builder(new ZonePartitions(forests, meadows, rivers, riverSystems));
+        b.connectSides(s46_S, s47_S);
+        var partitions = b.build();
+
+        var expectedMeadows = Set.of(
+                new Area<>(Set.of(z46_0), List.of(), 3),
+                new Area<>(Set.of(z47_0), List.of(), 3),
+                new Area<>(Set.of(z46_2), List.of(), 2),
+                new Area<>(Set.of(z47_2), List.of(), 2));
+        var expectedForests = Set.of(
+                new Area<>(Set.of(z46_3, z47_3), List.of(), 0));
+        var expectedRivers = Set.of(
+                new Area<>(Set.of(z46_1), List.of(), 2),
+                new Area<>(Set.of(z47_1), List.of(), 2));
+        var expectedRiverSystems = Set.of(
+                new Area<>(Set.of(z46_1), List.of(), 2),
+                new Area<>(Set.of(z47_1), List.of(), 2));
+
+        assertEquals(expectedMeadows, partitions.meadows().areas());
+        assertEquals(expectedForests, partitions.forests().areas());
+        assertEquals(expectedRivers, partitions.rivers().areas());
+        assertEquals(expectedRiverSystems, partitions.riverSystems().areas());
+    }
+
+    @Test
+    void zonePartitionsBuilderConnectSidesWorksWithRiverSides() {
+        // Tile 46
+        var z46_0 = new Zone.Meadow(46_0, List.of(), null);
+        var z46_1 = new Zone.River(46_1, 0, null);
+        var z46_2 = new Zone.Meadow(46_2, List.of(), null);
+        var z46_3 = new Zone.Forest(46_3, Zone.Forest.Kind.PLAIN);
+        var s46_N = new TileSide.Meadow(z46_0);
+        var s46_E = new TileSide.River(z46_0, z46_1, z46_2);
+        var s46_S = new TileSide.Forest(z46_3);
+        var s46_W = new TileSide.River(z46_2, z46_1, z46_0);
+
+        // Tile 47
+        var z47_0 = new Zone.Meadow(47_0, List.of(), null);
+        var z47_1 = new Zone.River(47_1, 1, null);
+        var a47_2_0 = new Animal(47_2_0, Animal.Kind.DEER);
+        var z47_2 = new Zone.Meadow(47_2, List.of(a47_2_0), null);
+        var z47_3 = new Zone.Forest(47_3, Zone.Forest.Kind.PLAIN);
+        var s47_N = new TileSide.Meadow(z47_0);
+        var s47_E = new TileSide.River(z47_0, z47_1, z47_2);
+        var s47_S = new TileSide.Forest(z47_3);
+        var s47_W = new TileSide.River(z47_2, z47_1, z47_0);
+
+        var meadows = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_0), List.of(), 3),
+                new Area<>(Set.of(z46_2), List.of(), 2),
+                new Area<>(Set.of(z47_0), List.of(), 3),
+                new Area<>(Set.of(z47_2), List.of(), 2)));
+        var forests = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_3), List.of(), 1),
+                new Area<>(Set.of(z47_3), List.of(), 1)));
+        var rivers = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_1), List.of(), 2),
+                new Area<>(Set.of(z47_1), List.of(), 2)));
+        var riverSystems = new ZonePartition<>(Set.<Area<Zone.Water>>of(
+                new Area<>(Set.of(z46_1), List.of(), 2),
+                new Area<>(Set.of(z47_1), List.of(), 2)));
+
+        var b = new ZonePartitions.Builder(new ZonePartitions(forests, meadows, rivers, riverSystems));
+        b.connectSides(s46_E, s47_W);
+        var partitions = b.build();
+
+        var expectedMeadows = Set.of(
+                new Area<>(Set.of(z46_0, z47_0), List.of(), 4),
+                new Area<>(Set.of(z46_2, z47_2), List.of(), 2));
+        var expectedForests = Set.of(
+                new Area<>(Set.of(z46_3), List.of(), 1),
+                new Area<>(Set.of(z47_3), List.of(), 1));
+        var expectedRivers = Set.of(
+                new Area<>(Set.of(z46_1, z47_1), List.of(), 2));
+        var expectedRiverSystems = Set.of(
+                new Area<>(Set.of(z46_1, z47_1), List.of(), 2));
+
+        assertEquals(expectedMeadows, partitions.meadows().areas());
+        assertEquals(expectedForests, partitions.forests().areas());
+        assertEquals(expectedRivers, partitions.rivers().areas());
+        assertEquals(expectedRiverSystems, partitions.riverSystems().areas());
+    }
+
+    @Test
+    void zonePartitionsBuilderConnectSidesThrowsWithIncompatibleSides() {
+        // Tile 46
+        var z46_0 = new Zone.Meadow(46_0, List.of(), null);
+        var z46_1 = new Zone.River(46_1, 0, null);
+        var z46_2 = new Zone.Meadow(46_2, List.of(), null);
+        var z46_3 = new Zone.Forest(46_3, Zone.Forest.Kind.PLAIN);
+        var s46_N = new TileSide.Meadow(z46_0);
+        var s46_E = new TileSide.River(z46_0, z46_1, z46_2);
+        var s46_S = new TileSide.Forest(z46_3);
+        var s46_W = new TileSide.River(z46_2, z46_1, z46_0);
+
+        // Tile 47
+        var z47_0 = new Zone.Meadow(47_0, List.of(), null);
+        var z47_1 = new Zone.River(47_1, 1, null);
+        var a47_2_0 = new Animal(47_2_0, Animal.Kind.DEER);
+        var z47_2 = new Zone.Meadow(47_2, List.of(a47_2_0), null);
+        var z47_3 = new Zone.Forest(47_3, Zone.Forest.Kind.PLAIN);
+        var s47_N = new TileSide.Meadow(z47_0);
+        var s47_E = new TileSide.River(z47_0, z47_1, z47_2);
+        var s47_S = new TileSide.Forest(z47_3);
+        var s47_W = new TileSide.River(z47_2, z47_1, z47_0);
+
+        var meadows = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_0), List.of(), 3),
+                new Area<>(Set.of(z46_2), List.of(), 2),
+                new Area<>(Set.of(z47_0), List.of(), 3),
+                new Area<>(Set.of(z47_2), List.of(), 2)));
+        var forests = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_3), List.of(), 1),
+                new Area<>(Set.of(z47_3), List.of(), 1)));
+        var rivers = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_1), List.of(), 2),
+                new Area<>(Set.of(z47_1), List.of(), 2)));
+        var riverSystems = new ZonePartition<>(Set.<Area<Zone.Water>>of(
+                new Area<>(Set.of(z46_1), List.of(), 2),
+                new Area<>(Set.of(z47_1), List.of(), 2)));
+
+        {
+            var b = new ZonePartitions.Builder(new ZonePartitions(forests, meadows, rivers, riverSystems));
+            assertThrows(IllegalArgumentException.class, () -> {
+                b.connectSides(s46_N, s47_E);
+            });
+        }
+        {
+            var b = new ZonePartitions.Builder(new ZonePartitions(forests, meadows, rivers, riverSystems));
+            assertThrows(IllegalArgumentException.class, () -> {
+                b.connectSides(s46_N, s47_S);
+            });
+        }
+        {
+            var b = new ZonePartitions.Builder(new ZonePartitions(forests, meadows, rivers, riverSystems));
+            assertThrows(IllegalArgumentException.class, () -> {
+                b.connectSides(s46_S, s47_W);
+            });
+        }
+    }
+
+    @Test
+    void zonePartitionsBuilderAddInitialOccupantWorksForGatherers() {
+        // Tile 46
+        var z46_0 = new Zone.Meadow(46_0, List.of(), null);
+        var z46_1 = new Zone.River(46_1, 0, null);
+        var z46_2 = new Zone.Meadow(46_2, List.of(), null);
+        var z46_3 = new Zone.Forest(46_3, Zone.Forest.Kind.PLAIN);
+        var s46_N = new TileSide.Meadow(z46_0);
+        var s46_E = new TileSide.River(z46_0, z46_1, z46_2);
+        var s46_S = new TileSide.Forest(z46_3);
+        var s46_W = new TileSide.River(z46_2, z46_1, z46_0);
+
+        // Tile 47
+        var z47_0 = new Zone.Meadow(47_0, List.of(), null);
+        var z47_1 = new Zone.River(47_1, 1, null);
+        var a47_2_0 = new Animal(47_2_0, Animal.Kind.DEER);
+        var z47_2 = new Zone.Meadow(47_2, List.of(a47_2_0), null);
+        var z47_3 = new Zone.Forest(47_3, Zone.Forest.Kind.PLAIN);
+        var s47_N = new TileSide.Meadow(z47_0);
+        var s47_E = new TileSide.River(z47_0, z47_1, z47_2);
+        var s47_S = new TileSide.Forest(z47_3);
+        var s47_W = new TileSide.River(z47_2, z47_1, z47_0);
+
+        var meadows = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_0), List.of(), 3),
+                new Area<>(Set.of(z46_2), List.of(), 2),
+                new Area<>(Set.of(z47_0), List.of(), 3),
+                new Area<>(Set.of(z47_2), List.of(), 2)));
+        var forests = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_3), List.of(), 1),
+                new Area<>(Set.of(z47_3), List.of(), 1)));
+        var rivers = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_1), List.of(), 2),
+                new Area<>(Set.of(z47_1), List.of(), 2)));
+        var riverSystems = new ZonePartition<>(Set.<Area<Zone.Water>>of(
+                new Area<>(Set.of(z46_1), List.of(), 2),
+                new Area<>(Set.of(z47_1), List.of(), 2)));
+
+        var b = new ZonePartitions.Builder(new ZonePartitions(forests, meadows, rivers, riverSystems));
+        b.addInitialOccupant(PlayerColor.RED, Occupant.Kind.PAWN, z46_3);
+        b.addInitialOccupant(PlayerColor.BLUE, Occupant.Kind.PAWN, z47_3);
+        var partitions = b.build();
+
+        var expectedForests = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_3), List.of(PlayerColor.RED), 1),
+                new Area<>(Set.of(z47_3), List.of(PlayerColor.BLUE), 1)));
+        assertEquals(expectedForests, partitions.forests());
+        assertEquals(meadows, partitions.meadows());
+        assertEquals(rivers, partitions.rivers());
+        assertEquals(riverSystems, partitions.riverSystems());
+    }
+
+    @Test
+    void zonePartitionsBuilderAddInitialOccupantWorksForHunters() {
+        // Tile 46
+        var z46_0 = new Zone.Meadow(46_0, List.of(), null);
+        var z46_1 = new Zone.River(46_1, 0, null);
+        var z46_2 = new Zone.Meadow(46_2, List.of(), null);
+        var z46_3 = new Zone.Forest(46_3, Zone.Forest.Kind.PLAIN);
+        var s46_N = new TileSide.Meadow(z46_0);
+        var s46_E = new TileSide.River(z46_0, z46_1, z46_2);
+        var s46_S = new TileSide.Forest(z46_3);
+        var s46_W = new TileSide.River(z46_2, z46_1, z46_0);
+
+        // Tile 47
+        var z47_0 = new Zone.Meadow(47_0, List.of(), null);
+        var z47_1 = new Zone.River(47_1, 1, null);
+        var a47_2_0 = new Animal(47_2_0, Animal.Kind.DEER);
+        var z47_2 = new Zone.Meadow(47_2, List.of(a47_2_0), null);
+        var z47_3 = new Zone.Forest(47_3, Zone.Forest.Kind.PLAIN);
+        var s47_N = new TileSide.Meadow(z47_0);
+        var s47_E = new TileSide.River(z47_0, z47_1, z47_2);
+        var s47_S = new TileSide.Forest(z47_3);
+        var s47_W = new TileSide.River(z47_2, z47_1, z47_0);
+
+        var meadows = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_0), List.of(), 3),
+                new Area<>(Set.of(z46_2), List.of(), 2),
+                new Area<>(Set.of(z47_0), List.of(), 3),
+                new Area<>(Set.of(z47_2), List.of(), 2)));
+        var forests = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_3), List.of(), 1),
+                new Area<>(Set.of(z47_3), List.of(), 1)));
+        var rivers = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_1), List.of(), 2),
+                new Area<>(Set.of(z47_1), List.of(), 2)));
+        var riverSystems = new ZonePartition<>(Set.<Area<Zone.Water>>of(
+                new Area<>(Set.of(z46_1), List.of(), 2),
+                new Area<>(Set.of(z47_1), List.of(), 2)));
+
+        var b = new ZonePartitions.Builder(new ZonePartitions(forests, meadows, rivers, riverSystems));
+        b.addInitialOccupant(PlayerColor.GREEN, Occupant.Kind.PAWN, z46_0);
+        b.addInitialOccupant(PlayerColor.YELLOW, Occupant.Kind.PAWN, z46_2);
+        b.addInitialOccupant(PlayerColor.PURPLE, Occupant.Kind.PAWN, z47_0);
+        b.addInitialOccupant(PlayerColor.RED, Occupant.Kind.PAWN, z47_2);
+        var partitions = b.build();
+
+        var expectedMeadows = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_0), List.of(PlayerColor.GREEN), 3),
+                new Area<>(Set.of(z46_2), List.of(PlayerColor.YELLOW), 2),
+                new Area<>(Set.of(z47_0), List.of(PlayerColor.PURPLE), 3),
+                new Area<>(Set.of(z47_2), List.of(PlayerColor.RED), 2)));
+        assertEquals(expectedMeadows, partitions.meadows());
+        assertEquals(forests, partitions.forests());
+        assertEquals(rivers, partitions.rivers());
+        assertEquals(riverSystems, partitions.riverSystems());
+    }
+
+    @Test
+    void zonePartitionsBuilderAddInitialOccupantWorksForFishers() {
+        // Tile 46
+        var z46_0 = new Zone.Meadow(46_0, List.of(), null);
+        var z46_1 = new Zone.River(46_1, 0, null);
+        var z46_2 = new Zone.Meadow(46_2, List.of(), null);
+        var z46_3 = new Zone.Forest(46_3, Zone.Forest.Kind.PLAIN);
+        var s46_N = new TileSide.Meadow(z46_0);
+        var s46_E = new TileSide.River(z46_0, z46_1, z46_2);
+        var s46_S = new TileSide.Forest(z46_3);
+        var s46_W = new TileSide.River(z46_2, z46_1, z46_0);
+
+        // Tile 47
+        var z47_0 = new Zone.Meadow(47_0, List.of(), null);
+        var z47_1 = new Zone.River(47_1, 1, null);
+        var a47_2_0 = new Animal(47_2_0, Animal.Kind.DEER);
+        var z47_2 = new Zone.Meadow(47_2, List.of(a47_2_0), null);
+        var z47_3 = new Zone.Forest(47_3, Zone.Forest.Kind.PLAIN);
+        var s47_N = new TileSide.Meadow(z47_0);
+        var s47_E = new TileSide.River(z47_0, z47_1, z47_2);
+        var s47_S = new TileSide.Forest(z47_3);
+        var s47_W = new TileSide.River(z47_2, z47_1, z47_0);
+
+        var meadows = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_0), List.of(), 3),
+                new Area<>(Set.of(z46_2), List.of(), 2),
+                new Area<>(Set.of(z47_0), List.of(), 3),
+                new Area<>(Set.of(z47_2), List.of(), 2)));
+        var forests = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_3), List.of(), 1),
+                new Area<>(Set.of(z47_3), List.of(), 1)));
+        var rivers = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_1), List.of(), 2),
+                new Area<>(Set.of(z47_1), List.of(), 2)));
+        var riverSystems = new ZonePartition<>(Set.<Area<Zone.Water>>of(
+                new Area<>(Set.of(z46_1), List.of(), 2),
+                new Area<>(Set.of(z47_1), List.of(), 2)));
+
+        var b = new ZonePartitions.Builder(new ZonePartitions(forests, meadows, rivers, riverSystems));
+        b.addInitialOccupant(PlayerColor.YELLOW, Occupant.Kind.PAWN, z46_1);
+        b.addInitialOccupant(PlayerColor.PURPLE, Occupant.Kind.PAWN, z47_1);
+        var partitions = b.build();
+
+        var expectedRivers = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_1), List.of(PlayerColor.YELLOW), 2),
+                new Area<>(Set.of(z47_1), List.of(PlayerColor.PURPLE), 2)));
+        assertEquals(forests, partitions.forests());
+        assertEquals(meadows, partitions.meadows());
+        assertEquals(expectedRivers, partitions.rivers());
+        assertEquals(riverSystems, partitions.riverSystems());
+    }
+
+    @Test
+    void zonePartitionsBuilderAddInitialOccupantWorksForFishingHuts() {
+        // Tile 46
+        var z46_0 = new Zone.Meadow(46_0, List.of(), null);
+        var z46_1 = new Zone.River(46_1, 0, null);
+        var z46_2 = new Zone.Meadow(46_2, List.of(), null);
+        var z46_3 = new Zone.Forest(46_3, Zone.Forest.Kind.PLAIN);
+        var s46_N = new TileSide.Meadow(z46_0);
+        var s46_E = new TileSide.River(z46_0, z46_1, z46_2);
+        var s46_S = new TileSide.Forest(z46_3);
+        var s46_W = new TileSide.River(z46_2, z46_1, z46_0);
+
+        // Tile 47
+        var z47_0 = new Zone.Meadow(47_0, List.of(), null);
+        var z47_1 = new Zone.River(47_1, 1, null);
+        var a47_2_0 = new Animal(47_2_0, Animal.Kind.DEER);
+        var z47_2 = new Zone.Meadow(47_2, List.of(a47_2_0), null);
+        var z47_3 = new Zone.Forest(47_3, Zone.Forest.Kind.PLAIN);
+        var s47_N = new TileSide.Meadow(z47_0);
+        var s47_E = new TileSide.River(z47_0, z47_1, z47_2);
+        var s47_S = new TileSide.Forest(z47_3);
+        var s47_W = new TileSide.River(z47_2, z47_1, z47_0);
+
+        var meadows = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_0), List.of(), 3),
+                new Area<>(Set.of(z46_2), List.of(), 2),
+                new Area<>(Set.of(z47_0), List.of(), 3),
+                new Area<>(Set.of(z47_2), List.of(), 2)));
+        var forests = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_3), List.of(), 1),
+                new Area<>(Set.of(z47_3), List.of(), 1)));
+        var rivers = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_1), List.of(), 2),
+                new Area<>(Set.of(z47_1), List.of(), 2)));
+        var riverSystems = new ZonePartition<>(Set.<Area<Zone.Water>>of(
+                new Area<>(Set.of(z46_1), List.of(), 2),
+                new Area<>(Set.of(z47_1), List.of(), 2)));
+
+        var b = new ZonePartitions.Builder(new ZonePartitions(forests, meadows, rivers, riverSystems));
+        b.addInitialOccupant(PlayerColor.RED, Occupant.Kind.HUT, z46_1);
+        b.addInitialOccupant(PlayerColor.BLUE, Occupant.Kind.HUT, z47_1);
+        var partitions = b.build();
+
+        var expectedRiverSystems = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_1), List.of(PlayerColor.RED), 2),
+                new Area<>(Set.of(z47_1), List.of(PlayerColor.BLUE), 2)));
+        assertEquals(forests, partitions.forests());
+        assertEquals(meadows, partitions.meadows());
+        assertEquals(rivers, partitions.rivers());
+        assertEquals(expectedRiverSystems, partitions.riverSystems());
+    }
+
+    @Test
+    void zonePartitionsBuilderAddInitialOccupantThrowsForIncorrectOccupants() {
+        // Tile 46
+        var z46_0 = new Zone.Meadow(46_0, List.of(), null);
+        var z46_1 = new Zone.River(46_1, 0, null);
+        var z46_2 = new Zone.Meadow(46_2, List.of(), null);
+        var z46_3 = new Zone.Forest(46_3, Zone.Forest.Kind.PLAIN);
+        var s46_N = new TileSide.Meadow(z46_0);
+        var s46_E = new TileSide.River(z46_0, z46_1, z46_2);
+        var s46_S = new TileSide.Forest(z46_3);
+        var s46_W = new TileSide.River(z46_2, z46_1, z46_0);
+
+        // Tile 47
+        var z47_0 = new Zone.Meadow(47_0, List.of(), null);
+        var z47_1 = new Zone.River(47_1, 1, null);
+        var a47_2_0 = new Animal(47_2_0, Animal.Kind.DEER);
+        var z47_2 = new Zone.Meadow(47_2, List.of(a47_2_0), null);
+        var z47_3 = new Zone.Forest(47_3, Zone.Forest.Kind.PLAIN);
+        var s47_N = new TileSide.Meadow(z47_0);
+        var s47_E = new TileSide.River(z47_0, z47_1, z47_2);
+        var s47_S = new TileSide.Forest(z47_3);
+        var s47_W = new TileSide.River(z47_2, z47_1, z47_0);
+
+        var meadows = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_0), List.of(), 3),
+                new Area<>(Set.of(z46_2), List.of(), 2),
+                new Area<>(Set.of(z47_0), List.of(), 3),
+                new Area<>(Set.of(z47_2), List.of(), 2)));
+        var forests = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_3), List.of(), 1),
+                new Area<>(Set.of(z47_3), List.of(), 1)));
+        var rivers = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_1), List.of(), 2),
+                new Area<>(Set.of(z47_1), List.of(), 2)));
+        var riverSystems = new ZonePartition<>(Set.<Area<Zone.Water>>of(
+                new Area<>(Set.of(z46_1), List.of(), 2),
+                new Area<>(Set.of(z47_1), List.of(), 2)));
+
+        {
+            var b = new ZonePartitions.Builder(new ZonePartitions(forests, meadows, rivers, riverSystems));
+            assertThrows(IllegalArgumentException.class, () -> {
+                b.addInitialOccupant(PlayerColor.RED, Occupant.Kind.HUT, z46_0);
+            });
+        }
+        {
+            var b = new ZonePartitions.Builder(new ZonePartitions(forests, meadows, rivers, riverSystems));
+            assertThrows(IllegalArgumentException.class, () -> {
+                b.addInitialOccupant(PlayerColor.RED, Occupant.Kind.HUT, z46_3);
+            });
+        }
+    }
+
+    @Test
+    void zonePartitionsBuilderRemovePawnWorksForGatherers() {
+        // Tile 46
+        var z46_0 = new Zone.Meadow(46_0, List.of(), null);
+        var z46_1 = new Zone.River(46_1, 0, null);
+        var z46_2 = new Zone.Meadow(46_2, List.of(), null);
+        var z46_3 = new Zone.Forest(46_3, Zone.Forest.Kind.PLAIN);
+        var s46_N = new TileSide.Meadow(z46_0);
+        var s46_E = new TileSide.River(z46_0, z46_1, z46_2);
+        var s46_S = new TileSide.Forest(z46_3);
+        var s46_W = new TileSide.River(z46_2, z46_1, z46_0);
+
+        // Tile 47
+        var z47_0 = new Zone.Meadow(47_0, List.of(), null);
+        var z47_1 = new Zone.River(47_1, 1, null);
+        var a47_2_0 = new Animal(47_2_0, Animal.Kind.DEER);
+        var z47_2 = new Zone.Meadow(47_2, List.of(a47_2_0), null);
+        var z47_3 = new Zone.Forest(47_3, Zone.Forest.Kind.PLAIN);
+        var s47_N = new TileSide.Meadow(z47_0);
+        var s47_E = new TileSide.River(z47_0, z47_1, z47_2);
+        var s47_S = new TileSide.Forest(z47_3);
+        var s47_W = new TileSide.River(z47_2, z47_1, z47_0);
+
+        var meadows = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_0), List.of(), 3),
+                new Area<>(Set.of(z46_2), List.of(), 2),
+                new Area<>(Set.of(z47_0), List.of(), 3),
+                new Area<>(Set.of(z47_2), List.of(), 2)));
+        var forests = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_3), List.of(PlayerColor.RED), 1),
+                new Area<>(Set.of(z47_3), List.of(PlayerColor.BLUE), 1)));
+        var rivers = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_1), List.of(), 2),
+                new Area<>(Set.of(z47_1), List.of(), 2)));
+        var riverSystems = new ZonePartition<>(Set.<Area<Zone.Water>>of(
+                new Area<>(Set.of(z46_1), List.of(), 2),
+                new Area<>(Set.of(z47_1), List.of(), 2)));
+
+        var b = new ZonePartitions.Builder(new ZonePartitions(forests, meadows, rivers, riverSystems));
+        b.removePawn(PlayerColor.RED, z46_3);
+        b.removePawn(PlayerColor.BLUE, z47_3);
+        var partitions = b.build();
+
+        var expectedForests = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_3), List.of(), 1),
+                new Area<>(Set.of(z47_3), List.of(), 1)));
+        assertEquals(expectedForests, partitions.forests());
+        assertEquals(meadows, partitions.meadows());
+        assertEquals(rivers, partitions.rivers());
+        assertEquals(riverSystems, partitions.riverSystems());
+    }
+
+    @Test
+    void zonePartitionsBuilderRemovePawnWorksForHunters() {
+        // Tile 46
+        var z46_0 = new Zone.Meadow(46_0, List.of(), null);
+        var z46_1 = new Zone.River(46_1, 0, null);
+        var z46_2 = new Zone.Meadow(46_2, List.of(), null);
+        var z46_3 = new Zone.Forest(46_3, Zone.Forest.Kind.PLAIN);
+        var s46_N = new TileSide.Meadow(z46_0);
+        var s46_E = new TileSide.River(z46_0, z46_1, z46_2);
+        var s46_S = new TileSide.Forest(z46_3);
+        var s46_W = new TileSide.River(z46_2, z46_1, z46_0);
+
+        // Tile 47
+        var z47_0 = new Zone.Meadow(47_0, List.of(), null);
+        var z47_1 = new Zone.River(47_1, 1, null);
+        var a47_2_0 = new Animal(47_2_0, Animal.Kind.DEER);
+        var z47_2 = new Zone.Meadow(47_2, List.of(a47_2_0), null);
+        var z47_3 = new Zone.Forest(47_3, Zone.Forest.Kind.PLAIN);
+        var s47_N = new TileSide.Meadow(z47_0);
+        var s47_E = new TileSide.River(z47_0, z47_1, z47_2);
+        var s47_S = new TileSide.Forest(z47_3);
+        var s47_W = new TileSide.River(z47_2, z47_1, z47_0);
+
+        var meadows = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_0), List.of(PlayerColor.GREEN), 3),
+                new Area<>(Set.of(z46_2), List.of(PlayerColor.YELLOW), 2),
+                new Area<>(Set.of(z47_0), List.of(PlayerColor.PURPLE), 3),
+                new Area<>(Set.of(z47_2), List.of(PlayerColor.RED), 2)));
+        var forests = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_3), List.of(), 1),
+                new Area<>(Set.of(z47_3), List.of(), 1)));
+        var rivers = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_1), List.of(), 2),
+                new Area<>(Set.of(z47_1), List.of(), 2)));
+        var riverSystems = new ZonePartition<>(Set.<Area<Zone.Water>>of(
+                new Area<>(Set.of(z46_1), List.of(), 2),
+                new Area<>(Set.of(z47_1), List.of(), 2)));
+
+        var b = new ZonePartitions.Builder(new ZonePartitions(forests, meadows, rivers, riverSystems));
+        b.removePawn(PlayerColor.GREEN, z46_0);
+        b.removePawn(PlayerColor.YELLOW, z46_2);
+        b.removePawn(PlayerColor.PURPLE, z47_0);
+        b.removePawn(PlayerColor.RED, z47_2);
+        var partitions = b.build();
+
+        var expectedMeadows = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_0), List.of(), 3),
+                new Area<>(Set.of(z46_2), List.of(), 2),
+                new Area<>(Set.of(z47_0), List.of(), 3),
+                new Area<>(Set.of(z47_2), List.of(), 2)));
+        assertEquals(expectedMeadows, partitions.meadows());
+        assertEquals(forests, partitions.forests());
+        assertEquals(rivers, partitions.rivers());
+        assertEquals(riverSystems, partitions.riverSystems());
+    }
+
+    @Test
+    void zonePartitionsBuilderRemovePawnWorksForFishers() {
+        // Tile 46
+        var z46_0 = new Zone.Meadow(46_0, List.of(), null);
+        var z46_1 = new Zone.River(46_1, 0, null);
+        var z46_2 = new Zone.Meadow(46_2, List.of(), null);
+        var z46_3 = new Zone.Forest(46_3, Zone.Forest.Kind.PLAIN);
+        var s46_N = new TileSide.Meadow(z46_0);
+        var s46_E = new TileSide.River(z46_0, z46_1, z46_2);
+        var s46_S = new TileSide.Forest(z46_3);
+        var s46_W = new TileSide.River(z46_2, z46_1, z46_0);
+
+        // Tile 47
+        var z47_0 = new Zone.Meadow(47_0, List.of(), null);
+        var z47_1 = new Zone.River(47_1, 1, null);
+        var a47_2_0 = new Animal(47_2_0, Animal.Kind.DEER);
+        var z47_2 = new Zone.Meadow(47_2, List.of(a47_2_0), null);
+        var z47_3 = new Zone.Forest(47_3, Zone.Forest.Kind.PLAIN);
+        var s47_N = new TileSide.Meadow(z47_0);
+        var s47_E = new TileSide.River(z47_0, z47_1, z47_2);
+        var s47_S = new TileSide.Forest(z47_3);
+        var s47_W = new TileSide.River(z47_2, z47_1, z47_0);
+
+        var meadows = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_0), List.of(), 3),
+                new Area<>(Set.of(z46_2), List.of(), 2),
+                new Area<>(Set.of(z47_0), List.of(), 3),
+                new Area<>(Set.of(z47_2), List.of(), 2)));
+        var forests = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_3), List.of(), 1),
+                new Area<>(Set.of(z47_3), List.of(), 1)));
+        var rivers = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_1), List.of(PlayerColor.YELLOW), 2),
+                new Area<>(Set.of(z47_1), List.of(PlayerColor.PURPLE), 2)));
+        var riverSystems = new ZonePartition<>(Set.<Area<Zone.Water>>of(
+                new Area<>(Set.of(z46_1), List.of(), 2),
+                new Area<>(Set.of(z47_1), List.of(), 2)));
+
+        var b = new ZonePartitions.Builder(new ZonePartitions(forests, meadows, rivers, riverSystems));
+        b.removePawn(PlayerColor.YELLOW, z46_1);
+        b.removePawn(PlayerColor.PURPLE, z47_1);
+        var partitions = b.build();
+
+        var expectedRivers = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_1), List.of(), 2),
+                new Area<>(Set.of(z47_1), List.of(), 2)));
+        assertEquals(forests, partitions.forests());
+        assertEquals(meadows, partitions.meadows());
+        assertEquals(expectedRivers, partitions.rivers());
+        assertEquals(riverSystems, partitions.riverSystems());
+    }
+
+    @Test
+    void zonePartitionsBuilderRemovePawnThrowsForInvalidZone() {
+        // Tile 56
+        var l0 = new Zone.Lake(56_8, 1, null);
+        var a0_0 = new Animal(56_0_0, Animal.Kind.AUROCHS);
+        var z0 = new Zone.Meadow(56_0, List.of(a0_0), null);
+        var z1 = new Zone.Forest(56_1, Zone.Forest.Kind.WITH_MENHIR);
+        var z2 = new Zone.Meadow(56_2, List.of(), null);
+        var z3 = new Zone.River(56_3, 0, l0);
+        var sN = new TileSide.Meadow(z0);
+        var sE = new TileSide.Forest(z1);
+        var sS = new TileSide.Forest(z1);
+        var sW = new TileSide.River(z2, z3, z0);
+        var tile = new Tile(56, Tile.Kind.START, sN, sE, sS, sW);
+
+        var meadows = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z0), List.of(), 2),
+                new Area<>(Set.of(z2), List.of(), 1)));
+        var forests = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z1), List.of(), 2)));
+        var rivers = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z3), List.of(), 1)));
+        var riverSystems = new ZonePartition<>(Set.<Area<Zone.Water>>of(
+                new Area<>(Set.of(z3), List.of(), 2),
+                new Area<>(Set.of(l0), List.of(PlayerColor.BLUE), 2)));
+
+        var b = new ZonePartitions.Builder(new ZonePartitions(forests, meadows, rivers, riverSystems));
+        assertThrows(IllegalArgumentException.class, () -> {
+            b.removePawn(PlayerColor.BLUE, l0);
+        });
+    }
+
+    @Test
+    void zonePartitionsBuilderClearGatherersWorks() {
+        // Tile 46
+        var z46_0 = new Zone.Meadow(46_0, List.of(), null);
+        var z46_1 = new Zone.River(46_1, 0, null);
+        var z46_2 = new Zone.Meadow(46_2, List.of(), null);
+        var z46_3 = new Zone.Forest(46_3, Zone.Forest.Kind.PLAIN);
+        var s46_N = new TileSide.Meadow(z46_0);
+        var s46_E = new TileSide.River(z46_0, z46_1, z46_2);
+        var s46_S = new TileSide.Forest(z46_3);
+        var s46_W = new TileSide.River(z46_2, z46_1, z46_0);
+
+        // Tile 47
+        var z47_0 = new Zone.Meadow(47_0, List.of(), null);
+        var z47_1 = new Zone.River(47_1, 1, null);
+        var a47_2_0 = new Animal(47_2_0, Animal.Kind.DEER);
+        var z47_2 = new Zone.Meadow(47_2, List.of(a47_2_0), null);
+        var z47_3 = new Zone.Forest(47_3, Zone.Forest.Kind.PLAIN);
+        var s47_N = new TileSide.Meadow(z47_0);
+        var s47_E = new TileSide.River(z47_0, z47_1, z47_2);
+        var s47_S = new TileSide.Forest(z47_3);
+        var s47_W = new TileSide.River(z47_2, z47_1, z47_0);
+
+        var meadows = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_0, z47_0), List.of(PlayerColor.PURPLE), 4),
+                new Area<>(Set.of(z46_2, z47_2), List.of(), 2)));
+        var forestArea = new Area<>(Set.of(z46_3), List.of(PlayerColor.BLUE), 1);
+        var forests = new ZonePartition<>(Set.of(
+                forestArea,
+                new Area<>(Set.of(z47_3), List.of(PlayerColor.YELLOW), 1)));
+        var rivers = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_1, z47_1), List.of(PlayerColor.RED, PlayerColor.BLUE), 2)));
+        var riverSystems = new ZonePartition<>(Set.of(
+                new Area<>(Set.<Zone.Water>of(z46_1, z47_1), List.of(PlayerColor.YELLOW), 2)));
+
+        var b = new ZonePartitions.Builder(new ZonePartitions(forests, meadows, rivers, riverSystems));
+        b.clearGatherers(forestArea);
+        var partition = b.build();
+
+        var expectedForests = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_3), List.of(), 1),
+                new Area<>(Set.of(z47_3), List.of(PlayerColor.YELLOW), 1)));
+        assertEquals(expectedForests, partition.forests());
+        assertEquals(meadows, partition.meadows());
+        assertEquals(rivers, partition.rivers());
+        assertEquals(riverSystems, partition.riverSystems());
+    }
+
+    @Test
+    void zonePartitionsBuilderClearFishersWorks() {
+        // Tile 46
+        var z46_0 = new Zone.Meadow(46_0, List.of(), null);
+        var z46_1 = new Zone.River(46_1, 0, null);
+        var z46_2 = new Zone.Meadow(46_2, List.of(), null);
+        var z46_3 = new Zone.Forest(46_3, Zone.Forest.Kind.PLAIN);
+        var s46_N = new TileSide.Meadow(z46_0);
+        var s46_E = new TileSide.River(z46_0, z46_1, z46_2);
+        var s46_S = new TileSide.Forest(z46_3);
+        var s46_W = new TileSide.River(z46_2, z46_1, z46_0);
+
+        // Tile 47
+        var z47_0 = new Zone.Meadow(47_0, List.of(), null);
+        var z47_1 = new Zone.River(47_1, 1, null);
+        var a47_2_0 = new Animal(47_2_0, Animal.Kind.DEER);
+        var z47_2 = new Zone.Meadow(47_2, List.of(a47_2_0), null);
+        var z47_3 = new Zone.Forest(47_3, Zone.Forest.Kind.PLAIN);
+        var s47_N = new TileSide.Meadow(z47_0);
+        var s47_E = new TileSide.River(z47_0, z47_1, z47_2);
+        var s47_S = new TileSide.Forest(z47_3);
+        var s47_W = new TileSide.River(z47_2, z47_1, z47_0);
+
+        var meadows = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_0, z47_0), List.of(PlayerColor.PURPLE), 4),
+                new Area<>(Set.of(z46_2, z47_2), List.of(), 2)));
+        var forests = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_3), List.of(PlayerColor.BLUE), 1),
+                new Area<>(Set.of(z47_3), List.of(), 1)));
+        var riverArea = new Area<>(Set.of(z46_1, z47_1), List.of(PlayerColor.RED, PlayerColor.BLUE), 2);
+        var rivers = new ZonePartition<>(Set.of(riverArea));
+        var riverSystems = new ZonePartition<>(Set.of(
+                new Area<>(Set.<Zone.Water>of(z46_1, z47_1), List.of(PlayerColor.YELLOW), 2)));
+
+        var b = new ZonePartitions.Builder(new ZonePartitions(forests, meadows, rivers, riverSystems));
+        b.clearFishers(riverArea);
+        var partition = b.build();
+
+        var expectedRivers = new ZonePartition<>(Set.of(
+                new Area<>(Set.of(z46_1, z47_1), List.of(), 2)));
+        assertEquals(expectedRivers, partition.rivers());
+        assertEquals(meadows, partition.meadows());
+        assertEquals(forests, partition.forests());
+        assertEquals(riverSystems, partition.riverSystems());
+    }
 }

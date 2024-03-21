@@ -2,196 +2,315 @@ package ch.epfl.chacun;
 
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import static ch.epfl.chacun.Zone.Forest;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 
-public class ZonePartitionTest {
+class ZonePartitionTest {
     @Test
-    void areaContainingThrowsOnUnassignedZone() {
-        Set<Forest> forestZones = new HashSet<>();
-        forestZones.add(new Forest(0, Forest.Kind.PLAIN));
-        List<PlayerColor> occupants = new ArrayList<>(List.of(PlayerColor.RED));
-        Area<Forest> forestArea = new Area<>(forestZones, occupants, 3);
-        ZonePartition<Forest> zonePartition = new ZonePartition<>(Set.of(forestArea));
+    void zonePartitionIsImmutable() {
+        var areas = new HashSet<Area<Zone.Forest>>();
+        var f0 = new Zone.Forest(0, Zone.Forest.Kind.PLAIN);
+        var f1 = new Zone.Forest(1, Zone.Forest.Kind.PLAIN);
+        var a0 = new Area<>(Set.of(f0), List.of(), 0);
+        var a1 = new Area<>(Set.of(f1), List.of(), 0);
+        areas.add(a0);
+        areas.add(a1);
+        var partition = new ZonePartition<>(areas);
+        areas.clear();
+        assertEquals(Set.of(a0, a1), partition.areas());
 
-        assertThrows(IllegalArgumentException.class
-                , () -> zonePartition.areaContaining(new Forest(1, Forest.Kind.PLAIN)));
+        try {
+            partition.areas().clear();
+        } catch (UnsupportedOperationException e) {
+            // Expected
+        }
+        assertEquals(Set.of(a0, a1), partition.areas());
     }
 
     @Test
-    void areaContainingWorks() {
-        Set<Forest> forestZones = new HashSet<>();
-        Forest forest = new Forest(0, Forest.Kind.PLAIN);
-        forestZones.add(forest);
-        List<PlayerColor> occupants = new ArrayList<>(List.of(PlayerColor.RED));
-        Area<Forest> forestArea = new Area<>(forestZones, occupants, 3);
-        ZonePartition<Forest> zonePartition = new ZonePartition<>(Set.of(forestArea));
-
-        assertEquals(forestArea, zonePartition.areaContaining(forest));
+    void zonePartitionSecondaryConstructorWorks() {
+        assertEquals(Set.<Area<Zone.Forest>>of(), new ZonePartition<Zone.Forest>().areas());
     }
 
     @Test
-    void addSingletonWorks() {
-        Set<Forest> forestZones = new HashSet<>();
-        forestZones.add(new Forest(0, Forest.Kind.PLAIN));
-        List<PlayerColor> occupants = new ArrayList<>(List.of(PlayerColor.RED));
-        Area<Forest> forestArea = new Area<>(forestZones, occupants, 3);
-        ZonePartition<Forest> zonePartition = new ZonePartition<>(Set.of(forestArea));
-        ZonePartition.Builder<Forest> builder = new ZonePartition.Builder<>(zonePartition);
-
-        Set<Forest> newForestZones = new HashSet<>();
-        Forest newForest = new Forest(1, Forest.Kind.WITH_MUSHROOMS);
-        newForestZones.add(newForest);
-        List<PlayerColor> newOccupants = new ArrayList<>();
-        Area<Forest> newForestArea = new Area<>(newForestZones, newOccupants, 1);
-
-        builder.addSingleton(newForest, 1);
-        ZonePartition<Forest> buildedZonePartition = builder.build();
-
-        Set<Area> expectedAreas = new HashSet<>();
-        expectedAreas.add(forestArea);
-        expectedAreas.add(newForestArea);
-
-        assertEquals(expectedAreas, buildedZonePartition.areas());
+    void zonePartitionAreaContainingWorks() {
+        var f0 = new Zone.Forest(0, Zone.Forest.Kind.PLAIN);
+        var f1 = new Zone.Forest(1, Zone.Forest.Kind.PLAIN);
+        var f2 = new Zone.Forest(2, Zone.Forest.Kind.PLAIN);
+        var a0 = new Area<>(Set.of(f0), List.of(), 0);
+        var a1 = new Area<>(Set.of(f1), List.of(), 0);
+        var a2 = new Area<>(Set.of(f2), List.of(), 0);
+        var partition = new ZonePartition<>(Set.of(a0, a1, a2));
+        assertEquals(a0, partition.areaContaining(f0));
+        assertEquals(a1, partition.areaContaining(f1));
+        assertEquals(a2, partition.areaContaining(f2));
     }
 
     @Test
-    void addInitialOccupantThrowsOnUnAssignedZone() {
-        Set<Forest> forestZones = new HashSet<>();
-        forestZones.add(new Forest(0, Forest.Kind.PLAIN));
-        List<PlayerColor> occupants = new ArrayList<>();
-        Area<Forest> forestArea = new Area<>(forestZones, occupants, 3);
-        ZonePartition<Forest> zonePartition = new ZonePartition<>(Set.of(forestArea));
-        ZonePartition.Builder builder = new ZonePartition.Builder(zonePartition);
-
-        assertThrows(IllegalArgumentException.class
-                , () -> builder.addInitialOccupant(new Forest(1, Forest.Kind.WITH_MENHIR), PlayerColor.BLUE));
+    void zonePartitionAreaContainingThrowsIfZoneIsNotInArea() {
+        var f0 = new Zone.Forest(0, Zone.Forest.Kind.PLAIN);
+        var f1 = new Zone.Forest(1, Zone.Forest.Kind.PLAIN);
+        var a0 = new Area<>(Set.of(f0), List.of(), 0);
+        var a1 = new Area<>(Set.of(f1), List.of(), 0);
+        var partition = new ZonePartition<>(Set.of(a0, a1));
+        assertThrows(IllegalArgumentException.class, () -> {
+            partition.areaContaining(new Zone.Forest(2, Zone.Forest.Kind.PLAIN));
+        });
     }
 
     @Test
-    void addInitialOccupantThrowsOnOccupiedArea() {
-        Set<Forest> forestZones = new HashSet<>();
-        Forest forest = new Forest(0, Forest.Kind.PLAIN);
-        forestZones.add(forest);
-        List<PlayerColor> occupants = new ArrayList<>(List.of(PlayerColor.YELLOW));
-        Area<Forest> forestArea = new Area<>(forestZones, occupants, 3);
-        ZonePartition<Forest> zonePartition = new ZonePartition<>(Set.of(forestArea));
-        ZonePartition.Builder builder = new ZonePartition.Builder(zonePartition);
+    void zonePartitionBuilderConstructorCorrectlyCopiesInitialValue() {
+        var f0 = new Zone.Forest(0, Zone.Forest.Kind.PLAIN);
+        var f1 = new Zone.Forest(1, Zone.Forest.Kind.PLAIN);
+        var a0 = new Area<>(Set.of(f0), List.of(), 0);
+        var a1 = new Area<>(Set.of(f1), List.of(), 0);
+        var partition = new ZonePartition<>(Set.of(a0, a1));
 
-        assertThrows(IllegalArgumentException.class
-                , () -> builder.addInitialOccupant(forest, PlayerColor.BLUE));
+        var partitionBuilder = new ZonePartition.Builder<>(partition);
+        assertEquals(partition, partitionBuilder.build());
     }
 
     @Test
-    void addInitialOccupantWorks() {
-        Set<Forest> forestZones = new HashSet<>();
-        Forest forest = new Forest(0, Forest.Kind.PLAIN);
-        forestZones.add(forest);
-        List<PlayerColor> occupants = new ArrayList<>();
-        Area<Forest> forestArea = new Area<>(forestZones, occupants, 3);
-        ZonePartition<Forest> zonePartition = new ZonePartition<>(Set.of(forestArea));
-        ZonePartition.Builder<Forest> builder = new ZonePartition.Builder<>(zonePartition);
+    void zonePartitionBuilderAddSingletonCreatesCorrectArea() {
+        var emptyPartition = new ZonePartition<Zone.Forest>();
+        var partitionBuilder = new ZonePartition.Builder<>(emptyPartition);
 
-        List<PlayerColor> newOccupants = new ArrayList<>(List.of(PlayerColor.YELLOW));
-        Area<Forest> newForestArea = new Area<>(forestZones, newOccupants, 3);
-
-        builder.addInitialOccupant(forest, PlayerColor.YELLOW);
-        Set<Area> expectedAreas = new HashSet<>();
-        expectedAreas.add(newForestArea);
-
-        assertEquals(expectedAreas, builder.build().areas());
+        var zone = new Zone.Forest(0, Zone.Forest.Kind.PLAIN);
+        var openConnections = 1;
+        partitionBuilder.addSingleton(zone, openConnections);
+        var expectedArea = new Area<>(Set.of(zone), List.of(), openConnections);
+        var expectedPartition = new ZonePartition<>(Set.of(expectedArea));
+        assertEquals(expectedPartition, partitionBuilder.build());
     }
 
     @Test
-    void removeOccupantWorks() {
-        Set<Forest> forestZones = new HashSet<>();
-        Forest forest = new Forest(0, Forest.Kind.PLAIN);
-        forestZones.add(forest);
-        List<PlayerColor> occupants = new ArrayList<>(List.of(PlayerColor.YELLOW));
-        Area<Forest> forestArea = new Area<>(forestZones, occupants, 3);
-        ZonePartition<Forest> zonePartition = new ZonePartition<>(Set.of(forestArea));
-        ZonePartition.Builder<Forest> builder = new ZonePartition.Builder<>(zonePartition);
-
-        List<PlayerColor> newOccupants = new ArrayList<>();
-        Area<Forest> newForestArea = new Area<>(forestZones, newOccupants, 3);
-
-        builder.removeOccupant(forest, PlayerColor.YELLOW);
-        Set<Area> expectedAreas = new HashSet<>();
-        expectedAreas.add(newForestArea);
-
-        assertEquals(expectedAreas, builder.build().areas());
+    void zonePartitionBuilderAddInitialOccupantThrowsIfZoneDoesNotBelongToPartition() {
+        var f0 = new Zone.Forest(0, Zone.Forest.Kind.PLAIN);
+        var f1 = new Zone.Forest(1, Zone.Forest.Kind.PLAIN);
+        var a0 = new Area<>(Set.of(f0), List.of(), 0);
+        var partition = new ZonePartition<>(Set.of(a0));
+        var partitionBuilder = new ZonePartition.Builder<>(partition);
+        assertThrows(IllegalArgumentException.class, () -> {
+            partitionBuilder.addInitialOccupant(f1, PlayerColor.RED);
+        });
     }
 
     @Test
-    void removeAllOccupantsOfThrowsOnUnknownArea() {
-        Set<Forest> forestZones = new HashSet<>();
-        Forest forest = new Forest(0, Forest.Kind.PLAIN);
-        forestZones.add(forest);
-        List<PlayerColor> occupants = new ArrayList<>(List.of(PlayerColor.YELLOW));
-        Area<Forest> forestArea = new Area<>(forestZones, occupants, 3);
-
-        ZonePartition<Forest> zonePartition = new ZonePartition<>(Set.of(forestArea));
-        ZonePartition.Builder<Forest> builder = new ZonePartition.Builder<>(zonePartition);
-
-        Forest unknownForest = new Forest(1, Forest.Kind.WITH_MENHIR);
-        Area<Forest> unknownArea = new Area<>(Set.of(unknownForest), occupants, 2);
-
-        assertThrows(IllegalArgumentException.class, () -> builder.removeAllOccupantsOf(unknownArea));
+    void zonePartitionBuilderAddInitialOccupantThrowsIfAreaIsAlreadyOccupied() {
+        var zones1 = Set.of(
+                new Zone.Forest(0, Zone.Forest.Kind.PLAIN),
+                new Zone.Forest(1, Zone.Forest.Kind.PLAIN),
+                new Zone.Forest(2, Zone.Forest.Kind.PLAIN),
+                new Zone.Forest(3, Zone.Forest.Kind.PLAIN));
+        var zones2 = Set.of(
+                new Zone.Forest(4, Zone.Forest.Kind.PLAIN),
+                new Zone.Forest(5, Zone.Forest.Kind.PLAIN),
+                new Zone.Forest(6, Zone.Forest.Kind.PLAIN),
+                new Zone.Forest(7, Zone.Forest.Kind.PLAIN));
+        var area1 = new Area<>(zones1, List.of(PlayerColor.RED), 0);
+        var area2 = new Area<>(zones2, List.of(PlayerColor.BLUE), 0);
+        var partition = new ZonePartition<>(Set.of(area1, area2));
+        var allZones = new HashSet<>(zones1);
+        allZones.addAll(zones2);
+        for (var z : allZones) {
+            var partitionBuilder = new ZonePartition.Builder<>(partition);
+            assertThrows(IllegalArgumentException.class, () -> {
+                partitionBuilder.addInitialOccupant(z, PlayerColor.YELLOW);
+            });
+        }
     }
 
     @Test
-    void removeAllOccupantsOfWorks() {
-        Set<Forest> forestZones = new HashSet<>();
-        Forest forest = new Forest(0, Forest.Kind.PLAIN);
-        forestZones.add(forest);
-        List<PlayerColor> occupants = new ArrayList<>(List.of(PlayerColor.YELLOW, PlayerColor.GREEN));
-        Area<Forest> forestArea = new Area<>(forestZones, occupants, 3);
-        ZonePartition<Forest> zonePartition = new ZonePartition<>(Set.of(forestArea));
-        ZonePartition.Builder<Forest> builder = new ZonePartition.Builder<>(zonePartition);
-
-        List<PlayerColor> newOccupants = new ArrayList<>();
-        Area<Forest> newForestArea = new Area<>(forestZones, newOccupants, 3);
-
-        builder.removeAllOccupantsOf(forestArea);
-        Set<Area> expectedAreas = new HashSet<>();
-        expectedAreas.add(newForestArea);
-
-        assertEquals(expectedAreas, builder.build().areas());
+    void zonePartitionBuilderAddInitialOccupantWorksForUnoccupiedAreas() {
+        var zones1 = Set.of(
+                new Zone.Forest(0, Zone.Forest.Kind.PLAIN),
+                new Zone.Forest(1, Zone.Forest.Kind.PLAIN),
+                new Zone.Forest(2, Zone.Forest.Kind.PLAIN),
+                new Zone.Forest(3, Zone.Forest.Kind.PLAIN));
+        var zones2 = Set.of(
+                new Zone.Forest(4, Zone.Forest.Kind.PLAIN),
+                new Zone.Forest(5, Zone.Forest.Kind.PLAIN),
+                new Zone.Forest(6, Zone.Forest.Kind.PLAIN),
+                new Zone.Forest(7, Zone.Forest.Kind.PLAIN));
+        var area1 = new Area<>(zones1, List.of(), 0);
+        var area2 = new Area<>(zones2, List.of(), 0);
+        var partition = new ZonePartition<>(Set.of(area1, area2));
+        for (var z : zones1) {
+            for (var occupant : PlayerColor.values()) {
+                var partitionBuilder = new ZonePartition.Builder<>(partition);
+                partitionBuilder.addInitialOccupant(z, occupant);
+                var partition1 = partitionBuilder.build();
+                var occupiedArea1 = new Area<>(area1.zones(), List.of(occupant), area1.openConnections());
+                assertEquals(Set.of(occupiedArea1, area2), partition1.areas());
+            }
+        }
+        for (var z : zones2) {
+            for (var occupant : PlayerColor.values()) {
+                var partitionBuilder = new ZonePartition.Builder<>(partition);
+                partitionBuilder.addInitialOccupant(z, occupant);
+                var partition1 = partitionBuilder.build();
+                var occupiedArea2 = new Area<>(area2.zones(), List.of(occupant), area2.openConnections());
+                assertEquals(Set.of(area1, occupiedArea2), partition1.areas());
+            }
+        }
     }
+
     @Test
-    void unionWorksWithDifferentAreas() {
-        Set<Forest> forestZones1 = new HashSet<>();
-        Forest forest1 = new Forest(0, Forest.Kind.PLAIN);
-        forestZones1.add(forest1);
-        List<PlayerColor> occupants1 = new ArrayList<>(List.of(PlayerColor.YELLOW));
-        Area<Forest> forestArea1 = new Area<>(forestZones1, occupants1, 3);
-
-        Set<Forest> forestZones2 = new HashSet<>();
-        Forest forest2 = new Forest(1, Forest.Kind.WITH_MENHIR);
-        forestZones2.add(forest2);
-        List<PlayerColor> occupants2 = new ArrayList<>(List.of(PlayerColor.RED));
-        Area<Forest> forestArea2 = new Area<>(forestZones2, occupants2, 3);
-
-        ZonePartition<Forest> zonePartition = new ZonePartition<>(Set.of(forestArea1, forestArea2));
-        ZonePartition.Builder<Forest> builder = new ZonePartition.Builder<>(zonePartition);
-
-        Set<Forest> expectedForestZones = new HashSet<>();
-        expectedForestZones.add(forest1);
-        expectedForestZones.add(forest2);
-        List<PlayerColor> expectedOccupants = new ArrayList<>();
-        expectedOccupants.add(PlayerColor.YELLOW);
-        expectedOccupants.add(PlayerColor.RED);
-        Area<Forest> expectedArea = new Area<>(expectedForestZones, expectedOccupants, 4);
-
-        builder.union(forest1, forest2);
-
-        assertEquals(Set.of(expectedArea), builder.build().areas());
+    void zonePartitionBuilderRemoveOccupantThrowsIfZoneDoesNotBelongToPartition() {
+        var f0 = new Zone.Forest(0, Zone.Forest.Kind.PLAIN);
+        var f1 = new Zone.Forest(1, Zone.Forest.Kind.PLAIN);
+        var a0 = new Area<>(Set.of(f0), List.of(PlayerColor.RED), 0);
+        var partition = new ZonePartition<>(Set.of(a0));
+        var partitionBuilder = new ZonePartition.Builder<>(partition);
+        assertThrows(IllegalArgumentException.class, () -> {
+            partitionBuilder.removeOccupant(f1, PlayerColor.RED);
+        });
     }
 
+    @Test
+    void zonePartitionBuilderRemoveOccupantThrowsIfAreaIsUnoccupied() {
+        var zones1 = Set.of(
+                new Zone.Forest(0, Zone.Forest.Kind.PLAIN),
+                new Zone.Forest(1, Zone.Forest.Kind.PLAIN),
+                new Zone.Forest(2, Zone.Forest.Kind.PLAIN),
+                new Zone.Forest(3, Zone.Forest.Kind.PLAIN));
+        var zones2 = Set.of(
+                new Zone.Forest(4, Zone.Forest.Kind.PLAIN),
+                new Zone.Forest(5, Zone.Forest.Kind.PLAIN),
+                new Zone.Forest(6, Zone.Forest.Kind.PLAIN),
+                new Zone.Forest(7, Zone.Forest.Kind.PLAIN));
+        var area1 = new Area<>(zones1, List.of(), 0);
+        var area2 = new Area<>(zones2, List.of(PlayerColor.RED), 0);
+        var partition = new ZonePartition<>(Set.of(area1, area2));
+
+        var allZones = new HashSet<>(zones1);
+        allZones.addAll(zones2);
+        for (var z : allZones) {
+            for (var color : PlayerColor.values()) {
+                if (color == PlayerColor.RED) continue;
+                var partitionBuilder = new ZonePartition.Builder<>(partition);
+                assertThrows(IllegalArgumentException.class, () -> {
+                    partitionBuilder.removeOccupant(z, color);
+                });
+            }
+        }
+    }
+
+    @Test
+    void zonePartitionBuilderRemoveOccupantWorksForOccupiedAreas() {
+        var zones1 = Set.of(
+                new Zone.Forest(0, Zone.Forest.Kind.PLAIN),
+                new Zone.Forest(1, Zone.Forest.Kind.PLAIN),
+                new Zone.Forest(2, Zone.Forest.Kind.PLAIN),
+                new Zone.Forest(3, Zone.Forest.Kind.PLAIN));
+        var zones2 = Set.of(
+                new Zone.Forest(4, Zone.Forest.Kind.PLAIN),
+                new Zone.Forest(5, Zone.Forest.Kind.PLAIN),
+                new Zone.Forest(6, Zone.Forest.Kind.PLAIN),
+                new Zone.Forest(7, Zone.Forest.Kind.PLAIN));
+        var area1 = new Area<>(zones1, List.of(PlayerColor.RED, PlayerColor.RED), 0);
+        var area2 = new Area<>(zones2, List.of(PlayerColor.BLUE, PlayerColor.GREEN, PlayerColor.PURPLE), 0);
+        var partition = new ZonePartition<>(Set.of(area1, area2));
+        for (var z : zones1) {
+            var partitionBuilder = new ZonePartition.Builder<>(partition);
+            partitionBuilder.removeOccupant(z, PlayerColor.RED);
+            var partition1 = partitionBuilder.build();
+            var lessOccupiedArea1 = new Area<>(area1.zones(), List.of(PlayerColor.RED), area1.openConnections());
+            assertEquals(Set.of(lessOccupiedArea1, area2), partition1.areas());
+        }
+        for (var z : zones2) {
+            var partitionBuilder = new ZonePartition.Builder<>(partition);
+            partitionBuilder.removeOccupant(z, PlayerColor.GREEN);
+            var partition1 = partitionBuilder.build();
+            var lessOccupiedArea2 = new Area<>(area2.zones(), List.of(PlayerColor.BLUE, PlayerColor.PURPLE), area2.openConnections());
+            assertEquals(Set.of(area1, lessOccupiedArea2), partition1.areas());
+        }
+    }
+
+    @Test
+    void zonePartitionBuilderRemoveAllOccupantsOfThrowsIfZoneDoesNotBelongToPartition() {
+        var f0 = new Zone.Forest(0, Zone.Forest.Kind.PLAIN);
+        var f1 = new Zone.Forest(1, Zone.Forest.Kind.PLAIN);
+        var a0 = new Area<>(Set.of(f0), List.of(), 0);
+        var a1 = new Area<>(Set.of(f1), List.of(), 0);
+        var partition = new ZonePartition<>(Set.of(a0));
+        var partitionBuilder = new ZonePartition.Builder<>(partition);
+        assertThrows(IllegalArgumentException.class, () -> {
+            partitionBuilder.removeAllOccupantsOf(a1);
+        });
+    }
+
+    @Test
+    void zonePartitionBuilderRemoveAllOccupantOfWorksForOccupiedAreas() {
+        var zones1 = Set.of(
+                new Zone.Forest(0, Zone.Forest.Kind.PLAIN),
+                new Zone.Forest(1, Zone.Forest.Kind.PLAIN),
+                new Zone.Forest(2, Zone.Forest.Kind.PLAIN),
+                new Zone.Forest(3, Zone.Forest.Kind.PLAIN));
+        var zones2 = Set.of(
+                new Zone.Forest(4, Zone.Forest.Kind.PLAIN),
+                new Zone.Forest(5, Zone.Forest.Kind.PLAIN),
+                new Zone.Forest(6, Zone.Forest.Kind.PLAIN),
+                new Zone.Forest(7, Zone.Forest.Kind.PLAIN));
+        var area1 = new Area<>(zones1, List.of(PlayerColor.RED, PlayerColor.RED), 0);
+        var area2 = new Area<>(zones2, List.of(PlayerColor.BLUE, PlayerColor.GREEN, PlayerColor.PURPLE), 0);
+        var partition = new ZonePartition<>(Set.of(area1, area2));
+
+        var partitionBuilder1 = new ZonePartition.Builder<>(partition);
+        partitionBuilder1.removeAllOccupantsOf(area1);
+        var unoccupiedArea1 = new Area<>(area1.zones(), List.of(), area1.openConnections());
+        assertEquals(Set.of(unoccupiedArea1, area2), partitionBuilder1.build().areas());
+
+        var partitionBuilder2 = new ZonePartition.Builder<>(partition);
+        partitionBuilder2.removeAllOccupantsOf(area2);
+        var unoccupiedArea2 = new Area<>(area2.zones(), List.of(), area2.openConnections());
+        assertEquals(Set.of(area1, unoccupiedArea2), partitionBuilder2.build().areas());
+    }
+
+    @Test
+    void zonePartitionBuilderUnionThrowsIfOneZoneDoesNotBelongToPartition() {
+        var f0 = new Zone.Forest(0, Zone.Forest.Kind.PLAIN);
+        var f1 = new Zone.Forest(1, Zone.Forest.Kind.PLAIN);
+        var f2 = new Zone.Forest(2, Zone.Forest.Kind.PLAIN);
+        var a0 = new Area<>(Set.of(f0), List.of(), 0);
+        var a1 = new Area<>(Set.of(f1), List.of(), 0);
+        var partition = new ZonePartition<>(Set.of(a0, a1));
+        var partitionBuilder = new ZonePartition.Builder<>(partition);
+        assertThrows(IllegalArgumentException.class, () -> {
+            partitionBuilder.union(f0, f2);
+        });
+        assertThrows(IllegalArgumentException.class, () -> {
+            partitionBuilder.union(f2, f1);
+        });
+    }
+
+    @Test
+    void zonePartitionBuilderUnionWorksWithTwoDifferentAreas() {
+        var f0 = new Zone.Forest(0, Zone.Forest.Kind.PLAIN);
+        var f1 = new Zone.Forest(1, Zone.Forest.Kind.PLAIN);
+        var a0 = new Area<>(Set.of(f0), List.of(PlayerColor.RED), 1);
+        var a1 = new Area<>(Set.of(f1), List.of(PlayerColor.RED), 1);
+        var partition = new ZonePartition<>(Set.of(a0, a1));
+        var partitionBuilder = new ZonePartition.Builder<>(partition);
+        partitionBuilder.union(f0, f1);
+        var expectedArea = new Area<>(Set.of(f0, f1), List.of(PlayerColor.RED, PlayerColor.RED), 0);
+        assertEquals(Set.of(expectedArea), partitionBuilder.build().areas());
+    }
+
+    @Test
+    void zonePartitionBuilderUnionWorksWithOneArea() {
+        var f0 = new Zone.Forest(0, Zone.Forest.Kind.PLAIN);
+        var f1 = new Zone.Forest(1, Zone.Forest.Kind.PLAIN);
+        var f2 = new Zone.Forest(2, Zone.Forest.Kind.PLAIN);
+        var a0 = new Area<>(Set.of(f0), List.of(PlayerColor.RED), 1);
+        var a1 = new Area<>(Set.of(f1, f2), List.of(PlayerColor.RED), 2);
+        var partition = new ZonePartition<>(Set.of(a0, a1));
+        var partitionBuilder = new ZonePartition.Builder<>(partition);
+        partitionBuilder.union(f1, f2);
+        var expectedArea1 = new Area<>(a1.zones(), a1.occupants(), a1.openConnections() - 2);
+        assertEquals(Set.of(a0, expectedArea1), partitionBuilder.build().areas());
+    }
 }

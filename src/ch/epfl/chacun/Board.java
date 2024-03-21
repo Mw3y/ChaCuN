@@ -81,7 +81,7 @@ public final class Board {
                 return placedTile;
             }
         }
-        throw new IllegalArgumentException("No tile with the given id found.");
+        throw new IllegalArgumentException("No tile with given id found.");
     }
 
     /**
