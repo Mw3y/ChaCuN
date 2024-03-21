@@ -467,9 +467,10 @@ public final class Board {
             boolean isTileIndicesEqual = Arrays.equals(tileIndices, board.tileIndices);
             boolean areCancelledAnimalsEqual =
                     Arrays.equals(cancelledAnimals.toArray(), board.cancelledAnimals.toArray());
-            boolean arePartitionsEqual = zonePartitions.equals(board.zonePartitions);
+            boolean areZonePartitionsEqual = zonePartitions.equals(board.zonePartitions);
 
-            return isPlacedTilesEqual && isTileIndicesEqual && areCancelledAnimalsEqual && arePartitionsEqual;
+            return isPlacedTilesEqual && isTileIndicesEqual
+                    && areCancelledAnimalsEqual && areZonePartitionsEqual;
         }
         return false;
     }
