@@ -176,9 +176,25 @@ public class BoardTest {
     }
 
     @Test
+    void canAddTileWorksWithBadTile() {
+        var originTile = new PlacedTile(Tiles.TILES.get(58), null, Rotation.NONE, Pos.ORIGIN);
+        var placedTile = new PlacedTile(Tiles.TILES.get(62), PlayerColor.RED, Rotation.NONE, Pos.ORIGIN.neighbor(Direction.N));
+        var board = Board.EMPTY.withNewTile(originTile);
+        assertFalse(board.canAddTile(placedTile));
+
+    }
+
+    @Test
     void couldPlaceTileWorksWithGoodTile() {
         var board = dummyBoard;
         assertTrue(board.couldPlaceTile(Tiles.TILES.get(94)));
+    }
+
+    @Test
+    void couldPlaceTileWorksWithBadTile() {
+        var originTile = new PlacedTile(Tiles.TILES.get(58), null, Rotation.NONE, Pos.ORIGIN);
+        var board = Board.EMPTY.withNewTile(originTile);
+        assertFalse(board.couldPlaceTile(Tiles.TILES.get(62)));
     }
 
     @Test

@@ -35,7 +35,7 @@ public final class Board {
     /**
      * Calculates the row major index of the given position.
      *
-     * @param pos the position
+     * @param pos the positiondf
      * @return the row major index of the given position
      */
     private int calculateRowMajorIndex(Pos pos) {
