@@ -257,7 +257,7 @@ public final class Board {
      */
     public Set<Area<Zone.Forest>> forestsClosedByLastTile() {
         // No forest has been closed if the board is empty
-        if (placedTiles.length == 0) {
+        if (lastPlacedTile() == null) {
             return Set.of();
         }
         PlacedTile lastTile = lastPlacedTile();
@@ -277,7 +277,7 @@ public final class Board {
      */
     public Set<Area<Zone.River>> riversClosedByLastTile() {
         // No river has been closed if the board is empty
-        if (placedTiles.length == 0) {
+        if (lastPlacedTile() == null) {
             return Set.of();
         }
         PlacedTile lastTile = lastPlacedTile();
