@@ -22,7 +22,7 @@ public final class Board {
     private static final int SIZE = 25;
     private final PlacedTile[] placedTiles;
     private final int[] tileIndices;
-    private final ZonePartitions zonePartitions;
+    public final ZonePartitions zonePartitions;
     private final Set<Animal> cancelledAnimals;
 
     /**
@@ -467,8 +467,9 @@ public final class Board {
             boolean isTileIndicesEqual = Arrays.equals(tileIndices, board.tileIndices);
             boolean areCancelledAnimalsEqual =
                     Arrays.equals(cancelledAnimals.toArray(), board.cancelledAnimals.toArray());
-            // TODO: Compare zonePartitions
-            return isPlacedTilesEqual && isTileIndicesEqual && areCancelledAnimalsEqual;
+            boolean arePartitionsEqual = zonePartitions.equals(board.zonePartitions);
+
+            return isPlacedTilesEqual && isTileIndicesEqual && areCancelledAnimalsEqual && arePartitionsEqual;
         }
         return false;
     }
