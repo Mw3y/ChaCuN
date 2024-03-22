@@ -170,7 +170,7 @@ public class BoardTest {
     @Test
     void canAddTileWorksWithGoodTile() {
         var board = dummyBoard;
-        var placedTile = new PlacedTile(Tiles.TILES.get(48), PlayerColor.RED, Rotation.NONE, fourthTile.pos().neighbor(Direction.W));
+        var placedTile = new PlacedTile(Tiles.TILES.get(48), PlayerColor.RED, Rotation.NONE, fourthTile.pos().neighbor(Direction.E));
         assertTrue(board.canAddTile(placedTile));
 
     }

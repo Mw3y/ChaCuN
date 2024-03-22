@@ -276,18 +276,13 @@ public final class Board {
      * @return the set of all river closed by the last placed tile
      */
     public Set<Area<Zone.River>> riversClosedByLastTile() {
+        PlacedTile lastPlacedTile = lastPlacedTile();
         // No river has been closed if the board is empty
-        if (lastPlacedTile() == null) {
+        if (lastPlacedTile == null)
             return Set.of();
-        }
-        PlacedTile lastTile = lastPlacedTile();
-        // Create the updated zone partitions
-        ZonePartitions.Builder b = new ZonePartitions.Builder(zonePartitions);
-        b.addTile(lastTile.tile());
-        // Find the closed forest areas
-        return b.build().rivers().areas().stream()
-                .filter(Area::isClosed)
-                .collect(Collectors.toSet());
+
+        return lastPlacedTile.riverZones().stream().map(this::riverArea)
+                .filter(Area::isClosed).collect(Collectors.toSet());
     }
 
     /**
@@ -301,8 +296,8 @@ public final class Board {
      */
     public boolean canAddTile(PlacedTile tile) {
         // Check if the tile cannot be placed on the board
-        if (!insertionPositions().contains(tile.pos())) {
-            return placedTiles.length != 0;
+        if (!insertionPositions().contains(tile.pos()) || tileAt(tile.pos()) != null) {
+            return false;
         }
         // Check for potential conflicts with adjacent tiles
         for (Direction direction : Direction.ALL) {
@@ -347,7 +342,7 @@ public final class Board {
      */
     public Board withNewTile(PlacedTile tile) {
         // Check if the tile can be placed on the board
-        Preconditions.checkArgument(placedTiles.length == 0 || canAddTile(tile));
+        Preconditions.checkArgument(tileIndices.length == 0 || canAddTile(tile));
         // Create the new placed tiles array
         int newTileIndex = calculateRowMajorIndex(tile.pos());
         PlacedTile[] newPlacedTiles = placedTiles.clone();
@@ -427,18 +422,24 @@ public final class Board {
         for (Area<Zone.River> river : rivers) {
             builder.clearFishers(river);
         }
-        // Remove fishers and gatherers from placed tiles
+
         PlacedTile[] newPlacedTiles = placedTiles.clone();
-        for (int tileIndex : tileIndices) {
-            PlacedTile placedTile = placedTiles[tileIndex];
-            int zoneOccupiedById = placedTile.idOfZoneOccupiedBy(Occupant.Kind.PAWN);
-            // Check if there is a pawn on the tile
-            if (zoneOccupiedById != -1) {
-                Zone zone = placedTile.zoneWithId(zoneOccupiedById);
-                // Check if the zone occupied is a forest or a river
-                if (zone instanceof Zone.Forest || zone instanceof Zone.River) {
+        // Remove gatherers from placed tiles
+        for (Area<Zone.Forest> forest : forests) {
+            for (Zone.Forest zone : forest.zones()) {
+                PlacedTile placedTile = tileWithId(zone.tileId());
+                int occupantZoneId = placedTile.idOfZoneOccupiedBy(Occupant.Kind.PAWN);
+                if (occupantZoneId != -1 && placedTile.zoneWithId(occupantZoneId) instanceof Zone.Forest)
                     newPlacedTiles[calculateRowMajorIndex(placedTile.pos())] = placedTile.withNoOccupant();
-                }
+            }
+        }
+        // Remove fishermen from placed tiles
+        for (Area<Zone.River> river : rivers) {
+            for (Zone.River zone : river.zones()) {
+                PlacedTile placedTile = tileWithId(zone.tileId());
+                int occupantZoneId = placedTile.idOfZoneOccupiedBy(Occupant.Kind.PAWN);
+                if (occupantZoneId != -1 && placedTile.zoneWithId(occupantZoneId) instanceof Zone.River)
+                    newPlacedTiles[calculateRowMajorIndex(placedTile.pos())] = placedTile.withNoOccupant();
             }
         }
         // Create the new board
