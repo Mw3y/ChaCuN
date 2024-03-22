@@ -141,7 +141,7 @@ public record ZonePartitions(ZonePartition<Zone.Forest> forests, ZonePartition<Z
                 }
             } else {
                 switch (occupiedZone) {
-                    case Zone.River river when !river.hasLake() -> rivers.addInitialOccupant(river, player);
+                    case Zone.River river when !river.hasLake() -> riverSystems.addInitialOccupant(river, player);
                     case Zone.River river -> riverSystems.addInitialOccupant(river.lake(), player);
                     case Zone.Lake lake -> riverSystems.addInitialOccupant(lake, player);
                     default -> throw new IllegalArgumentException("A hut can only be on a lake or river");

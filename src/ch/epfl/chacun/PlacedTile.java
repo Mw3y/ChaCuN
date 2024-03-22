@@ -39,11 +39,6 @@ public record PlacedTile(Tile tile, PlayerColor placer, Rotation rotation, Pos p
         Objects.requireNonNull(tile);
         Objects.requireNonNull(rotation);
         Objects.requireNonNull(pos);
-
-        // Prevent a null placer
-        if (placer == null && !pos.equals(Pos.ORIGIN)) {
-            throw new IllegalArgumentException("A tile must have a placer except for the origin.");
-        }
     }
 
     /**

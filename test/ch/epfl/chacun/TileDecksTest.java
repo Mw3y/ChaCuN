@@ -4,93 +4,198 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class TileDecksTest {
-    @Test
-    void deckSizeWorks(){
-        List<Tile> startTiles = new ArrayList<>(1);
-        List<Tile> normalTiles = new ArrayList<>(1);
-        List<Tile> menhirTiles = new ArrayList<>(1);
+class TileDecksTest {
+    private static Tile getTile(int id, Tile.Kind kind) {
+        var zoneId = id * 10;
+        var l0 = new Zone.Lake(zoneId + 8, 1, null);
+        var a0_0 = new Animal(zoneId * 100, Animal.Kind.AUROCHS);
+        var z0 = new Zone.Meadow(zoneId * 10, List.of(a0_0), null);
+        var z1 = new Zone.Forest(zoneId * 10 + 1, Zone.Forest.Kind.WITH_MENHIR);
+        var z2 = new Zone.Meadow(zoneId * 10 + 2, List.of(), null);
+        var z3 = new Zone.River(zoneId * 10 + 3, 0, l0);
+        var sN = new TileSide.Meadow(z0);
+        var sE = new TileSide.Forest(z1);
+        var sS = new TileSide.Forest(z1);
+        var sW = new TileSide.River(z2, z3, z0);
+        return new Tile(id, kind, sN, sE, sS, sW);
+    }
 
-        startTiles.add(new Tile(0, Tile.Kind.START, null, null, null, null));
-        normalTiles.add(new Tile(1, Tile.Kind.NORMAL, null, null, null, null));
-        menhirTiles.add(new Tile(2, Tile.Kind.MENHIR, null, null, null, null));
-
-        TileDecks tileDecks = new TileDecks(startTiles, normalTiles, menhirTiles);
-
-        assertEquals(startTiles.size(), tileDecks.deckSize(Tile.Kind.START));
-        assertEquals(normalTiles.size(), tileDecks.deckSize(Tile.Kind.NORMAL));
-        assertEquals(menhirTiles.size(), tileDecks.deckSize(Tile.Kind.MENHIR));
-
+    private static Tile getTile(Tile.Kind kind) {
+        return getTile(56, kind);
     }
 
     @Test
-    void topTileReturnsNullOnEmptyDeck(){
-        List<Tile> startTiles = new ArrayList<>(1);
-        List<Tile> normalTiles = new ArrayList<>(1);
-        List<Tile> menhirTiles = new ArrayList<>(1);
+    void tileDecksConstructorCopiesDecks() {
+        var dS = List.of(getTile(Tile.Kind.START));
+        var dN = List.of(getTile(Tile.Kind.NORMAL));
+        var dM = List.of(getTile(Tile.Kind.MENHIR));
 
-        TileDecks tileDecks = new TileDecks(startTiles, normalTiles, menhirTiles);
+        var mutS = new ArrayList<>(dS);
+        var mutN = new ArrayList<>(dN);
+        var mutM = new ArrayList<>(dM);
 
-        assertEquals(null, tileDecks.topTile(Tile.Kind.START));
-        assertEquals(null, tileDecks.topTile(Tile.Kind.NORMAL));
-        assertEquals(null, tileDecks.topTile(Tile.Kind.MENHIR));
+        var decks = new TileDecks(mutS, mutN, mutM);
+        mutS.clear();
+        mutN.clear();
+        mutM.clear();
+        assertEquals(dS, decks.startTiles());
+        assertEquals(dN, decks.normalTiles());
+        assertEquals(dM, decks.menhirTiles());
     }
 
     @Test
-    void topTileWorks(){
-        List<Tile> startTiles = new ArrayList<>(1);
-        List<Tile> normalTiles = new ArrayList<>(1);
-        List<Tile> menhirTiles = new ArrayList<>(1);
+    void tileDecksIsImmutable() {
+        var dS = List.of(getTile(Tile.Kind.START));
+        var dN = List.of(getTile(Tile.Kind.NORMAL));
+        var dM = List.of(getTile(Tile.Kind.MENHIR));
 
-        startTiles.add(new Tile(0, Tile.Kind.START, null, null, null, null));
-        normalTiles.add(new Tile(1, Tile.Kind.NORMAL, null, null, null, null));
-        menhirTiles.add(new Tile(2, Tile.Kind.MENHIR, null, null, null, null));
+        var decks = new TileDecks(dS, dN, dM);
+        try {decks.startTiles().clear();} catch (UnsupportedOperationException e) {/**/}
+        try {decks.normalTiles().clear();} catch (UnsupportedOperationException e) {/**/}
+        try {decks.menhirTiles().clear();} catch (UnsupportedOperationException e) {/**/}
 
-        TileDecks tileDecks = new TileDecks(startTiles, normalTiles, menhirTiles);
-
-        assertEquals(startTiles.getFirst().id(), tileDecks.topTile(Tile.Kind.START).id());
-        assertEquals(normalTiles.getFirst().id(), tileDecks.topTile(Tile.Kind.NORMAL).id());
-        assertEquals(menhirTiles.getFirst().id(), tileDecks.topTile(Tile.Kind.MENHIR).id());
+        assertEquals(dS, decks.startTiles());
+        assertEquals(dN, decks.normalTiles());
+        assertEquals(dM, decks.menhirTiles());
     }
 
     @Test
-    void withTopTileDrawnThrowsOnEmptyDeck(){
-        List<Tile> startTiles = new ArrayList<>(1);
-        List<Tile> normalTiles = new ArrayList<>(1);
-        List<Tile> menhirTiles = new ArrayList<>(1);
-
-        TileDecks tileDecks = new TileDecks(startTiles, normalTiles, menhirTiles);
-
-        assertThrows(IllegalArgumentException.class, () -> tileDecks.withTopTileDrawn(Tile.Kind.START));
-        assertThrows(IllegalArgumentException.class, () -> tileDecks.withTopTileDrawn(Tile.Kind.NORMAL));
-        assertThrows(IllegalArgumentException.class, () -> tileDecks.withTopTileDrawn(Tile.Kind.MENHIR));
+    void tileDecksTopTileReturnsFirstTile() {
+        var dS = List.of(getTile(Tile.Kind.START));
+        var dN = List.of(
+                getTile(0, Tile.Kind.NORMAL),
+                getTile(1, Tile.Kind.NORMAL),
+                getTile(2, Tile.Kind.NORMAL));
+        var dM = List.of(
+                getTile(3, Tile.Kind.MENHIR),
+                getTile(4, Tile.Kind.MENHIR),
+                getTile(5, Tile.Kind.MENHIR));
+        var decks = new TileDecks(dS, dN, dM);
+        assertEquals(dS.getFirst(), decks.topTile(Tile.Kind.START));
+        assertEquals(dN.getFirst(), decks.topTile(Tile.Kind.NORMAL));
+        assertEquals(dM.getFirst(), decks.topTile(Tile.Kind.MENHIR));
     }
 
     @Test
-    void withTopTileWorks(){
-        List<Tile> startTiles1 = new ArrayList<>(1);
-        List<Tile> normalTiles1 = new ArrayList<>(1);
-        List<Tile> menhirTiles1 = new ArrayList<>(1);
+    void tileDecksTopTileReturnsNullWhenDeckIsEmpty() {
+        var decks = new TileDecks(List.of(), List.of(), List.of());
+        assertNull(decks.topTile(Tile.Kind.START));
+        assertNull(decks.topTile(Tile.Kind.NORMAL));
+        assertNull(decks.topTile(Tile.Kind.MENHIR));
+    }
 
-        List<Tile> startTiles2 = new ArrayList<>(1);
-        List<Tile> normalTiles2 = new ArrayList<>(1);
-        List<Tile> menhirTiles2 = new ArrayList<>(1);
+    @Test
+    void tileDecksWithTopTileDrawnCorrectlyRemovesTiles() {
+        var dS = List.of(getTile(Tile.Kind.START));
+        var dN = List.of(
+                getTile(0, Tile.Kind.NORMAL),
+                getTile(1, Tile.Kind.NORMAL),
+                getTile(2, Tile.Kind.NORMAL));
+        var dM = List.of(
+                getTile(3, Tile.Kind.MENHIR),
+                getTile(4, Tile.Kind.MENHIR),
+                getTile(5, Tile.Kind.MENHIR));
+        var decks = new TileDecks(dS, dN, dM);
 
-        startTiles1.add(new Tile(0, Tile.Kind.START, null, null, null, null));
-        normalTiles1.add(new Tile(1, Tile.Kind.NORMAL, null, null, null, null));
-        menhirTiles1.add(new Tile(2, Tile.Kind.MENHIR, null, null, null, null));
+        decks = decks.withTopTileDrawn(Tile.Kind.START);
+        assertEquals(List.of(), decks.startTiles());
 
-        TileDecks tileDecks1 = new TileDecks(startTiles1, normalTiles1, menhirTiles1);
-        TileDecks tileDecks2 = new TileDecks(startTiles2, normalTiles2, menhirTiles2);
+        decks = decks.withTopTileDrawn(Tile.Kind.NORMAL);
+        assertEquals(dN.subList(1, dN.size()), decks.normalTiles());
 
-        assertEquals(tileDecks2.deckSize(Tile.Kind.START), tileDecks1.withTopTileDrawn(Tile.Kind.START)
-                .deckSize(Tile.Kind.START));
-        assertEquals(tileDecks2.deckSize(Tile.Kind.NORMAL), tileDecks1.withTopTileDrawn(Tile.Kind.NORMAL)
-                .deckSize(Tile.Kind.NORMAL));
-        assertEquals(tileDecks2.deckSize(Tile.Kind.MENHIR), tileDecks1.withTopTileDrawn(Tile.Kind.MENHIR)
-                .deckSize(Tile.Kind.MENHIR));
+        decks = decks.withTopTileDrawn(Tile.Kind.MENHIR);
+        assertEquals(dM.subList(1, dM.size()), decks.menhirTiles());
+
+        decks = decks.withTopTileDrawn(Tile.Kind.NORMAL);
+        assertEquals(dN.subList(2, dN.size()), decks.normalTiles());
+
+        decks = decks.withTopTileDrawn(Tile.Kind.MENHIR);
+        assertEquals(dM.subList(2, dM.size()), decks.menhirTiles());
+
+        decks = decks.withTopTileDrawn(Tile.Kind.NORMAL);
+        assertEquals(List.of(), decks.normalTiles());
+
+        decks = decks.withTopTileDrawn(Tile.Kind.MENHIR);
+        assertEquals(List.of(), decks.menhirTiles());
+    }
+
+    @Test
+    void tileDecksWithTopTileDrawnThrowsWhenDeckIsEmpty() {
+        var dS = List.of(getTile(Tile.Kind.START));
+        var dN = List.of(
+                getTile(0, Tile.Kind.NORMAL),
+                getTile(1, Tile.Kind.NORMAL),
+                getTile(2, Tile.Kind.NORMAL));
+        var dM = List.of(
+                getTile(3, Tile.Kind.MENHIR),
+                getTile(4, Tile.Kind.MENHIR),
+                getTile(5, Tile.Kind.MENHIR));
+        var decks = new TileDecks(dS, dN, dM);
+
+        var emptyDecks = decks.withTopTileDrawn(Tile.Kind.START)
+                .withTopTileDrawn(Tile.Kind.NORMAL)
+                .withTopTileDrawn(Tile.Kind.MENHIR)
+                .withTopTileDrawn(Tile.Kind.NORMAL)
+                .withTopTileDrawn(Tile.Kind.MENHIR)
+                .withTopTileDrawn(Tile.Kind.NORMAL)
+                .withTopTileDrawn(Tile.Kind.MENHIR);
+        assertThrows(IllegalArgumentException.class,
+                () -> emptyDecks.withTopTileDrawn(Tile.Kind.START));
+        assertThrows(IllegalArgumentException.class,
+                () -> emptyDecks.withTopTileDrawn(Tile.Kind.NORMAL));
+        assertThrows(IllegalArgumentException.class,
+                () -> emptyDecks.withTopTileDrawn(Tile.Kind.MENHIR));
+    }
+
+    @Test
+    void tileDecksWithTopTileDrawnUntilWorksWithTruePredicate() {
+        var dS = List.of(getTile(Tile.Kind.START));
+        var dN = List.of(
+                getTile(0, Tile.Kind.NORMAL),
+                getTile(1, Tile.Kind.NORMAL),
+                getTile(2, Tile.Kind.NORMAL));
+        var dM = List.of(
+                getTile(3, Tile.Kind.MENHIR),
+                getTile(4, Tile.Kind.MENHIR),
+                getTile(5, Tile.Kind.MENHIR));
+        var decks = new TileDecks(dS, dN, dM);
+
+        var truePredicate = new ConstantPredicate(true);
+        assertEquals(decks, decks.withTopTileDrawnUntil(Tile.Kind.START, truePredicate));
+        assertEquals(decks, decks.withTopTileDrawnUntil(Tile.Kind.NORMAL, truePredicate));
+        assertEquals(decks, decks.withTopTileDrawnUntil(Tile.Kind.MENHIR, truePredicate));
+    }
+
+    @Test
+    void tileDecksWithTopTileDrawnUntilWorksWithFalsePredicate() {
+        var dS = List.of(getTile(Tile.Kind.START));
+        var dN = List.of(
+                getTile(0, Tile.Kind.NORMAL),
+                getTile(1, Tile.Kind.NORMAL),
+                getTile(2, Tile.Kind.NORMAL));
+        var dM = List.of(
+                getTile(3, Tile.Kind.MENHIR),
+                getTile(4, Tile.Kind.MENHIR),
+                getTile(5, Tile.Kind.MENHIR));
+        var decks = new TileDecks(dS, dN, dM);
+
+        var falsePredicate = new ConstantPredicate(false);
+        assertEquals(List.of(),
+                decks.withTopTileDrawnUntil(Tile.Kind.START, falsePredicate).startTiles());
+        assertEquals(List.of(),
+                decks.withTopTileDrawnUntil(Tile.Kind.NORMAL, falsePredicate).normalTiles());
+        assertEquals(List.of(),
+                decks.withTopTileDrawnUntil(Tile.Kind.MENHIR, falsePredicate).menhirTiles());
+    }
+
+    record ConstantPredicate(boolean b) implements Predicate<Tile> {
+        @Override
+        public boolean test(Tile tile) {
+            return b;
+        }
     }
 }
