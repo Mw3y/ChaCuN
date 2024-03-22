@@ -1,6 +1,9 @@
 package ch.epfl.chacun;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -24,8 +27,9 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
      * or the next action is PLACE_TILE, throws {@link IllegalArgumentException} if not.
      * Checks that the tile decks, the board, the message board or the next action are not null or throws
      * {@link NullPointerException} if null.
+     *
      * @throws IllegalArgumentException if invalid player number or next action
-     * @throws NullPointerException if null arguments
+     * @throws NullPointerException     if null arguments
      */
     public GameState {
         Preconditions.checkArgument(players.size() >= 2);
@@ -41,7 +45,7 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
      * Returns the initial state of the game with START_GAME as next action and with empty board and
      * message board.
      *
-     * @param players the list of players
+     * @param players   the list of players
      * @param tileDecks the decks of tiles
      * @param textMaker the text maker
      * @return the initial state of the game
@@ -67,7 +71,7 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
      * Returns the number of occupants of a given player that can still be placed.
      *
      * @param player the player
-     * @param kind the occupant kind
+     * @param kind   the occupant kind
      * @return the number of occupants of a given player that can still be placed
      */
     public int freeOccupantsCount(PlayerColor player, Occupant.Kind kind) {
@@ -101,7 +105,8 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
                         possibleOccupants.add(occupant);
                 case Zone.Lake l when board.riverSystemArea(l).occupants().isEmpty() ->
                         possibleOccupants.add(occupant);
-                default -> {}
+                default -> {
+                }
             }
         }
 
@@ -150,7 +155,7 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
 
         Set<Animal> cancelledAnimals = new HashSet<>();
         // Remove from the deers set and add to the cancelled animals set the correct number of deers
-        for(int i = 0; i < cancelledDeersNb; ++i) {
+        for (int i = 0; i < cancelledDeersNb; ++i) {
             Animal removedDeer = deers.stream().findFirst().get();
             deers.remove(removedDeer);
             cancelledAnimals.add(removedDeer);
@@ -159,51 +164,93 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
     }
 
     /**
-     * Manage
-     * @param placedTile
-     * @return
+     * Manages all the transitions from PLACE_TILE.
+     * <p>
+     * Adds the given placed tile to the board, attributes the eventual points given by a logboat or a
+     * pit trap and determines the next action.
+     * Throws {@link IllegalArgumentException} if the given next action is not PLACE_TILE or if the given
+     * placed tile is already occupied.
+     *
+     * @param placedTile the placed tile to add
+     * @return a new game state with the specified modifications
+     * @throws IllegalArgumentException if the given next action is not PLACE_TILE or if the given
+     *                                  placed tile is already occupied
      */
     public GameState withPlacedTile(PlacedTile placedTile) {
-        // Check the validity of the action or if the given tile is already occupied
-        Preconditions.checkArgument(nextAction == Action.PLACE_TILE
-                || placedTile.occupant() == null);
+        // Check the validity of the action
+        Preconditions.checkArgument(nextAction == Action.PLACE_TILE);
+        // Check if the given tile is already occupied
+        Preconditions.checkArgument(placedTile.occupant() == null);
+
         MessageBoard newMessageBoard = messageBoard;
         // The id of the tile containing the shaman
         int SHAMAN_ID = 88;
         // The id of the tile containing the pit trap
         int PIT_TRAP_ID = 92;
-
+        // The id of the tile containing the logboat
         int LOGBOAT_ID = 93;
         // Determine the nextAction
         Action nextAction = placedTile.tile().id() == SHAMAN_ID
                 ? Action.RETAKE_PAWN
                 : Action.PLACE_TILE;
-
-        if(placedTile.tile().id() == PIT_TRAP_ID) {
+        // Check if the placed tile contains a pit trap
+        if (placedTile.tile().id() == PIT_TRAP_ID) {
             // Determine the adjacent meadows of the placed tile
             Area<Zone.Meadow> adjacentMeadows = board.adjacentMeadow(placedTile.pos(),
                     (Zone.Meadow) placedTile.specialPowerZone());
-            Set<Animal> cancelledAnimals = determineCancelledAnimals(placedTile, adjacentMeadows);
+            // Determine the animals to cancel in the adjacent meadows
+            Set<Animal> cancelledAnimals = determineCancelledAnimals(adjacentMeadows);
+            // Add to the message board a message indicating that points was scored with a pit trap
             newMessageBoard = newMessageBoard.withScoredPitTrap(adjacentMeadows, cancelledAnimals);
         }
-        if(placedTile.tile().id() == LOGBOAT_ID) {
+        // Check if the placed tile contains a logboat
+        if (placedTile.tile().id() == LOGBOAT_ID) {
+            // Add to the message board a message indicating that points was scored with a logboat
             newMessageBoard = newMessageBoard.withScoredLogboat(currentPlayer(),
                     board.riverSystemArea((Zone.Water) placedTile.specialPowerZone()));
         }
+
         return new GameState(players, tileDecks.withTopTileDrawn(Tile.Kind.NORMAL),
                 tileDecks.topTile(placedTile.kind()), board.withNewTile(placedTile),
                 nextAction, newMessageBoard);
     }
 
+    /**
+     * Manages all the transitions from RETAKE_PAWN.
+     * <p>
+     * Removes the given occupant from the board, unless it is null, which means the player does not want
+     * to retake a pawn.
+     * Checks that the next action is RETAKE_PAWN and that the given occupant is neither null nor a pawn,
+     * throws {@link IllegalArgumentException} if it is not.
+     *
+     * @param occupant the occupant
+     * @return a new game state with the specified modifications
+     * @throws IllegalArgumentException if the next action is not RETAKE_PAWN or if the given occupant
+     * is null or not a pawn
+     */
     public GameState withOccupantRemoved(Occupant occupant) {
         Preconditions.checkArgument(nextAction == Action.RETAKE_PAWN);
         Preconditions.checkArgument(occupant == null || occupant.kind() == Occupant.Kind.PAWN);
         // Updated game state
+        // Removes the occupant from the board if it is not null
         Board updatedBoard = occupant == null ? board : board.withoutOccupant(occupant);
+        // If the occupant is null, the player can't do the action OCCUPY_TILE
         Action nextAction = occupant == null ? Action.PLACE_TILE : Action.OCCUPY_TILE;
+
         return new GameState(players, tileDecks, null, updatedBoard, nextAction, messageBoard);
     }
 
+    /**
+     * Manages all the transitions from OCCUPY_TILE.
+     * <p>
+     * Adds the given occupant to the last placed tile, unless it is null, which means that the player does
+     * not want to place an occupant.
+     * Checks that the next action is OCCUPY_TILE, throws {@link IllegalArgumentException} if it is not.
+     *
+     * @param occupant the occupant to add
+     * @return a new game state with the specified modifications
+     * @throws IllegalArgumentException if the next action is not OCCUPY_TILE
+     */
     public GameState withNewOccupant(Occupant occupant) {
         Preconditions.checkArgument(nextAction == Action.OCCUPY_TILE);
         Board updatedBoard = occupant == null ? board : board.withOccupant(occupant);
