@@ -256,18 +256,13 @@ public final class Board {
      * @return the set of all forests closed by the last placed tile
      */
     public Set<Area<Zone.Forest>> forestsClosedByLastTile() {
-        // No forest has been closed if the board is empty
-        if (lastPlacedTile() == null) {
+        PlacedTile lastPlacedTile = lastPlacedTile();
+        // No river has been closed if the board is empty
+        if (lastPlacedTile == null)
             return Set.of();
-        }
-        PlacedTile lastTile = lastPlacedTile();
-        // Create the updated zone partitions
-        ZonePartitions.Builder b = new ZonePartitions.Builder(zonePartitions);
-        b.addTile(lastTile.tile());
-        // Find the closed forest areas
-        return b.build().forests().areas().stream()
-                .filter(Area::isClosed)
-                .collect(Collectors.toSet());
+
+        return lastPlacedTile.forestZones().stream().map(this::forestArea)
+                .filter(Area::isClosed).collect(Collectors.toSet());
     }
 
     /**
