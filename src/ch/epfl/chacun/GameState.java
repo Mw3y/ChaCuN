@@ -209,10 +209,14 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
             newMessageBoard = newMessageBoard.withScoredLogboat(currentPlayer(),
                     board.riverSystemArea((Zone.Water) placedTile.specialPowerZone()));
         }
-
-        return new GameState(players, tileDecks.withTopTileDrawn(Tile.Kind.NORMAL),
-                tileDecks.topTile(placedTile.kind()), board.withNewTile(placedTile),
+        // Update game state
+        TileDecks updatedTileDecks = tileDecks.withTopTileDrawn(Tile.Kind.NORMAL);
+        Tile tileToPlace = tileDecks.topTile(placedTile.kind());
+        Board updatedBoard = board.withNewTile(placedTile);
+        GameState updatedGameState = new GameState(players, updatedTileDecks, tileToPlace, updatedBoard,
                 nextAction, newMessageBoard);
+        // Check if occupation is possible
+        return updatedGameState.withTurnFinishedIfOccupationImpossible();
     }
 
     /**
@@ -226,18 +230,20 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
      * @param occupant the occupant
      * @return a new game state with the specified modifications
      * @throws IllegalArgumentException if the next action is not RETAKE_PAWN or if the given occupant
-     * is null or not a pawn
+     *                                  is null or not a pawn
      */
     public GameState withOccupantRemoved(Occupant occupant) {
         Preconditions.checkArgument(nextAction == Action.RETAKE_PAWN);
         Preconditions.checkArgument(occupant == null || occupant.kind() == Occupant.Kind.PAWN);
         // Updated game state
-        // Removes the occupant from the board if it is not null
+        // Remove the occupant from the board if it is not null
         Board updatedBoard = occupant == null ? board : board.withoutOccupant(occupant);
         // If the occupant is null, the player can't do the action OCCUPY_TILE
         Action nextAction = occupant == null ? Action.PLACE_TILE : Action.OCCUPY_TILE;
-
-        return new GameState(players, tileDecks, null, updatedBoard, nextAction, messageBoard);
+        GameState updatedGameState = new GameState(players, tileDecks, null, updatedBoard,
+                nextAction, messageBoard);
+        // Check if the occupation is possible
+        return updatedGameState.withTurnFinishedIfOccupationImpossible();
     }
 
     /**
@@ -256,6 +262,19 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
         Board updatedBoard = occupant == null ? board : board.withOccupant(occupant);
         return new GameState(
                 players, tileDecks, null, updatedBoard, Action.PLACE_TILE, messageBoard);
+    }
+
+    private GameState withTurnFinishedIfOccupationImpossible() {
+        if (freeOccupantsCount(this.currentPlayer(), Occupant.Kind.PAWN) == 0
+                || this.lastTilePotentialOccupants().isEmpty()) {
+            return this.withTurnFinished();
+        }
+        return new GameState(
+                players, tileDecks, null, this.board, Action.OCCUPY_TILE, messageBoard);
+    }
+
+    private GameState withTurnFinished() {
+        return null;
     }
 
     /**
