@@ -409,18 +409,10 @@ public final class Board {
      */
     public Board withoutGatherersOrFishersIn(Set<Area<Zone.Forest>> forests, Set<Area<Zone.River>> rivers) {
         ZonePartitions.Builder builder = new ZonePartitions.Builder(zonePartitions);
-        // Remove gatherers from all given areas
+        PlacedTile[] newPlacedTiles = placedTiles.clone();
+        // Remove gatherers
         for (Area<Zone.Forest> forest : forests) {
             builder.clearGatherers(forest);
-        }
-        // Remove fishers from all given areas
-        for (Area<Zone.River> river : rivers) {
-            builder.clearFishers(river);
-        }
-
-        PlacedTile[] newPlacedTiles = placedTiles.clone();
-        // Remove gatherers from placed tiles
-        for (Area<Zone.Forest> forest : forests) {
             for (Zone.Forest zone : forest.zones()) {
                 PlacedTile placedTile = tileWithId(zone.tileId());
                 int occupantZoneId = placedTile.idOfZoneOccupiedBy(Occupant.Kind.PAWN);
@@ -428,8 +420,9 @@ public final class Board {
                     newPlacedTiles[calculateRowMajorIndex(placedTile.pos())] = placedTile.withNoOccupant();
             }
         }
-        // Remove fishermen from placed tiles
+        // Remove fishermen
         for (Area<Zone.River> river : rivers) {
+            builder.clearFishers(river);
             for (Zone.River zone : river.zones()) {
                 PlacedTile placedTile = tileWithId(zone.tileId());
                 int occupantZoneId = placedTile.idOfZoneOccupiedBy(Occupant.Kind.PAWN);

@@ -99,29 +99,18 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
     public Set<Occupant> lastTilePotentialOccupants() {
         Preconditions.checkArgument(!board.equals(Board.EMPTY));
         PlacedTile lastPlacedTile = board.lastPlacedTile();
-
-        if (lastPlacedTile == null) {
-            return Set.of();
+        if (lastPlacedTile != null) {
+            Set<Occupant> potentialOccupants = lastPlacedTile.potentialOccupants();
+            potentialOccupants.removeIf(occupant -> {
+                Zone zone = lastPlacedTile.zoneWithId(occupant.zoneId());
+                return zone instanceof Zone.Forest forest && board.forestArea(forest).isOccupied()
+                        || zone instanceof Zone.River river && board.riverArea(river).isOccupied()
+                        || zone instanceof Zone.Meadow meadow && board.meadowArea(meadow).isOccupied()
+                        || zone instanceof Zone.Lake lake && board.riverSystemArea(lake).isOccupied();
+            });
+            return potentialOccupants;
         }
-
-        Set<Occupant> possibleOccupants = new HashSet<>();
-        for (Occupant occupant : lastPlacedTile.potentialOccupants()) {
-            Zone zone = lastPlacedTile.zoneWithId(occupant.zoneId());
-            switch (zone) {
-                case Zone.Forest f when board.forestArea(f).occupants().isEmpty() ->
-                        possibleOccupants.add(occupant);
-                case Zone.River r when board.riverArea(r).occupants().isEmpty() ->
-                        possibleOccupants.add(occupant);
-                case Zone.Meadow m when board.meadowArea(m).occupants().isEmpty() ->
-                        possibleOccupants.add(occupant);
-                case Zone.Lake l when board.riverSystemArea(l).occupants().isEmpty() ->
-                        possibleOccupants.add(occupant);
-                default -> {
-                }
-            }
-        }
-
-        return possibleOccupants;
+        return Set.of();
     }
 
     /**
