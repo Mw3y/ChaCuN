@@ -30,8 +30,7 @@ public final class Points {
     /**
      * Private constructor to prevent instantiation.
      */
-    private Points() {
-    }
+    private Points() {}
 
     /**
      * Returns the number of points obtained by the majority pickers in a closed

@@ -15,7 +15,9 @@ public enum PlayerColor {
     YELLOW,
     PURPLE;
 
-    // All possible colors of a player
+    /**
+     * All possible colors of a player
+     */
     public static final List<PlayerColor> ALL = List.of(PlayerColor.values());
 
 }

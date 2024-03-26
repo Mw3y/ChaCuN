@@ -16,7 +16,9 @@ import java.util.Set;
 public record ZonePartitions(ZonePartition<Zone.Forest> forests, ZonePartition<Zone.Meadow> meadows,
                              ZonePartition<Zone.River> rivers, ZonePartition<Zone.Water> riverSystems) {
 
-    // Represent a group of four empty partitions
+    /**
+     * Represent a group of four empty partitions
+     */
     public final static ZonePartitions EMPTY = new ZonePartitions(new ZonePartition<>(), new ZonePartition<>(), new ZonePartition<>(), new ZonePartition<>());
 
     /**

@@ -20,31 +20,45 @@ import java.util.stream.Collectors;
  */
 public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile tileToPlace, Board board,
                         Action nextAction, MessageBoard messageBoard) {
-    // The id of the tile containing the shaman
+
+
+    /**
+     * The id of the tile containing the shaman
+     */
     private static final int SHAMAN_ID = 88;
-    // The id of the tile containing the hunting trap
+
+    /**
+     * The id of the tile containing the hunting trap
+     */
     private static final int HUNTING_TRAP_ID = 94;
-    // The id of the tile containing the logboat
+
+    /**
+     * The id of the tile containing the logboat
+     */
     private static final int LOGBOAT_ID = 93;
-    // The id of the tile containing the wildfire
+
+    /**
+     * The id of the tile containing the wildfire
+     */
     private static final int WILD_FIRE_ID = 85;
-    // The id of the tile containing the pit trap
+
+    /**
+     * The id of the tile containing the pit trap
+     */
     private static final int PIT_TRAP_ID = 92;
 
     /**
      * Checks the validity of the arguments.
      * <p>
-     * Checks that there is at least two players and that either the tile to be placed is null,
-     * or the next action is PLACE_TILE, throws {@link IllegalArgumentException} if not.
-     * Checks that the tile decks, the board, the message board or the next action are not null or throws
-     * {@link NullPointerException} if null.
+     * Checks that either the tile to be placed is null, or the next action is PLACE_TILE.
+     * Checks that the tile decks, the board, the message board or the next action are not null.
      *
      * @throws IllegalArgumentException if invalid player number or next action
      * @throws NullPointerException     if null arguments
      */
     public GameState {
         Preconditions.checkArgument(players.size() >= 2);
-        Preconditions.checkArgument(tileToPlace != null && nextAction != Action.PLACE_TILE);
+        Preconditions.checkArgument(tileToPlace == null ^ nextAction == Action.PLACE_TILE);
         Objects.requireNonNull(tileDecks);
         Objects.requireNonNull(board);
         Objects.requireNonNull(messageBoard);
@@ -72,9 +86,8 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
      * @return the current player
      */
     public PlayerColor currentPlayer() {
-        if (nextAction() != Action.START_GAME || nextAction != Action.END_GAME) {
+        if (nextAction() != Action.START_GAME || nextAction != Action.END_GAME)
             return players.getFirst();
-        }
         return null;
     }
 
@@ -90,8 +103,7 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
     }
 
     /**
-     * Returns the set of all the potential occupants of the last placed tile or throws
-     * {@link IllegalArgumentException} if the board is empty.
+     * Returns the set of all the potential occupants of the last placed tile.
      *
      * @return the set of all the potential occupants of the last placed tile
      * @throws IllegalArgumentException if the board is empty
@@ -149,9 +161,8 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
         // Find tigers
         Set<Animal> tigers = getAnimalsOfKind(animals, Animal.Kind.TIGER);
         // Fix the number of tigers to
-        if (specifiedTigerNb <= 0) {
+        if (specifiedTigerNb <= 0)
             specifiedTigerNb = tigers.size();
-        }
         // Compute the number of deers to cancel
         int cancelledDeersNb = Math.min(specifiedTigerNb, deers.size());
         Set<Animal> cancelledAnimals = new HashSet<>();
@@ -165,9 +176,7 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
     }
 
     private Set<Animal> getAnimalsOfKind(Set<Animal> animals, Animal.Kind kind) {
-        return animals.stream()
-                .filter(a -> a.kind() == kind)
-                .collect(Collectors.toSet());
+        return animals.stream().filter(a -> a.kind() == kind).collect(Collectors.toSet());
     }
 
     /**
@@ -175,8 +184,6 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
      * <p>
      * Adds the given placed tile to the board, attributes the eventual points given by a logboat or a
      * hunting trap and determines the next action.
-     * Throws {@link IllegalArgumentException} if the given next action is not PLACE_TILE or if the given
-     * placed tile is already occupied.
      *
      * @param placedTile the placed tile to add
      * @return a new game state with the specified modifications
@@ -230,8 +237,6 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
      * <p>
      * Removes the given occupant from the board, unless it is null, which means the player does not want
      * to retake a pawn.
-     * Checks that the next action is RETAKE_PAWN and that the given occupant is neither null nor a pawn,
-     * throws {@link IllegalArgumentException} if it is not.
      *
      * @param occupant the occupant
      * @return a new game state with the specified modifications
@@ -257,7 +262,6 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
      * <p>
      * Adds the given occupant to the last placed tile, unless it is null, which means that the player does
      * not want to place an occupant.
-     * Checks that the next action is OCCUPY_TILE, throws {@link IllegalArgumentException} if it is not.
      *
      * @param occupant the occupant to add
      * @return a new game state with the specified modifications
@@ -295,7 +299,7 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
      * - Pass to the next player if the current one can't play again.
      * - Ends the game when the there is no more normal tiles to place.
      *
-     * @return a new game state with the specified modifications
+     * @return an updated game state
      */
     private GameState withTurnFinished() {
         // Determine the forests closed by last placed tile

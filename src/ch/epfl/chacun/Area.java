@@ -87,7 +87,7 @@ public record Area<Z extends Zone>(Set<Z> zones, List<PlayerColor> occupants, in
     }
 
     /**
-     * Counts the number of fish swimming in the given river system
+     * Counts the number of fish swimming in the given river system.
      *
      * @param riverSystem the river system area to count fish in
      * @return the total number of fish in the river system

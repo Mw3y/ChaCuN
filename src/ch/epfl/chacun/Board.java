@@ -23,6 +23,7 @@ public final class Board {
      * An empty board.
      */
     public static final Board EMPTY = new Board(new PlacedTile[625], new int[0], ZonePartitions.EMPTY, Set.of());
+
     private static final int SIZE = 25;
     private final ZonePartitions zonePartitions;
     private final PlacedTile[] placedTiles;

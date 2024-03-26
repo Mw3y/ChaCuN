@@ -15,7 +15,7 @@ public final class Preconditions {
     }
 
     /**
-     * Throws an IllegalArgumentException if the given precondition is false.
+     * Check if the given precondition has been satisfied.
      *
      * @param precondition the precondition to check
      * @throws IllegalArgumentException if the precondition is false

@@ -14,10 +14,14 @@ public enum Direction {
     S,
     W;
 
-    // All the values of Direction.
+    /**
+     * All possible Direction values.
+     */
     public static final List<Direction> ALL = List.of(Direction.values());
 
-    // The number of elements of Direction.
+    /**
+     * The number of elements of Direction.
+     */
     public static final int COUNT = ALL.size();
 
     /**
