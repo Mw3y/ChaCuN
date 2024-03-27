@@ -394,12 +394,8 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
                     ? updatedMessageBoard.withScoredRaft(riverSystem).withScoredRiverSystem(riverSystem)
                     : updatedMessageBoard.withScoredRiverSystem(riverSystem);
         }
-        Set<PlayerColor> winners = new HashSet<>();
-        Map<PlayerColor, Integer> points = updatedMessageBoard.points();
-        for (int i = 0; i < points.size(); ++i) {
 
-        }
-        updatedMessageBoard = updatedMessageBoard.withWinners();
+        // updatedMessageBoard = updatedMessageBoard.withWinners();
         return new GameState(this.players, this.tileDecks, this.tileToPlace, updatedBoard,
                 this.nextAction, updatedMessageBoard);
     }
