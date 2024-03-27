@@ -122,18 +122,16 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
     public Set<Occupant> lastTilePotentialOccupants() {
         Preconditions.checkArgument(!board.equals(Board.EMPTY));
         PlacedTile lastPlacedTile = board.lastPlacedTile();
-        if (lastPlacedTile != null) {
-            Set<Occupant> potentialOccupants = lastPlacedTile.potentialOccupants();
-            potentialOccupants.removeIf(occupant -> {
-                Zone zone = lastPlacedTile.zoneWithId(occupant.zoneId());
-                return zone instanceof Zone.Forest forest && board.forestArea(forest).isOccupied()
-                        || zone instanceof Zone.River river && board.riverArea(river).isOccupied()
-                        || zone instanceof Zone.Meadow meadow && board.meadowArea(meadow).isOccupied()
-                        || zone instanceof Zone.Lake lake && board.riverSystemArea(lake).isOccupied();
-            });
-            return potentialOccupants;
-        }
-        return Set.of();
+        assert lastPlacedTile != null;
+        Set<Occupant> potentialOccupants = lastPlacedTile.potentialOccupants();
+        potentialOccupants.removeIf(occupant -> {
+            Zone zone = lastPlacedTile.zoneWithId(occupant.zoneId());
+            return zone instanceof Zone.Forest forest && board.forestArea(forest).isOccupied()
+                    || zone instanceof Zone.River river && board.riverArea(river).isOccupied()
+                    || zone instanceof Zone.Meadow meadow && board.meadowArea(meadow).isOccupied()
+                    || zone instanceof Zone.Lake lake && board.riverSystemArea(lake).isOccupied();
+        });
+        return potentialOccupants;
     }
 
     /**
