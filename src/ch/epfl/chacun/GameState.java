@@ -1,5 +1,7 @@
 package ch.epfl.chacun;
 
+import ch.epfl.chacun.GameState.Action;
+
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -30,7 +32,7 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
     private static final int HUNTING_TRAP_ID = 94;
 
     /**
-     * The id of the tile containing the logboat
+     * The id of the tile containing the log boat
      */
     private static final int LOGBOAT_ID = 93;
 
@@ -81,18 +83,8 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
                 new MessageBoard(textMaker, List.of()));
     }
 
-    private static Area<Zone.Meadow> outOfReachMeadowArea(Area<Zone.Meadow> meadow,
-                                                          Area<Zone.Meadow> adjacentMeadowArea) {
-        Set<Zone.Meadow> adjacentZones = adjacentMeadowArea.zones();
-        // Create an area containing the meadows that are out of the pit trap reach
-        Set<Zone.Meadow> outOfReachMeadowZones = new HashSet<>(meadow.zones());
-        // Remove from the set of meadow zones the adjacent meadow zones
-        outOfReachMeadowZones.removeAll(adjacentZones);
-        return new Area<>(outOfReachMeadowZones, meadow.occupants(), meadow.openConnections());
-    }
-
     /**
-     * Returns the current player or null if there is no.
+     * Returns the current player or null if there is none.
      *
      * @return the current player
      */
@@ -122,7 +114,7 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
     public Set<Occupant> lastTilePotentialOccupants() {
         Preconditions.checkArgument(!board.equals(Board.EMPTY));
         PlacedTile lastPlacedTile = board.lastPlacedTile();
-        assert lastPlacedTile != null;
+
         Set<Occupant> potentialOccupants = lastPlacedTile.potentialOccupants();
         potentialOccupants.removeIf(occupant -> {
             Zone zone = lastPlacedTile.zoneWithId(occupant.zoneId());
@@ -155,43 +147,9 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
     }
 
     /**
-     * Determine the animals to be cancelled from a given meadow area.
-     * <p>
-     * If the number of tigers provided is 0, take the number of tigers in the given area.
-     *
-     * @param meadowArea       the meadow area
-     * @param specifiedTigerNb th number of tigers that will eat deers
-     * @return the set of animals to be cancelled
-     */
-    private Set<Animal> determineCancelledAnimals(Area<Zone.Meadow> meadowArea, int specifiedTigerNb) {
-        Set<Animal> animals = Area.animals(meadowArea, Set.of());
-        // Find deers
-        Set<Animal> deers = getAnimalsOfKind(animals, Animal.Kind.DEER);
-        // Find tigers
-        Set<Animal> tigers = getAnimalsOfKind(animals, Animal.Kind.TIGER);
-        // Fix the number of tigers to
-        if (specifiedTigerNb <= 0)
-            specifiedTigerNb = tigers.size();
-        // Compute the number of deers to cancel
-        int cancelledDeersNb = Math.min(specifiedTigerNb, deers.size());
-        Set<Animal> cancelledAnimals = new HashSet<>();
-        // Remove from the deers set and add to the cancelled animals set the correct number of deers
-        for (int i = 0; i < cancelledDeersNb; ++i) {
-            Animal removedDeer = deers.stream().findFirst().get();
-            deers.remove(removedDeer);
-            cancelledAnimals.add(removedDeer);
-        }
-        return cancelledAnimals;
-    }
-
-    private Set<Animal> getAnimalsOfKind(Set<Animal> animals, Animal.Kind kind) {
-        return animals.stream().filter(a -> a.kind() == kind).collect(Collectors.toSet());
-    }
-
-    /**
      * Manages all the transitions from PLACE_TILE.
      * <p>
-     * Adds the given placed tile to the board, attributes the eventual points given by a logboat or a
+     * Adds the given placed tile to the board, attributes the eventual points given by a log boat or a
      * hunting trap and determines the next action.
      *
      * @param placedTile the placed tile to add
@@ -205,38 +163,40 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
         // Check if the given tile is already occupied
         Preconditions.checkArgument(placedTile.occupant() == null);
 
-        MessageBoard newMessageBoard = messageBoard;
+        MessageBoard updatedMessageBoard = messageBoard;
         Board updatedBoard = board.withNewTile(placedTile);
-        // Determine the nextAction
-        // The next action is RETAKE_PAWN if the placed tile contains the shaman and if the player
-        // has at least an occupant placed on the board
-        Action nextAction = placedTile.tile().id() == SHAMAN_ID
-                && this.board.occupantCount(currentPlayer(), Occupant.Kind.PAWN) >= 1
-                ? Action.RETAKE_PAWN
-                : Action.PLACE_TILE;
-        // Check if the placed tile contains a hunting trap
-        if (placedTile.tile().id() == HUNTING_TRAP_ID) {
-            // Determine the adjacent meadows of the placed tile
-            Area<Zone.Meadow> adjacentMeadows = board.adjacentMeadow(placedTile.pos(),
-                    (Zone.Meadow) placedTile.specialPowerZone());
-            // Determine the animals to cancel in the adjacent meadows
-            Set<Animal> cancelledAnimals = determineCancelledAnimals(adjacentMeadows, 0);
-            // Update the board with more cancelled animals
-            updatedBoard.withMoreCancelledAnimals(cancelledAnimals);
-            // Add to the message board a message indicating that points was scored with a hunting trap
-            newMessageBoard = newMessageBoard.withScoredHuntingTrap(currentPlayer(), adjacentMeadows);
+        Action updatedAction = this.nextAction;
+        // Check if the placed tile contains a SHAMAN, a hunting trap or a log boat
+        switch (placedTile.tile().id()) {
+            case SHAMAN_ID -> {
+                // The next action is RETAKE_PAWN if the placed tile contains the shaman and if the player
+                // has at least an occupant placed on the board
+                if(this.board.occupantCount(currentPlayer(), Occupant.Kind.PAWN) >= 1) {
+                    updatedAction = Action.RETAKE_PAWN;
+                }
+            }
+            case HUNTING_TRAP_ID -> {
+                // Determine the adjacent meadows of the placed tile
+                Area<Zone.Meadow> adjacentMeadows = board.adjacentMeadow(placedTile.pos(),
+                        (Zone.Meadow) placedTile.specialPowerZone());
+                // Determine the animals to cancel in the adjacent meadows
+                Set<Animal> cancelledAnimals = determineCancelledAnimals(adjacentMeadows, 0);
+                // Update the board with more cancelled animals
+                updatedBoard.withMoreCancelledAnimals(cancelledAnimals);
+                // Add to the message board a message indicating that points was scored with a hunting trap
+                updatedMessageBoard = updatedMessageBoard.withScoredHuntingTrap(currentPlayer(), adjacentMeadows);
+            }
+            // Add to the message board a message indicating that points was scored with a log boat
+            case LOGBOAT_ID -> updatedMessageBoard = updatedMessageBoard.withScoredLogboat(currentPlayer(),
+                            board.riverSystemArea((Zone.Water) placedTile.specialPowerZone()));
         }
-        // Check if the placed tile contains a logboat
-        if (placedTile.tile().id() == LOGBOAT_ID) {
-            // Add to the message board a message indicating that points was scored with a logboat
-            newMessageBoard = newMessageBoard.withScoredLogboat(currentPlayer(),
-                    board.riverSystemArea((Zone.Water) placedTile.specialPowerZone()));
-        }
-        // Update game state
+        // Draw the top tile from the normal tiles deck
         TileDecks updatedTileDecks = tileDecks.withTopTileDrawn(Tile.Kind.NORMAL);
-        Tile tileToPlace = tileDecks.topTile(placedTile.kind());
-        GameState updatedGameState = new GameState(players, updatedTileDecks, tileToPlace, updatedBoard,
-                nextAction, newMessageBoard);
+        // Get the next tile to place
+        Tile nextTileToPlace = tileDecks.topTile(placedTile.kind());
+        // Update the game state
+        GameState updatedGameState = new GameState(players, updatedTileDecks, nextTileToPlace, updatedBoard,
+                updatedAction, updatedMessageBoard);
         // Check if occupation is possible
         return updatedGameState.withTurnFinishedIfOccupationImpossible();
     }
@@ -291,8 +251,8 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
      * occupation is possible or with calling withTurnFinished on it otherwise
      */
     private GameState withTurnFinishedIfOccupationImpossible() {
-        if (freeOccupantsCount(this.currentPlayer(), Occupant.Kind.PAWN) == 0
-                || this.lastTilePotentialOccupants().isEmpty()) {
+        if (this.lastTilePotentialOccupants().isEmpty()
+                || this.freeOccupantsCount(this.currentPlayer(), Occupant.Kind.PAWN) == 0) {
             return this.withTurnFinished();
         }
         return new GameState(
@@ -315,8 +275,12 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
         Set<Area<Zone.Forest>> closedForests = this.board.forestsClosedByLastTile();
         // Determine the rivers closed by last placed tile
         Set<Area<Zone.River>> closedRivers = this.board.riversClosedByLastTile();
-        // Update message board
+        // Updated message board
         MessageBoard updatedMessageBoard = this.messageBoard;
+        // Updated list of players
+        List<PlayerColor> updatedPlayers = this.players;
+        // Updated board
+        Board updatedBoard = this.board;
         // Attribute points scored by each closed forests
         for (int i = 0; i < closedForests.size(); ++i) {
             updatedMessageBoard = updatedMessageBoard.withScoredForest(closedForests
@@ -331,6 +295,8 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
                     .toList()
                     .get(i));
         }
+        // Remove the occupants from the closed forests and rivers
+        updatedBoard = updatedBoard.withoutGatherersOrFishersIn(closedForests, closedRivers);
         // The player can play again if he closed a forest containing a menhir with a normal tile
         boolean canPlayAgain = this.board.forestsClosedByLastTile().stream().anyMatch(Area::hasMenhir)
                 && this.board.lastPlacedTile().kind() == Tile.Kind.NORMAL;
@@ -348,7 +314,6 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
         }
         // Update the list of players
         PlayerColor currentPlayer = currentPlayer();
-        List<PlayerColor> updatedPlayers = players;
         // Pass to the next player if the current one can't play again
         if (!canPlayAgain || updatedTileDecks.deckSize(Tile.Kind.MENHIR) == 0) {
             // Remove the current player from first position
@@ -363,13 +328,16 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
                 : Action.PLACE_TILE;
         // Return a new game state with updated parameters
         return new GameState(updatedPlayers, updatedTileDecks, updatedTileDecks.topTile(nextTileKind),
-                board, nextAction, updatedMessageBoard);
+                updatedBoard, nextAction, updatedMessageBoard);
     }
 
     /**
      * Manages the attribution of the points at the end of the game.
      * <p>
-     * -
+     * Attributes the points given by : <p>
+     * - the meadows, considering the presence of the wildfire or the pit trap.<p>
+     * - the river systems, considering the presence of the raft.<p>
+     * Determines the winners of the game.
      *
      * @return an updated game state
      */
@@ -378,58 +346,117 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
         MessageBoard updatedMessageBoard = this.messageBoard;
         // Iterate over all the meadow areas
         for (Area<Zone.Meadow> meadow : this.board.meadowAreas()) {
-            // Check if the meadow contains a wildfire
-            Set<Animal> cancelledAnimals = determineCancelledAnimals(meadow, 0);
+            // Check that the meadow does not contain a wildfire
             if (!meadow.tileIds().contains(WILD_FIRE_ID)) {
+                // Determine the cancelled animals of the meadow
+                Set<Animal> cancelledAnimals = determineCancelledAnimals(meadow, 0);
                 // Check if the meadow contains a pit trap
                 if (meadow.tileIds().contains(PIT_TRAP_ID)) {
+                    // Change the cancelled animals to optimize the points scored by the pit trap
                     cancelledAnimals = determineCancelledAnimalsWithPitTrap(meadow, this.board);
                 }
                 updatedMessageBoard = updatedMessageBoard.withScoredMeadow(meadow, cancelledAnimals);
                 updatedBoard = updatedBoard.withMoreCancelledAnimals(cancelledAnimals);
             }
         }
+        // Iterate over all the river system areas
         for (Area<Zone.Water> riverSystem : this.board.riverSystemAreas()) {
+            // Update the message board withs points scored after checking the presence of the raft
             updatedMessageBoard = riverSystem.tileIds().contains(RAFT_ID)
                     ? updatedMessageBoard.withScoredRaft(riverSystem).withScoredRiverSystem(riverSystem)
                     : updatedMessageBoard.withScoredRiverSystem(riverSystem);
         }
-
-        // updatedMessageBoard = updatedMessageBoard.withWinners();
+        // The set of winners
+        Set<PlayerColor> winners = new HashSet<>();
+        // The map of the players and their points
+        Map<PlayerColor, Integer> points = updatedMessageBoard.points();
+        // The maximum amount of points scored by one or more players
+        int maxPoints = Collections.max(points.values());
+        // Iterate over the map entries to find the winner players
+        for (Map.Entry<PlayerColor, Integer> entry : points.entrySet()) {
+            if (Objects.equals(maxPoints, entry.getValue())) {
+                winners.add(entry.getKey());
+            }
+        }
+        updatedMessageBoard = updatedMessageBoard.withWinners(winners, maxPoints);
+        // Return a new game state with updated data
         return new GameState(this.players, this.tileDecks, this.tileToPlace, updatedBoard,
                 this.nextAction, updatedMessageBoard);
     }
 
     /**
-     * Computes and attributes the points given by a pit trap.
+     * Determine the animals to be cancelled from a given meadow area with a given number of tigers.
      * <p>
-     * In order to maximise the points earned by the pit trap, deers that are not within range must be
-     * cancelled first.
+     * If the number of tigers provided is 0, take the number of tigers in the given area.
+     *
+     * @param meadowArea       the meadow area
+     * @param specifiedTigerNb th number of tigers that will eat deer
+     * @return the set of animals to be cancelled
+     */
+    private Set<Animal> determineCancelledAnimals(Area<Zone.Meadow> meadowArea, int specifiedTigerNb) {
+        Set<Animal> animals = Area.animals(meadowArea, Set.of());
+        // Find deer
+        Set<Animal> deer = getAnimalsOfKind(animals, Animal.Kind.DEER);
+        // Find tigers
+        Set<Animal> tigers = getAnimalsOfKind(animals, Animal.Kind.TIGER);
+        // If the specified number of tigers is 0, take the number of tigers of the given meadow area
+        specifiedTigerNb = specifiedTigerNb >= 0 ? specifiedTigerNb : tigers.size();
+        // Compute the number of deer to cancel
+        int cancelledDeerNb = Math.min(specifiedTigerNb, deer.size());
+        Set<Animal> cancelledAnimals = new HashSet<>();
+        // Remove from the deer set and add to the cancelled animals set the correct number of deer
+        for (int i = 0; i < cancelledDeerNb; ++i) {
+            Animal removedDeer = deer.stream().findFirst().get();
+            deer.remove(removedDeer);
+            cancelledAnimals.add(removedDeer);
+        }
+        return cancelledAnimals;
+    }
+
+    /**
+     * Determines the cancelled animals of a meadow which contains a pit trap.
+     * <p>
+     * When a meadow contains a pit trap, the deer which are out of the pit trap reach must be cancelled
+     * in priority.
      *
      * @param meadow the meadow containing the pit trap
-     * @return an updated game state
+     * @param board  the current board
+     * @return the set of cancelled animals
      */
     private Set<Animal> determineCancelledAnimalsWithPitTrap(Area<Zone.Meadow> meadow, Board board) {
         PlacedTile pitTrapTile = board.tileWithId(PIT_TRAP_ID);
+
         // The area containing the adjacent meadows
         Area<Zone.Meadow> adjacentMeadowArea = board.adjacentMeadow(pitTrapTile.pos(),
                 (Zone.Meadow) pitTrapTile.specialPowerZone());
-        // The adjacent meadow zones
-        Area<Zone.Meadow> outOfReachMeadowArea = outOfReachMeadowArea(meadow, adjacentMeadowArea);
-        // The set of the animals of the hole area
-        Set<Animal> allAnimals = Area.animals(meadow, Set.of());
-        // The set of the animals which are out of the pit trap reach
-        Set<Animal> outOfReachAnimals = Area.animals(outOfReachMeadowArea, Set.of());
+        // The set of the meadow zones which are out of the pit trap reach
+        Set<Zone.Meadow> outOfReachMeadowZones = new HashSet<>(meadow.zones());
+        // Remove from the set of all meadow zones the adjacent meadow zones
+        outOfReachMeadowZones.removeAll(adjacentMeadowArea.zones());
+        // Create a new meadow area containing only the out-of-reach meadows
+        Area<Zone.Meadow> outOfReachMeadowArea =
+                new Area<>(outOfReachMeadowZones, meadow.occupants(), meadow.openConnections());
         // The total number of tigers
-        int tigerNb = getAnimalsOfKind(allAnimals, Animal.Kind.TIGER).size();
+        int tigerNb = getAnimalsOfKind(Area.animals(meadow, Set.of()), Animal.Kind.TIGER).size();
         // The cancelled animals which are out of the pit trap reach
         Set<Animal> cancelledAnimals = determineCancelledAnimals(outOfReachMeadowArea, tigerNb);
-        // Subtract the number of deers which are out of reach from the tiger number
-        tigerNb -= getAnimalsOfKind(outOfReachAnimals, Animal.Kind.DEER).size();
+        // Subtract the number of deer which are out of the pit trap reach from the tiger number
+        tigerNb -= getAnimalsOfKind(Area.animals(outOfReachMeadowArea, Set.of()), Animal.Kind.DEER).size();
         // Add the remaining cancelled animals from the adjacent meadows
         cancelledAnimals.addAll(determineCancelledAnimals(adjacentMeadowArea, tigerNb));
 
         return cancelledAnimals;
+    }
+
+    /**
+     * Returns a set of animals of the given kind from a given set of possibly different animals.
+     *
+     * @param animals the set of different animals
+     * @param kind    the kind of animal searched
+     * @return a set of animals of the given kind
+     */
+    private Set<Animal> getAnimalsOfKind(Set<Animal> animals, Animal.Kind kind) {
+        return animals.stream().filter(a -> a.kind() == kind).collect(Collectors.toSet());
     }
 
     /**
