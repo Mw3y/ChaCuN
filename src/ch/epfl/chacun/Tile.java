@@ -64,6 +64,6 @@ public record Tile(int id, Kind kind, TileSide n, TileSide e, TileSide s, TileSi
     public enum Kind {
         START,
         NORMAL,
-        MENHIR;
+        MENHIR
     }
 }

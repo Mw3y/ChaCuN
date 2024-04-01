@@ -420,6 +420,6 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
          * Points must be counted and the winner(s) announced, as the last player has completed
          * his turn(s) and the pile of normal tiles is empty.
          */
-        END_GAME;
+        END_GAME
     }
 }

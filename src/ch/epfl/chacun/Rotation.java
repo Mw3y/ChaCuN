@@ -24,6 +24,12 @@ public enum Rotation {
      */
     public static final int COUNT = ALL.size();
 
+
+    /**
+     * The number of degrees per quarter turn.
+     */
+    private static final int DEGREES_PER_QUARTER_TURN = 90;
+
     /**
      * Calculates the addition of two rotations.
      *
@@ -59,7 +65,7 @@ public enum Rotation {
      * @return the number of degrees clockwise of the rotation
      */
     public int degreesCW() {
-        return this.quarterTurnsCW() * 90;
+        return this.quarterTurnsCW() * DEGREES_PER_QUARTER_TURN;
     }
 
 }
