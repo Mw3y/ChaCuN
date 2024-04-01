@@ -25,13 +25,24 @@ public record ZonePartitions(ZonePartition<Zone.Forest> forests, ZonePartition<Z
      * Represents the builder of zone partitions.
      */
     public static final class Builder {
-        // The builder of the forests partition
+        /**
+         * The builder of the forests partition
+         */
         private final ZonePartition.Builder<Zone.Forest> forests;
-        // The builder of the meadows partition
+
+        /**
+         * The builder of the meadows partition
+         */
         private final ZonePartition.Builder<Zone.Meadow> meadows;
-        // The builder of the rivers partition
+
+        /**
+         * The builder of the rivers partition
+         */
         private final ZonePartition.Builder<Zone.River> rivers;
-        // The builder of the river systems partition
+
+        /**
+         * The builder of the river systems partition
+         */
         private final ZonePartition.Builder<Zone.Water> riverSystems;
 
         /**

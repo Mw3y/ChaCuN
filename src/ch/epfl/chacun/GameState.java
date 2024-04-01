@@ -45,6 +45,7 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
      * The id of the tile containing the pit trap
      */
     private static final int PIT_TRAP_ID = 92;
+
     /**
      * The id of the tile containing the raft
      */
@@ -114,7 +115,6 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
     public Set<Occupant> lastTilePotentialOccupants() {
         Preconditions.checkArgument(!board.equals(Board.EMPTY));
         PlacedTile lastPlacedTile = board.lastPlacedTile();
-
         Set<Occupant> potentialOccupants = lastPlacedTile.potentialOccupants();
         potentialOccupants.removeIf(occupant -> {
             Zone zone = lastPlacedTile.zoneWithId(occupant.zoneId());
