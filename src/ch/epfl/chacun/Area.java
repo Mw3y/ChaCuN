@@ -132,7 +132,7 @@ public record Area<Z extends Zone>(Set<Z> zones, List<PlayerColor> occupants, in
     public Set<PlayerColor> majorityOccupants() {
         // Special case: no occupants
         if (occupants.isEmpty())
-            return new HashSet<>();
+            return Set.of();
 
         int max = 0;
         // Count occurrences of each player color
