@@ -183,7 +183,7 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
                 yield normalNextGameState;
             }
             /*
-              The hunting trap tile allows the player to gets the points corresponding
+              The hunting trap tile allows the player to get the points corresponding
               to the animals present in the adjacent meadow.
              */
             case HUNTING_TRAP_TILE_ID -> {
@@ -330,12 +330,15 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
         }
         // Determine the next action : END_GAME if the current player can't play again and if the normal
         // tiles deck is empty, PLACE_TILE otherwise
-        Action nextAction = !canPlayAgain && tileDecks.normalTiles().isEmpty()
-                ? Action.END_GAME
-                : Action.PLACE_TILE;
+        Action nextAction = Action.PLACE_TILE;
+        GameState updatedGameState = new GameState(updatedPlayers, updatedTileDecks,
+                updatedTileDecks.topTile(nextTileKind), updatedBoard, nextAction, updatedMessageBoard);
+        // Check if the game has to end
+        if(!canPlayAgain && tileDecks.normalTiles().isEmpty()) {
+            updatedGameState = updatedGameState.withFinalPointsCounted();
+        }
         // Return a new game state with updated parameters
-        return new GameState(updatedPlayers, updatedTileDecks, updatedTileDecks.topTile(nextTileKind),
-                updatedBoard, nextAction, updatedMessageBoard);
+        return updatedGameState;
     }
 
     /**
@@ -388,7 +391,7 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
         updatedMessageBoard = updatedMessageBoard.withWinners(winners, maxPoints);
         // Return a new game state with updated data
         return new GameState(this.players, this.tileDecks, this.tileToPlace, updatedBoard,
-                this.nextAction, updatedMessageBoard);
+                Action.END_GAME, updatedMessageBoard);
     }
 
     /**
