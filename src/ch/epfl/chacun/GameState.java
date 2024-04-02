@@ -278,67 +278,44 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
      * @return an updated game state
      */
     private GameState withTurnFinished() {
-        // Determine the forests closed by last placed tile
         Set<Area<Zone.Forest>> closedForests = board.forestsClosedByLastTile();
-        // Determine the rivers closed by last placed tile
         Set<Area<Zone.River>> closedRivers = board.riversClosedByLastTile();
-        // Updated message board
+        // Updated game state data
         MessageBoard updatedMessageBoard = messageBoard;
-        // Updated list of players
         List<PlayerColor> updatedPlayers = new LinkedList<>(players);
-        // Updated board
         Board updatedBoard = board;
-        // Attribute points scored by each closed forests
-        for (int i = 0; i < closedForests.size(); ++i) {
-            updatedMessageBoard = updatedMessageBoard.withScoredForest(closedForests
-                    .stream()
-                    .toList()
-                    .get(i));
+        // Attribute points scored by each closed forest
+        for (Area<Zone.Forest> closedForest : closedForests) {
+            updatedMessageBoard = updatedMessageBoard.withScoredForest(closedForest);
         }
-        // Attribute points scored by each closed rivers
-        for (int i = 0; i < closedRivers.size(); ++i) {
-            updatedMessageBoard = updatedMessageBoard.withScoredRiver(closedRivers
-                    .stream()
-                    .toList()
-                    .get(i));
+        // Attribute points scored by each closed river
+        for (Area<Zone.River> closedRiver : closedRivers) {
+            updatedMessageBoard = updatedMessageBoard.withScoredRiver(closedRiver);
         }
         // Remove the occupants from the closed forests and rivers
         updatedBoard = updatedBoard.withoutGatherersOrFishersIn(closedForests, closedRivers);
         // The player can play again if he closed a forest containing a menhir with a normal tile
-        boolean canPlayAgain = board.forestsClosedByLastTile().stream().anyMatch(Area::hasMenhir)
+        boolean hasSecondTurn = closedForests.stream().anyMatch(Area::hasMenhir)
                 && board.lastPlacedTile().kind() == Tile.Kind.NORMAL;
-        // Determine the kind of the next tile
-        Tile.Kind nextTileKind = canPlayAgain
-                ? Tile.Kind.MENHIR
-                : Tile.Kind.NORMAL;
-        // Update the tile decks
-        TileDecks updatedTileDecks = this.tileDecks;
-        // If it is not already empty, draw from the deck containing the next tile to place all the
-        // tiles which can't be placed
-        if (this.tileDecks.deckSize(nextTileKind) > 0) {
-            updatedTileDecks = this.tileDecks.withTopTileDrawnUntil(nextTileKind,
-                    tile -> this.board.couldPlaceTile(this.tileDecks.topTile(nextTileKind)));
+
+        // Check if the player can place a menhir tile
+        if (hasSecondTurn && tileDecks.deckSize(Tile.Kind.MENHIR) > 0) {
+            TileDecks updatedDecks = tileDecks.withTopTileDrawnUntil(Tile.Kind.MENHIR, board::couldPlaceTile);
+            return new GameState(updatedPlayers, updatedDecks, updatedDecks.topTile(Tile.Kind.MENHIR),
+                    updatedBoard, Action.PLACE_TILE, updatedMessageBoard);
         }
-        // Update the list of players
-        PlayerColor currentPlayer = currentPlayer();
-        // Pass to the next player if the current one can't play again
-        if (!canPlayAgain || updatedTileDecks.deckSize(Tile.Kind.MENHIR) == 0) {
-            // Remove the current player from first position
-            updatedPlayers.remove(currentPlayer);
-            // Add it to the end of the list
-            updatedPlayers.add(currentPlayer);
+
+        // Check if the next player can place a tile
+        TileDecks updatedDecks = tileDecks.withTopTileDrawnUntil(Tile.Kind.NORMAL, board::couldPlaceTile);
+        if (updatedDecks.deckSize(Tile.Kind.NORMAL) <= 0) {
+            return new GameState(updatedPlayers, tileDecks,
+                    null, updatedBoard, Action.END_GAME, updatedMessageBoard).withFinalPointsCounted();
         }
-        // Determine the next action : END_GAME if the current player can't play again and if the normal
-        // tiles deck is empty, PLACE_TILE otherwise
-        Action nextAction = Action.PLACE_TILE;
-        GameState updatedGameState = new GameState(updatedPlayers, updatedTileDecks,
-                updatedTileDecks.topTile(nextTileKind), updatedBoard, nextAction, updatedMessageBoard);
-        // Check if the game has to end
-        if(!canPlayAgain && tileDecks.normalTiles().isEmpty()) {
-            updatedGameState = updatedGameState.withFinalPointsCounted();
-        }
+
+        Collections.rotate(updatedPlayers, -1);
         // Return a new game state with updated parameters
-        return updatedGameState;
+        return new GameState(updatedPlayers, tileDecks,
+                updatedDecks.topTile(Tile.Kind.NORMAL), updatedBoard, Action.PLACE_TILE, updatedMessageBoard);
     }
 
     /**
