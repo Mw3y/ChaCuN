@@ -299,23 +299,23 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
                 && board.lastPlacedTile().kind() == Tile.Kind.NORMAL;
 
         // Check if the player can place a menhir tile
+        TileDecks updatedMenhirDeck = tileDecks.withTopTileDrawnUntil(Tile.Kind.MENHIR, board::couldPlaceTile);
         if (hasSecondTurn && tileDecks.deckSize(Tile.Kind.MENHIR) > 0) {
-            TileDecks updatedDecks = tileDecks.withTopTileDrawnUntil(Tile.Kind.MENHIR, board::couldPlaceTile);
-            return new GameState(updatedPlayers, updatedDecks, updatedDecks.topTile(Tile.Kind.MENHIR),
+            return new GameState(updatedPlayers, updatedMenhirDeck, updatedMenhirDeck.topTile(Tile.Kind.MENHIR),
                     updatedBoard, Action.PLACE_TILE, updatedMessageBoard);
         }
 
         // Check if the next player can place a tile
-        TileDecks updatedDecks = tileDecks.withTopTileDrawnUntil(Tile.Kind.NORMAL, board::couldPlaceTile);
-        if (updatedDecks.deckSize(Tile.Kind.NORMAL) <= 0) {
+        TileDecks updatedNormalDecks = tileDecks.withTopTileDrawnUntil(Tile.Kind.NORMAL, board::couldPlaceTile);
+        if (updatedNormalDecks.deckSize(Tile.Kind.NORMAL) <= 0) {
             return new GameState(updatedPlayers, tileDecks,
                     null, updatedBoard, Action.END_GAME, updatedMessageBoard).withFinalPointsCounted();
         }
 
         Collections.rotate(updatedPlayers, -1);
         // Return a new game state with updated parameters
-        return new GameState(updatedPlayers, tileDecks,
-                updatedDecks.topTile(Tile.Kind.NORMAL), updatedBoard, Action.PLACE_TILE, updatedMessageBoard);
+        return new GameState(updatedPlayers, updatedNormalDecks,
+                updatedNormalDecks.topTile(Tile.Kind.NORMAL), updatedBoard, Action.PLACE_TILE, updatedMessageBoard);
     }
 
     /**
