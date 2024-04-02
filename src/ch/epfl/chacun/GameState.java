@@ -115,6 +115,7 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
     public Set<Occupant> lastTilePotentialOccupants() {
         Preconditions.checkArgument(!board.equals(Board.EMPTY));
         PlacedTile lastPlacedTile = board.lastPlacedTile();
+        assert lastPlacedTile != null;
         Set<Occupant> potentialOccupants = lastPlacedTile.potentialOccupants();
         potentialOccupants.removeIf(occupant -> {
             Zone zone = lastPlacedTile.zoneWithId(occupant.zoneId());
@@ -239,8 +240,9 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
     public GameState withNewOccupant(Occupant occupant) {
         Preconditions.checkArgument(nextAction == Action.OCCUPY_TILE);
         Board updatedBoard = occupant == null ? board : board.withOccupant(occupant);
-        return new GameState(
-                players, tileDecks, null, updatedBoard, Action.PLACE_TILE, messageBoard);
+        GameState updatedState = new GameState(
+                players, tileDecks, null, updatedBoard, Action.OCCUPY_TILE, messageBoard);
+        return updatedState.withTurnFinished();
     }
 
     /**
