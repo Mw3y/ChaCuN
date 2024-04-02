@@ -144,8 +144,10 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
         Preconditions.checkArgument(nextAction == Action.START_GAME);
         PlacedTile startPlacedTile = new PlacedTile(tileDecks.topTile(Tile.Kind.START),
                 null, Rotation.NONE, Pos.ORIGIN, null);
-        return new GameState(
-                players, tileDecks.withTopTileDrawn(Tile.Kind.START), tileDecks.topTile(Tile.Kind.NORMAL),
+        // Draw the first tile from the start and normal tiles decks
+        TileDecks updatedDecks = tileDecks
+                .withTopTileDrawn(Tile.Kind.START).withTopTileDrawn(Tile.Kind.NORMAL);
+        return new GameState(players, updatedDecks, tileDecks.topTile(Tile.Kind.NORMAL),
                 board.withNewTile(startPlacedTile), Action.PLACE_TILE, messageBoard);
     }
 
