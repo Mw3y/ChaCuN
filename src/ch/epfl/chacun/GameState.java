@@ -230,7 +230,7 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
         Preconditions.checkArgument(occupant == null || occupant.kind() == Occupant.Kind.PAWN);
         Board updatedBoard = occupant == null ? board : board.withoutOccupant(occupant);
         return new GameState(players, tileDecks, null,
-                updatedBoard, Action.OCCUPY_TILE, messageBoard).withTurnFinished();
+                updatedBoard, nextAction, messageBoard).withTurnFinished();
     }
 
     /**
@@ -247,7 +247,7 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
         Preconditions.checkArgument(nextAction == Action.OCCUPY_TILE);
         Board updatedBoard = occupant == null ? board : board.withOccupant(occupant);
         GameState updatedState = new GameState(
-                players, tileDecks, null, updatedBoard, Action.OCCUPY_TILE, messageBoard);
+                players, tileDecks, null, updatedBoard, nextAction, messageBoard);
         return updatedState.withTurnFinished();
     }
 
@@ -263,8 +263,7 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
                 || freeOccupantsCount(currentPlayer(), Occupant.Kind.PAWN) <= 0) {
             return withTurnFinished();
         }
-        return new GameState(
-                players, tileDecks, null, board, Action.OCCUPY_TILE, messageBoard);
+        return new GameState(players, tileDecks, null, board, Action.OCCUPY_TILE, messageBoard);
     }
 
     /**
@@ -403,20 +402,20 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
      */
     private Set<Animal> determineCancelledAnimals(Area<Zone.Meadow> meadowArea, int specifiedTigerNb) {
         Set<Animal> animals = Area.animals(meadowArea, Set.of());
-        // Find deer
         Set<Animal> deer = getAnimalsOfKind(animals, Animal.Kind.DEER);
-        // Find tigers
         Set<Animal> tigers = getAnimalsOfKind(animals, Animal.Kind.TIGER);
         // If the specified number of tigers is 0, take the number of tigers of the given meadow area
         specifiedTigerNb = specifiedTigerNb >= 0 ? specifiedTigerNb : tigers.size();
         // Compute the number of deer to cancel
         int cancelledDeerNb = Math.min(specifiedTigerNb, deer.size());
-        Set<Animal> cancelledAnimals = new HashSet<>();
+        Set<Animal> cancelledAnimals = new HashSet<>(cancelledDeerNb);
         // Remove from the deer set and add to the cancelled animals set the correct number of deer
         for (int i = 0; i < cancelledDeerNb; ++i) {
-            Animal removedDeer = deer.stream().findFirst().get();
-            deer.remove(removedDeer);
-            cancelledAnimals.add(removedDeer);
+            Animal removedDeer = deer.stream().findFirst().orElse(null);
+            if (removedDeer != null) {
+                deer.remove(removedDeer);
+                cancelledAnimals.add(removedDeer);
+            }
         }
         return cancelledAnimals;
     }
@@ -433,7 +432,6 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
      */
     private Set<Animal> determineCancelledAnimalsWithPitTrap(Area<Zone.Meadow> meadow, Board board) {
         PlacedTile pitTrapTile = board.tileWithId(PIT_TRAP_TILE_ID);
-
         // The area containing the adjacent meadows
         Area<Zone.Meadow> adjacentMeadowArea = board.adjacentMeadow(pitTrapTile.pos(),
                 (Zone.Meadow) pitTrapTile.specialPowerZone());
@@ -452,7 +450,6 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
         tigerNb -= getAnimalsOfKind(Area.animals(outOfReachMeadowArea, Set.of()), Animal.Kind.DEER).size();
         // Add the remaining cancelled animals from the adjacent meadows
         cancelledAnimals.addAll(determineCancelledAnimals(adjacentMeadowArea, tigerNb));
-
         return cancelledAnimals;
     }
 
