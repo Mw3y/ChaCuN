@@ -169,13 +169,21 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
         GameState normalNextGameState = new GameState(players, updatedDeck, nextTileToPlace,
                 board.withNewTile(placedTile), Action.PLACE_TILE, messageBoard)
                 .withTurnFinishedIfOccupationImpossible();
+
         // Handle the MENHIR tiles special traits
         return switch (placedTile.tile().id()) {
+            /*
+              The shaman tile allows the player to retake one of his pawns.
+             */
             case SHAMAN_TILE_ID -> {
                 if (board.occupantCount(currentPlayer(), Occupant.Kind.PAWN) >= 1)
                     yield new GameState(players, tileDecks, null, board, Action.RETAKE_PAWN, messageBoard);
                 yield normalNextGameState;
             }
+            /*
+              The hunting trap tile allows the player to gets the points corresponding
+              to the animals present in the adjacent meadow.
+             */
             case HUNTING_TRAP_TILE_ID -> {
                 Area<Zone.Meadow> adjacentMeadows = board.adjacentMeadow(placedTile.pos(),
                         (Zone.Meadow) placedTile.specialPowerZone());
@@ -187,12 +195,19 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
                 yield new GameState(players, updatedDeck, nextTileToPlace, updatedBoard,
                         Action.PLACE_TILE, updatedMessageBoard).withTurnFinishedIfOccupationImpossible();
             }
+            /*
+              The logboat tile allows the player to obtain points that depend on the number
+              of lakes in the hydrographic network containing it.
+             */
             case LOGBOAT_TILE_ID -> {
                 Area<Zone.Water> area = board.riverSystemArea((Zone.Water) placedTile.specialPowerZone());
                 MessageBoard updatedMessageBoard = messageBoard.withScoredLogboat(currentPlayer(), area);
                 yield new GameState(players, updatedDeck, nextTileToPlace, board,
                         Action.PLACE_TILE, updatedMessageBoard).withTurnFinishedIfOccupationImpossible();
             }
+            /*
+              Default next game state
+             */
             default -> normalNextGameState;
         };
     }
@@ -211,13 +226,9 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
     public GameState withOccupantRemoved(Occupant occupant) {
         Preconditions.checkArgument(nextAction == Action.RETAKE_PAWN);
         Preconditions.checkArgument(occupant == null || occupant.kind() == Occupant.Kind.PAWN);
-        // Remove the occupant from the board if it is not null
         Board updatedBoard = occupant == null ? board : board.withoutOccupant(occupant);
-        // If the occupant is null, the player can't do the action OCCUPY_TILE
-        Action nextAction = occupant == null ? Action.PLACE_TILE : Action.OCCUPY_TILE;
-        GameState updatedGameState = new GameState(players, tileDecks, null, updatedBoard, nextAction, messageBoard);
-        // Check if the occupation is possible
-        return updatedGameState.withTurnFinishedIfOccupationImpossible();
+        return new GameState(players, tileDecks, null,
+                updatedBoard, Action.OCCUPY_TILE, messageBoard).withTurnFinished();
     }
 
     /**
