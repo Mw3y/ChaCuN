@@ -1,7 +1,5 @@
 package ch.epfl.chacun;
 
-import ch.epfl.chacun.GameState.Action;
-
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -90,7 +88,7 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
      * @return the current player
      */
     public PlayerColor currentPlayer() {
-        if (nextAction() != Action.START_GAME || nextAction != Action.END_GAME)
+        if (nextAction != Action.START_GAME && nextAction != Action.END_GAME)
             return players.getFirst();
         return null;
     }
@@ -116,15 +114,20 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
         Preconditions.checkArgument(!board.equals(Board.EMPTY));
         PlacedTile lastPlacedTile = board.lastPlacedTile();
         assert lastPlacedTile != null;
-        Set<Occupant> potentialOccupants = lastPlacedTile.potentialOccupants();
-        potentialOccupants.removeIf(occupant -> {
-            Zone zone = lastPlacedTile.zoneWithId(occupant.zoneId());
-            return zone instanceof Zone.Forest forest && board.forestArea(forest).isOccupied()
-                    || zone instanceof Zone.River river && board.riverArea(river).isOccupied()
-                    || zone instanceof Zone.Meadow meadow && board.meadowArea(meadow).isOccupied()
-                    || zone instanceof Zone.Lake lake && board.riverSystemArea(lake).isOccupied();
-        });
-        return potentialOccupants;
+        if (freeOccupantsCount(currentPlayer(), Occupant.Kind.PAWN) > 0
+                && freeOccupantsCount(currentPlayer(), Occupant.Kind.HUT) > 0) {
+            // Calculate the potential occupants of the last placed tile
+            Set<Occupant> potentialOccupants = lastPlacedTile.potentialOccupants();
+            potentialOccupants.removeIf(occupant -> {
+                Zone zone = lastPlacedTile.zoneWithId(occupant.zoneId());
+                return zone instanceof Zone.Forest forest && board.forestArea(forest).isOccupied()
+                        || zone instanceof Zone.River river && board.riverArea(river).isOccupied()
+                        || zone instanceof Zone.Meadow meadow && board.meadowArea(meadow).isOccupied()
+                        || zone instanceof Zone.Lake lake && board.riverSystemArea(lake).isOccupied();
+            });
+            return potentialOccupants;
+        }
+        return Set.of();
     }
 
     /**
@@ -141,7 +144,6 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
         Preconditions.checkArgument(nextAction == Action.START_GAME);
         PlacedTile startPlacedTile = new PlacedTile(tileDecks.topTile(Tile.Kind.START), null,
                 Rotation.NONE, Pos.ORIGIN, null);
-
         return new GameState(
                 players, tileDecks.withTopTileDrawn(Tile.Kind.START), tileDecks.topTile(Tile.Kind.NORMAL),
                 board.withNewTile(startPlacedTile), Action.PLACE_TILE, messageBoard);
@@ -172,7 +174,7 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
             case SHAMAN_ID -> {
                 // The next action is RETAKE_PAWN if the placed tile contains the shaman and if the player
                 // has at least an occupant placed on the board
-                if(this.board.occupantCount(currentPlayer(), Occupant.Kind.PAWN) >= 1) {
+                if (this.board.occupantCount(currentPlayer(), Occupant.Kind.PAWN) >= 1) {
                     updatedAction = Action.RETAKE_PAWN;
                 }
             }
@@ -189,7 +191,7 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
             }
             // Add to the message board a message indicating that points was scored with a log boat
             case LOGBOAT_ID -> updatedMessageBoard = updatedMessageBoard.withScoredLogboat(currentPlayer(),
-                            board.riverSystemArea((Zone.Water) placedTile.specialPowerZone()));
+                    board.riverSystemArea((Zone.Water) placedTile.specialPowerZone()));
         }
         // Draw the top tile from the normal tiles deck
         TileDecks updatedTileDecks = tileDecks.withTopTileDrawn(Tile.Kind.NORMAL);
@@ -253,12 +255,12 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
      * occupation is possible or with calling withTurnFinished on it otherwise
      */
     private GameState withTurnFinishedIfOccupationImpossible() {
-        if (this.lastTilePotentialOccupants().isEmpty()
-                || this.freeOccupantsCount(this.currentPlayer(), Occupant.Kind.PAWN) == 0) {
-            return this.withTurnFinished();
+        if (lastTilePotentialOccupants().isEmpty()
+                || freeOccupantsCount(currentPlayer(), Occupant.Kind.PAWN) <= 0) {
+            return withTurnFinished();
         }
         return new GameState(
-                players, tileDecks, null, this.board, Action.OCCUPY_TILE, messageBoard);
+                players, tileDecks, null, board, Action.OCCUPY_TILE, messageBoard);
     }
 
     /**
@@ -274,15 +276,15 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
      */
     private GameState withTurnFinished() {
         // Determine the forests closed by last placed tile
-        Set<Area<Zone.Forest>> closedForests = this.board.forestsClosedByLastTile();
+        Set<Area<Zone.Forest>> closedForests = board.forestsClosedByLastTile();
         // Determine the rivers closed by last placed tile
-        Set<Area<Zone.River>> closedRivers = this.board.riversClosedByLastTile();
+        Set<Area<Zone.River>> closedRivers = board.riversClosedByLastTile();
         // Updated message board
-        MessageBoard updatedMessageBoard = this.messageBoard;
+        MessageBoard updatedMessageBoard = messageBoard;
         // Updated list of players
-        List<PlayerColor> updatedPlayers = this.players;
+        List<PlayerColor> updatedPlayers = new LinkedList<>(players);
         // Updated board
-        Board updatedBoard = this.board;
+        Board updatedBoard = board;
         // Attribute points scored by each closed forests
         for (int i = 0; i < closedForests.size(); ++i) {
             updatedMessageBoard = updatedMessageBoard.withScoredForest(closedForests
