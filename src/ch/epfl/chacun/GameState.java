@@ -122,7 +122,7 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
             return freeOccupantsCount(currentPlayer(), occupant.kind()) <= 0
                     || (zone instanceof Zone.Forest forest && board.forestArea(forest).isOccupied())
                     || (zone instanceof Zone.River river
-                        && occupant.kind() == Occupant.Kind.PAWN && board.riverArea(river).isOccupied())
+                    && occupant.kind() == Occupant.Kind.PAWN && board.riverArea(river).isOccupied())
                     || (zone instanceof Zone.Meadow meadow && board.meadowArea(meadow).isOccupied())
                     || (zone instanceof Zone.Water water && board.riverSystemArea(water).isOccupied());
         });
@@ -277,6 +277,7 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
     private GameState withTurnFinished() {
         Set<Area<Zone.Forest>> closedForests = board.forestsClosedByLastTile();
         Set<Area<Zone.River>> closedRivers = board.riversClosedByLastTile();
+        Area<Zone.Forest> closedForestWithMenhir = null;
         // Updated game state data
         MessageBoard updatedMessageBoard = messageBoard;
         List<PlayerColor> updatedPlayers = new LinkedList<>(players);
@@ -284,6 +285,9 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
         // Attribute points scored by each closed forest
         for (Area<Zone.Forest> closedForest : closedForests) {
             updatedMessageBoard = updatedMessageBoard.withScoredForest(closedForest);
+            // Determine if there is a closed forest with a menhir
+            if (Area.hasMenhir(closedForest))
+                closedForestWithMenhir = closedForest;
         }
         // Attribute points scored by each closed river
         for (Area<Zone.River> closedRiver : closedRivers) {
@@ -292,7 +296,7 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
         // Remove the occupants from the closed forests and rivers
         updatedBoard = updatedBoard.withoutGatherersOrFishersIn(closedForests, closedRivers);
         // The player can play again if he closed a forest containing a menhir with a normal tile
-        boolean hasSecondTurn = closedForests.stream().anyMatch(Area::hasMenhir)
+        boolean hasSecondTurn = closedForestWithMenhir != null
                 && board.lastPlacedTile().kind() == Tile.Kind.NORMAL;
 
         // SECOND TURN CHECK
@@ -300,6 +304,8 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
                 tileDecks.withTopTileDrawnUntil(Tile.Kind.MENHIR, board::couldPlaceTile) : tileDecks;
         // Check if the player can place a menhir tile
         if (hasSecondTurn && updatedMenhirDeck.deckSize(Tile.Kind.MENHIR) > 0) {
+            updatedMessageBoard = updatedMessageBoard
+                    .withClosedForestWithMenhir(currentPlayer(), closedForestWithMenhir);
             return new GameState(updatedPlayers, updatedMenhirDeck.withTopTileDrawn(Tile.Kind.MENHIR),
                     updatedMenhirDeck.topTile(Tile.Kind.MENHIR),
                     updatedBoard, Action.PLACE_TILE, updatedMessageBoard);
@@ -315,7 +321,7 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
         }
         // Change current player
         Collections.rotate(updatedPlayers, -1);
-        // Return a new game state with updated parameters
+        // NEXT TURN
         return new GameState(updatedPlayers, updatedNormalDecks.withTopTileDrawn(Tile.Kind.NORMAL),
                 updatedNormalDecks.topTile(Tile.Kind.NORMAL),
                 updatedBoard, Action.PLACE_TILE, updatedMessageBoard);
