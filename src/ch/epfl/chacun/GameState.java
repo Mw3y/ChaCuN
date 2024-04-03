@@ -101,6 +101,7 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
      * @return the number of occupants of a given player that can still be placed
      */
     public int freeOccupantsCount(PlayerColor player, Occupant.Kind kind) {
+        System.out.println(Occupant.occupantsCount(kind) - board.occupantCount(player, kind));
         return Occupant.occupantsCount(kind) - board.occupantCount(player, kind);
     }
 
@@ -114,20 +115,18 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
         Preconditions.checkArgument(!board.equals(Board.EMPTY));
         PlacedTile lastPlacedTile = board.lastPlacedTile();
         assert lastPlacedTile != null;
-        if (freeOccupantsCount(currentPlayer(), Occupant.Kind.PAWN) > 0
-                && freeOccupantsCount(currentPlayer(), Occupant.Kind.HUT) > 0) {
-            // Calculate the potential occupants of the last placed tile
-            Set<Occupant> potentialOccupants = lastPlacedTile.potentialOccupants();
-            potentialOccupants.removeIf(occupant -> {
-                Zone zone = lastPlacedTile.zoneWithId(occupant.zoneId());
-                return zone instanceof Zone.Forest forest && board.forestArea(forest).isOccupied()
-                        || zone instanceof Zone.River river && board.riverArea(river).isOccupied()
-                        || zone instanceof Zone.Meadow meadow && board.meadowArea(meadow).isOccupied()
-                        || zone instanceof Zone.Lake lake && board.riverSystemArea(lake).isOccupied();
-            });
-            return potentialOccupants;
-        }
-        return Set.of();
+        // Calculate the potential occupants of the last placed tile
+        Set<Occupant> potentialOccupants = lastPlacedTile.potentialOccupants();
+        potentialOccupants.removeIf(occupant -> {
+            Zone zone = lastPlacedTile.zoneWithId(occupant.zoneId());
+            return freeOccupantsCount(currentPlayer(), occupant.kind()) <= 0
+                    || (zone instanceof Zone.Forest forest && board.forestArea(forest).isOccupied())
+                    || (zone instanceof Zone.River river
+                        && occupant.kind() == Occupant.Kind.PAWN && board.riverArea(river).isOccupied())
+                    || (zone instanceof Zone.Meadow meadow && board.meadowArea(meadow).isOccupied())
+                    || (zone instanceof Zone.Water water && board.riverSystemArea(water).isOccupied());
+        });
+        return potentialOccupants;
     }
 
     /**
@@ -165,11 +164,11 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
     public GameState withPlacedTile(PlacedTile placedTile) {
         Preconditions.checkArgument(nextAction == Action.PLACE_TILE);
         Preconditions.checkArgument(placedTile.occupant() == null);
+
+        Board boardWithTile = board.withNewTile(placedTile);
         // Compute the next game state by default
-        TileDecks updatedDeck = tileDecks.withTopTileDrawn(Tile.Kind.NORMAL);
-        Tile nextTileToPlace = tileDecks.topTile(Tile.Kind.NORMAL);
-        GameState normalNextGameState = new GameState(players, updatedDeck, nextTileToPlace,
-                board.withNewTile(placedTile), Action.PLACE_TILE, messageBoard)
+        GameState normalNextGameState = new GameState(players, tileDecks, null,
+                boardWithTile, Action.OCCUPY_TILE, messageBoard)
                 .withTurnFinishedIfOccupationImpossible();
 
         // Handle the MENHIR tiles special traits
@@ -179,7 +178,7 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
              */
             case SHAMAN_TILE_ID -> {
                 if (board.occupantCount(currentPlayer(), Occupant.Kind.PAWN) >= 1)
-                    yield new GameState(players, tileDecks, null, board, Action.RETAKE_PAWN, messageBoard);
+                    yield new GameState(players, tileDecks, null, boardWithTile, Action.RETAKE_PAWN, messageBoard);
                 yield normalNextGameState;
             }
             /*
@@ -187,25 +186,25 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
               to the animals present in the adjacent meadow.
              */
             case HUNTING_TRAP_TILE_ID -> {
-                Area<Zone.Meadow> adjacentMeadows = board.adjacentMeadow(placedTile.pos(),
+                Area<Zone.Meadow> adjacentMeadows = boardWithTile.adjacentMeadow(placedTile.pos(),
                         (Zone.Meadow) placedTile.specialPowerZone());
                 // Determine the animals to cancel in the adjacent meadows
                 Set<Animal> cancelledAnimals = determineCancelledAnimals(adjacentMeadows, 0);
-                Board updatedBoard = board.withMoreCancelledAnimals(cancelledAnimals);
+                Board updatedBoard = boardWithTile.withMoreCancelledAnimals(cancelledAnimals);
                 MessageBoard updatedMessageBoard = messageBoard
                         .withScoredHuntingTrap(currentPlayer(), adjacentMeadows);
-                yield new GameState(players, updatedDeck, nextTileToPlace, updatedBoard,
-                        Action.PLACE_TILE, updatedMessageBoard).withTurnFinishedIfOccupationImpossible();
+                yield new GameState(players, tileDecks, null, updatedBoard,
+                        Action.OCCUPY_TILE, updatedMessageBoard).withTurnFinishedIfOccupationImpossible();
             }
             /*
               The logboat tile allows the player to obtain points that depend on the number
               of lakes in the hydrographic network containing it.
              */
             case LOGBOAT_TILE_ID -> {
-                Area<Zone.Water> area = board.riverSystemArea((Zone.Water) placedTile.specialPowerZone());
+                Area<Zone.Water> area = boardWithTile.riverSystemArea((Zone.Water) placedTile.specialPowerZone());
                 MessageBoard updatedMessageBoard = messageBoard.withScoredLogboat(currentPlayer(), area);
-                yield new GameState(players, updatedDeck, nextTileToPlace, board,
-                        Action.PLACE_TILE, updatedMessageBoard).withTurnFinishedIfOccupationImpossible();
+                yield new GameState(players, tileDecks, null, board,
+                        Action.OCCUPY_TILE, updatedMessageBoard).withTurnFinishedIfOccupationImpossible();
             }
             /*
               Default next game state
@@ -230,7 +229,7 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
         Preconditions.checkArgument(occupant == null || occupant.kind() == Occupant.Kind.PAWN);
         Board updatedBoard = occupant == null ? board : board.withoutOccupant(occupant);
         return new GameState(players, tileDecks, null,
-                updatedBoard, nextAction, messageBoard).withTurnFinished();
+                updatedBoard, nextAction, messageBoard).withTurnFinishedIfOccupationImpossible();
     }
 
     /**
@@ -259,10 +258,8 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
      * occupation is possible or with calling withTurnFinished on it otherwise
      */
     private GameState withTurnFinishedIfOccupationImpossible() {
-        if (lastTilePotentialOccupants().isEmpty()
-                || freeOccupantsCount(currentPlayer(), Occupant.Kind.PAWN) <= 0) {
+        if (lastTilePotentialOccupants().isEmpty())
             return withTurnFinished();
-        }
         return new GameState(players, tileDecks, null, board, Action.OCCUPY_TILE, messageBoard);
     }
 
@@ -298,24 +295,30 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
         boolean hasSecondTurn = closedForests.stream().anyMatch(Area::hasMenhir)
                 && board.lastPlacedTile().kind() == Tile.Kind.NORMAL;
 
+        // SECOND TURN CHECK
+        TileDecks updatedMenhirDeck = hasSecondTurn ?
+                tileDecks.withTopTileDrawnUntil(Tile.Kind.MENHIR, board::couldPlaceTile) : tileDecks;
         // Check if the player can place a menhir tile
-        TileDecks updatedMenhirDeck = tileDecks.withTopTileDrawnUntil(Tile.Kind.MENHIR, board::couldPlaceTile);
-        if (hasSecondTurn && tileDecks.deckSize(Tile.Kind.MENHIR) > 0) {
-            return new GameState(updatedPlayers, updatedMenhirDeck, updatedMenhirDeck.topTile(Tile.Kind.MENHIR),
+        if (hasSecondTurn && updatedMenhirDeck.deckSize(Tile.Kind.MENHIR) > 0) {
+            return new GameState(updatedPlayers, updatedMenhirDeck.withTopTileDrawn(Tile.Kind.MENHIR),
+                    updatedMenhirDeck.topTile(Tile.Kind.MENHIR),
                     updatedBoard, Action.PLACE_TILE, updatedMessageBoard);
         }
 
-        // Check if the next player can place a tile
-        TileDecks updatedNormalDecks = tileDecks.withTopTileDrawnUntil(Tile.Kind.NORMAL, board::couldPlaceTile);
-        if (updatedNormalDecks.deckSize(Tile.Kind.NORMAL) <= 0) {
-            return new GameState(updatedPlayers, tileDecks,
+        // END GAME CHECK
+        TileDecks updatedNormalDecks =
+                updatedMenhirDeck.withTopTileDrawnUntil(Tile.Kind.NORMAL, board::couldPlaceTile);
+        // Check if the player can place a normal tile
+        if (updatedNormalDecks.deckSize(Tile.Kind.NORMAL) == 0) {
+            return new GameState(updatedPlayers, updatedNormalDecks,
                     null, updatedBoard, Action.END_GAME, updatedMessageBoard).withFinalPointsCounted();
         }
-
+        // Change current player
         Collections.rotate(updatedPlayers, -1);
         // Return a new game state with updated parameters
-        return new GameState(updatedPlayers, updatedNormalDecks,
-                updatedNormalDecks.topTile(Tile.Kind.NORMAL), updatedBoard, Action.PLACE_TILE, updatedMessageBoard);
+        return new GameState(updatedPlayers, updatedNormalDecks.withTopTileDrawn(Tile.Kind.NORMAL),
+                updatedNormalDecks.topTile(Tile.Kind.NORMAL),
+                updatedBoard, Action.PLACE_TILE, updatedMessageBoard);
     }
 
     /**
