@@ -101,7 +101,6 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
      * @return the number of occupants of a given player that can still be placed
      */
     public int freeOccupantsCount(PlayerColor player, Occupant.Kind kind) {
-        System.out.println(Occupant.occupantsCount(kind) - board.occupantCount(player, kind));
         return Occupant.occupantsCount(kind) - board.occupantCount(player, kind);
     }
 
@@ -122,7 +121,7 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
             return freeOccupantsCount(currentPlayer(), occupant.kind()) <= 0
                     || (zone instanceof Zone.Forest forest && board.forestArea(forest).isOccupied())
                     || (zone instanceof Zone.River river
-                    && occupant.kind() == Occupant.Kind.PAWN && board.riverArea(river).isOccupied())
+                        && occupant.kind() == Occupant.Kind.PAWN && board.riverArea(river).isOccupied())
                     || (zone instanceof Zone.Meadow meadow && board.meadowArea(meadow).isOccupied())
                     || (zone instanceof Zone.Water water && board.riverSystemArea(water).isOccupied());
         });
@@ -203,7 +202,7 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
             case LOGBOAT_TILE_ID -> {
                 Area<Zone.Water> area = boardWithTile.riverSystemArea((Zone.Water) placedTile.specialPowerZone());
                 MessageBoard updatedMessageBoard = messageBoard.withScoredLogboat(currentPlayer(), area);
-                yield new GameState(players, tileDecks, null, board,
+                yield new GameState(players, tileDecks, null, boardWithTile,
                         Action.OCCUPY_TILE, updatedMessageBoard).withTurnFinishedIfOccupationImpossible();
             }
             /*
@@ -367,7 +366,7 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
         // The map of the players and their points
         Map<PlayerColor, Integer> points = updatedMessageBoard.points();
         // The maximum amount of points scored by one or more players
-        int maxPoints = Collections.max(points.values());
+        int maxPoints = !points.values().isEmpty() ? Collections.max(points.values()) : 0;
         // Iterate over the map entries to find the winner players
         for (Map.Entry<PlayerColor, Integer> entry : points.entrySet()) {
             if (Objects.equals(maxPoints, entry.getValue())) {
