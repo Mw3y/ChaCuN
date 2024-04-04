@@ -18,7 +18,6 @@ import java.util.stream.Collectors;
 public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile tileToPlace, Board board,
                         Action nextAction, MessageBoard messageBoard) {
 
-
     /**
      * The id of the tile containing the shaman
      */
@@ -118,12 +117,16 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
         Set<Occupant> potentialOccupants = lastPlacedTile.potentialOccupants();
         potentialOccupants.removeIf(occupant -> {
             Zone zone = lastPlacedTile.zoneWithId(occupant.zoneId());
-            return freeOccupantsCount(currentPlayer(), occupant.kind()) <= 0
-                    || (zone instanceof Zone.Forest forest && board.forestArea(forest).isOccupied())
-                    || (zone instanceof Zone.River river
-                        && occupant.kind() == Occupant.Kind.PAWN && board.riverArea(river).isOccupied())
-                    || (zone instanceof Zone.Meadow meadow && board.meadowArea(meadow).isOccupied())
-                    || (zone instanceof Zone.Water water && board.riverSystemArea(water).isOccupied());
+            // If the player has no more occupants of the given kind, any occupant should be removed
+            if (freeOccupantsCount(currentPlayer(), occupant.kind()) <= 0)
+                return true;
+            // Prevent the player from placing a pawn on a zone within an occupied area
+            return switch (zone) {
+                case Zone.Forest forest -> board.forestArea(forest).isOccupied();
+                case Zone.River river when occupant.kind() == Occupant.Kind.PAWN -> board.riverArea(river).isOccupied();
+                case Zone.Meadow meadow -> board.meadowArea(meadow).isOccupied();
+                case Zone.Water water -> board.riverSystemArea(water).isOccupied();
+            };
         });
         return potentialOccupants;
     }
@@ -301,6 +304,7 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
         // SECOND TURN CHECK
         TileDecks updatedMenhirDeck = hasSecondTurn ?
                 tileDecks.withTopTileDrawnUntil(Tile.Kind.MENHIR, board::couldPlaceTile) : tileDecks;
+
         // Check if the player can place a menhir tile
         if (hasSecondTurn && updatedMenhirDeck.deckSize(Tile.Kind.MENHIR) > 0) {
             updatedMessageBoard = updatedMessageBoard
