@@ -355,15 +355,19 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
                         .withMoreCancelledAnimals(computeCancelledAnimals(meadow, 0));
                 // Check if the meadow contains a pit trap
                 if (meadow.tileIds().contains(PIT_TRAP_TILE_ID)) {
-                    Area<Zone.Meadow> adjacentMeadow = updatedBoard
-                            .adjacentMeadow(updatedBoard.tileWithId(PIT_TRAP_TILE_ID).pos(),
-                                    (Zone.Meadow) meadow.zoneWithSpecialPower(Zone.SpecialPower.PIT_TRAP));
+
                     // Change the cancelled animals to optimize the points scored by the pit trap
                     updatedBoard = updatedBoard
                             .withMoreCancelledAnimals(computeCancelledAnimalsWithPitTrap(meadow, updatedBoard));
-                    updatedMessageBoard = updatedMessageBoard
-                            .withScoredPitTrap(adjacentMeadow, updatedBoard.cancelledAnimals());
+
                 }
+            }
+            if (meadow.tileIds().contains(PIT_TRAP_TILE_ID)) {
+                Area<Zone.Meadow> adjacentMeadow = updatedBoard
+                        .adjacentMeadow(updatedBoard.tileWithId(PIT_TRAP_TILE_ID).pos(),
+                                (Zone.Meadow) meadow.zoneWithSpecialPower(Zone.SpecialPower.PIT_TRAP));
+                updatedMessageBoard = updatedMessageBoard
+                        .withScoredPitTrap(adjacentMeadow, updatedBoard.cancelledAnimals());
             }
             updatedMessageBoard = updatedMessageBoard.withScoredMeadow(meadow, updatedBoard.cancelledAnimals());
         }
