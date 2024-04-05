@@ -190,9 +190,12 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
             case HUNTING_TRAP_TILE_ID -> {
                 Area<Zone.Meadow> adjacentMeadows = boardWithTile.adjacentMeadow(placedTile.pos(),
                         (Zone.Meadow) placedTile.specialPowerZone());
-                // Determine the animals to cancel in the adjacent meadows
+                // TODO: will be of use in the future
+                // Determine the deer to cancel in the adjacent meadows
                 Set<Animal> cancelledAnimals = computeCancelledAnimals(adjacentMeadows, 0);
-                Board updatedBoard = boardWithTile.withMoreCancelledAnimals(cancelledAnimals);
+                Board updatedBoard = boardWithTile
+                        .withMoreCancelledAnimals(cancelledAnimals)
+                        .withMoreCancelledAnimals(Area.animals(adjacentMeadows, Set.of()));
                 MessageBoard updatedMessageBoard = messageBoard
                         .withScoredHuntingTrap(currentPlayer(), adjacentMeadows);
                 yield new GameState(players, tileDecks, null, updatedBoard,
@@ -348,15 +351,21 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
             // Check that the meadow does not contain a wildfire
             if (!meadow.tileIds().contains(WILD_FIRE_TILE_ID)) {
                 // Determine the cancelled animals of the meadow
-                Set<Animal> cancelledAnimals = computeCancelledAnimals(meadow, 0);
+                updatedBoard = updatedBoard
+                        .withMoreCancelledAnimals(computeCancelledAnimals(meadow, 0));
                 // Check if the meadow contains a pit trap
                 if (meadow.tileIds().contains(PIT_TRAP_TILE_ID)) {
+                    Area<Zone.Meadow> adjacentMeadow = updatedBoard
+                            .adjacentMeadow(updatedBoard.tileWithId(PIT_TRAP_TILE_ID).pos(),
+                                    (Zone.Meadow) meadow.zoneWithSpecialPower(Zone.SpecialPower.PIT_TRAP));
                     // Change the cancelled animals to optimize the points scored by the pit trap
-                    cancelledAnimals = computeCancelledAnimalsWithPitTrap(meadow, board);
+                    updatedBoard = updatedBoard
+                            .withMoreCancelledAnimals(computeCancelledAnimalsWithPitTrap(meadow, updatedBoard));
+                    updatedMessageBoard = updatedMessageBoard
+                            .withScoredPitTrap(adjacentMeadow, updatedBoard.cancelledAnimals());
                 }
-                updatedMessageBoard = updatedMessageBoard.withScoredMeadow(meadow, cancelledAnimals);
-                updatedBoard = updatedBoard.withMoreCancelledAnimals(cancelledAnimals);
             }
+            updatedMessageBoard = updatedMessageBoard.withScoredMeadow(meadow, updatedBoard.cancelledAnimals());
         }
         // Iterate over all the river system areas
         for (Area<Zone.Water> riverSystem : board.riverSystemAreas()) {
@@ -370,16 +379,13 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
         // The map of the players and their points
         Map<PlayerColor, Integer> points = updatedMessageBoard.points();
         // The maximum amount of points scored by one or more players
-        int maxPoints = !points.values().isEmpty() ? Collections.max(points.values()) : 0;
+        int maxPoints = !points.isEmpty() ? Collections.max(points.values()) : 0;
         // Iterate over the map entries to find the winner players
-        for (Map.Entry<PlayerColor, Integer> entry : points.entrySet()) {
-            if (Objects.equals(maxPoints, entry.getValue())) {
-                winners.add(entry.getKey());
-            }
-        }
+        points.entrySet().stream().filter(entry -> entry.getValue().equals(maxPoints))
+                .forEach(entry -> winners.add(entry.getKey()));
         updatedMessageBoard = updatedMessageBoard.withWinners(winners, maxPoints);
         // Return a new game state with updated data
-        return new GameState(this.players, this.tileDecks, this.tileToPlace, updatedBoard,
+        return new GameState(players, tileDecks, this.tileToPlace, updatedBoard,
                 Action.END_GAME, updatedMessageBoard);
     }
 
