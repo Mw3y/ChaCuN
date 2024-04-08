@@ -405,7 +405,7 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
         Set<Animal> deer = getAnimalsOfKind(animals, Animal.Kind.DEER);
         Set<Animal> tigers = getAnimalsOfKind(animals, Animal.Kind.TIGER);
         // If the specified number of tigers is 0, take the number of tigers of the given meadow area
-        specifiedTigerNb = specifiedTigerNb >= 0 ? specifiedTigerNb : tigers.size();
+        specifiedTigerNb = specifiedTigerNb > 0 ? specifiedTigerNb : tigers.size();
         // Compute the number of deer to cancel
         int cancelledDeerNb = Math.min(specifiedTigerNb, deer.size());
         Set<Animal> cancelledAnimals = new HashSet<>(cancelledDeerNb);
