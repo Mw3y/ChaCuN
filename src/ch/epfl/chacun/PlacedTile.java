@@ -3,7 +3,6 @@ package ch.epfl.chacun;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Represents a tile that has been placed on the board.
@@ -89,8 +88,8 @@ public record PlacedTile(Tile tile, PlayerColor placer, Rotation rotation, Pos p
      * @throws IllegalArgumentException if the tile has no area with this id
      */
     public Zone zoneWithId(int id) {
-        return tile.zones().stream().filter(z -> z.id() == id).findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Unknown zone id: " + id));
+        return tile.zones().stream().filter(z -> z.id() == id)
+                .findFirst().orElseThrow(() -> new IllegalArgumentException("Unknown zone id: " + id));
     }
 
     /**
@@ -99,7 +98,8 @@ public record PlacedTile(Tile tile, PlayerColor placer, Rotation rotation, Pos p
      * @return the special power zone of the placed tile or null if there is none
      */
     public Zone specialPowerZone() {
-        return tile.zones().stream().filter(z -> z.specialPower() != null).findFirst().orElse(null);
+        return tile.zones().stream().filter(z -> z.specialPower() != null)
+                .findFirst().orElse(null);
     }
 
     /**
@@ -156,13 +156,11 @@ public record PlacedTile(Tile tile, PlayerColor placer, Rotation rotation, Pos p
         if (placer != null) {
             for (Zone zone : tile.zones()) {
                 // A pawn can only be placed on a meadow, a forest or a river
-                if (!(zone instanceof Zone.Lake)) {
+                if (!(zone instanceof Zone.Lake))
                     potentialOccupants.add(new Occupant(Occupant.Kind.PAWN, zone.id()));
-                }
                 // A hut can only be placed on a lake or on a river if there's no lake
-                if (zone instanceof Zone.Lake || (zone instanceof Zone.River river && !river.hasLake())) {
+                if (zone instanceof Zone.Lake || (zone instanceof Zone.River river && !river.hasLake()))
                     potentialOccupants.add(new Occupant(Occupant.Kind.HUT, zone.id()));
-                }
             }
         }
         return potentialOccupants;
@@ -197,9 +195,8 @@ public record PlacedTile(Tile tile, PlayerColor placer, Rotation rotation, Pos p
      * @return the id of the zone occupied by the given kind of occupant, or -1 if there is none
      */
     public int idOfZoneOccupiedBy(Occupant.Kind occupantKind) {
-        if (occupant != null && occupant.kind() == occupantKind) {
+        if (occupant != null && occupant.kind() == occupantKind)
             return occupant.zoneId();
-        }
         return -1;
     }
 
