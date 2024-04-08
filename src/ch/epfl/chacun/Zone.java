@@ -19,7 +19,7 @@ public sealed interface Zone {
     static int tileId(int zoneId) {
         // Since a zoneId is obtained using zoneId = 10 * tileId + localId and localId is between 0 and 9
         // We can use integer division to obtain the tileId
-        return (int) (zoneId / 10);
+        return zoneId / 10;
     }
 
     /**
@@ -71,7 +71,7 @@ public sealed interface Zone {
      * Represents the different special powers.
      */
     enum SpecialPower {
-        SHAMAN, LOGBOAT, HUNTING_TRAP, PIT_TRAP, WILD_FIRE, RAFT;
+        SHAMAN, LOGBOAT, HUNTING_TRAP, PIT_TRAP, WILD_FIRE, RAFT
     }
 
     /**

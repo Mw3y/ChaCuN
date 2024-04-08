@@ -16,20 +16,33 @@ import java.util.Set;
 public record ZonePartitions(ZonePartition<Zone.Forest> forests, ZonePartition<Zone.Meadow> meadows,
                              ZonePartition<Zone.River> rivers, ZonePartition<Zone.Water> riverSystems) {
 
-    // Represent a group of four empty partitions
+    /**
+     * Represent a group of four empty partitions
+     */
     public final static ZonePartitions EMPTY = new ZonePartitions(new ZonePartition<>(), new ZonePartition<>(), new ZonePartition<>(), new ZonePartition<>());
 
     /**
      * Represents the builder of zone partitions.
      */
     public static final class Builder {
-        // The builder of the forests partition
+        /**
+         * The builder of the forests partition
+         */
         private final ZonePartition.Builder<Zone.Forest> forests;
-        // The builder of the meadows partition
+
+        /**
+         * The builder of the meadows partition
+         */
         private final ZonePartition.Builder<Zone.Meadow> meadows;
-        // The builder of the rivers partition
+
+        /**
+         * The builder of the rivers partition
+         */
         private final ZonePartition.Builder<Zone.River> rivers;
-        // The builder of the river systems partition
+
+        /**
+         * The builder of the river systems partition
+         */
         private final ZonePartition.Builder<Zone.Water> riverSystems;
 
         /**
@@ -103,12 +116,10 @@ public record ZonePartitions(ZonePartition<Zone.Forest> forests, ZonePartition<Z
          */
         public void connectSides(TileSide s1, TileSide s2) {
             switch (s1) {
-                case TileSide.Meadow(Zone.Meadow m1) when s2 instanceof TileSide.Meadow(Zone.Meadow m2) -> {
-                    meadows.union(m1, m2);
-                }
-                case TileSide.Forest(Zone.Forest f1) when s2 instanceof TileSide.Forest(Zone.Forest f2) -> {
-                    forests.union(f1, f2);
-                }
+                case TileSide.Meadow(Zone.Meadow m1) when s2 instanceof TileSide.Meadow(Zone.Meadow m2) ->
+                        meadows.union(m1, m2);
+                case TileSide.Forest(Zone.Forest f1) when s2 instanceof TileSide.Forest(Zone.Forest f2) ->
+                        forests.union(f1, f2);
                 case TileSide.River(
                         Zone.Meadow m3, Zone.River r1, Zone.Meadow m4
                 ) when s2 instanceof TileSide.River(Zone.Meadow m5, Zone.River r2, Zone.Meadow m6) -> {

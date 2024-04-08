@@ -67,10 +67,7 @@ public record TileDecks(List<Tile> startTiles, List<Tile> normalTiles, List<Tile
      * @throws IllegalArgumentException if the receiver deck of the given tile kind is empty
      */
     public TileDecks withTopTileDrawn(Tile.Kind kind) {
-        if (deckSize(kind) <= 0) {
-            throw new IllegalArgumentException("The deck of the given tile kind is empty");
-        }
-
+        Preconditions.checkArgument(deckSize(kind) > 0);
         return switch (kind) {
             case START -> new TileDecks(removeDeckFirstTile(startTiles), normalTiles, menhirTiles);
             case NORMAL -> new TileDecks(startTiles, removeDeckFirstTile(normalTiles), menhirTiles);

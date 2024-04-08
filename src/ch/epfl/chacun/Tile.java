@@ -50,10 +50,8 @@ public record Tile(int id, Kind kind, TileSide n, TileSide e, TileSide s, TileSi
         Set<Zone> sideZones = sideZones();
         Set<Zone> zones = new HashSet<>(sideZones);
         for (Zone zone : sideZones) {
-            if (zone instanceof Zone.River river) {
-                if (river.hasLake())
-                    zones.add(river.lake());
-            }
+            if (zone instanceof Zone.River river && river.hasLake())
+                zones.add(river.lake());
         }
         return zones;
     }
@@ -64,6 +62,6 @@ public record Tile(int id, Kind kind, TileSide n, TileSide e, TileSide s, TileSi
     public enum Kind {
         START,
         NORMAL,
-        MENHIR;
+        MENHIR
     }
 }

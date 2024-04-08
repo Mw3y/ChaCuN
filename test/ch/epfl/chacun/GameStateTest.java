@@ -3,948 +3,1016 @@ package ch.epfl.chacun;
 import org.junit.jupiter.api.Test;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static ch.epfl.chacun.GameState.Action;
+import static ch.epfl.chacun.GameState.initial;
 import static org.junit.jupiter.api.Assertions.*;
 
-class BoardTest {
+class GameStateTest {
     @Test
-    void boardTileAtReturnsNullForPositionsOutsideOfBoard() {
+    void gameStateConstructorThrowsWhenDecksBoardNextActionOrMessageBoardAreNull() {
+        var players = List.of(PlayerColor.RED, PlayerColor.BLUE);
+        var tileDecks = shuffledTileDecks();
+        var tileToPlace = allTiles().get(1);
         var board = Board.EMPTY;
-        assertNull(board.tileAt(new Pos(-100, -100)));
+        var nextAction = Action.START_GAME;
+        var messageBoard = new MessageBoard(new BasicTextMaker(), List.of());
+
+        assertThrows(RuntimeException.class, () -> {
+            new GameState(players, null, tileToPlace, board, nextAction, messageBoard);
+        });
+        assertThrows(RuntimeException.class, () -> {
+            new GameState(players, tileDecks, tileToPlace, null, nextAction, messageBoard);
+        });
+        assertThrows(RuntimeException.class, () -> {
+            new GameState(players, tileDecks, tileToPlace, board, null, messageBoard);
+        });
+        assertThrows(RuntimeException.class, () -> {
+            new GameState(players, tileDecks, tileToPlace, board, nextAction, null);
+        });
     }
 
     @Test
-    void boardTileAtWorksWithStartingTile() {
-        var allTiles = allTiles();
-        var t56 = new PlacedTile(allTiles.get(56), null, Rotation.NONE, new Pos(0, 0));
-        var board = Board.EMPTY.withNewTile(t56);
-        for (int x = -12; x <= 12; x += 1) {
-            for (int y = -12; y <= 12; y += 1) {
-                if (x == 0 && y == 0) {
-                    assertEquals(t56, board.tileAt(new Pos(x, y)));
-                } else {
-                    assertNull(board.tileAt(new Pos(x, y)));
-                }
-            }
-        }
+    void gameStateConstructorThrowsWithTooFewPlayers() {
+        var tileDecks = shuffledTileDecks();
+        var tileToPlace = allTiles().get(1);
+        var board = Board.EMPTY;
+        var nextAction = Action.START_GAME;
+        var messageBoard = new MessageBoard(new BasicTextMaker(), List.of());
+
+        assertThrows(RuntimeException.class, () -> {
+            new GameState(List.of(), tileDecks, tileToPlace, board, nextAction, messageBoard);
+        });
+        assertThrows(RuntimeException.class, () -> {
+            new GameState(List.of(PlayerColor.RED), tileDecks, tileToPlace, board, nextAction, messageBoard);
+        });
     }
 
     @Test
-    void boardTileWithIdWorksWithTilesOnBoard() {
-        var allTiles = allTiles();
-        var t56 = new PlacedTile(allTiles.get(56), null, Rotation.NONE, new Pos(0, 0));
-        var t17 = new PlacedTile(allTiles.get(17), PlayerColor.RED, Rotation.NONE, new Pos(-1, 0));
-        var t27 = new PlacedTile(allTiles.get(27), PlayerColor.RED, Rotation.NONE, new Pos(1, 0));
+    void gameStateIsImmutable() {
+        var players = List.of(PlayerColor.RED, PlayerColor.BLUE, PlayerColor.YELLOW, PlayerColor.PURPLE);
+        var tileDecks = shuffledTileDecks();
+        var board = Board.EMPTY;
+        var nextAction = Action.START_GAME;
+        var messageBoard = new MessageBoard(new BasicTextMaker(), List.of());
 
-        var board = Board.EMPTY
-                .withNewTile(t56)
-                .withNewTile(t17)
-                .withNewTile(t27);
+        var mutablePlayers = new ArrayList<>(players);
+        var gameState = new GameState(mutablePlayers, tileDecks, null, board, nextAction, messageBoard);
 
-        assertEquals(t56, board.tileWithId(56));
-        assertEquals(t17, board.tileWithId(17));
-        assertEquals(t27, board.tileWithId(27));
-    }
-
-    @Test
-    void boardTileWithIdThrowsWithUnplacedTile() {
-        var allTiles = allTiles();
-        var t56 = new PlacedTile(allTiles.get(56), null, Rotation.NONE, new Pos(0, 0));
-        var t17 = new PlacedTile(allTiles.get(17), PlayerColor.RED, Rotation.NONE, new Pos(-1, 0));
-        var t27 = new PlacedTile(allTiles.get(27), PlayerColor.RED, Rotation.NONE, new Pos(1, 0));
-
-        var board = Board.EMPTY
-                .withNewTile(t56)
-                .withNewTile(t17)
-                .withNewTile(t27);
-
-        for (int i = 0; i < 95; i += 1) {
-            if (i == 17 || i == 27 || i == 56) continue;
-            var tileId = i;
-            assertThrows(IllegalArgumentException.class, () -> board.tileWithId(tileId));
-        }
-    }
-
-    @Test
-    void boardCancelledAnimalsIsImmutable() {
-        var allTiles = allTiles();
-        var t56 = new PlacedTile(allTiles.get(56), null, Rotation.NONE, new Pos(0, 0));
-        var t17 = new PlacedTile(allTiles.get(17), PlayerColor.RED, Rotation.NONE, new Pos(-1, 0));
-        var t27 = new PlacedTile(allTiles.get(27), PlayerColor.RED, Rotation.NONE, new Pos(1, 0));
-
-        var cancelledAnimals = Set.of(
-                new Animal(56_0_0, Animal.Kind.AUROCHS),
-                new Animal(17_2_0, Animal.Kind.DEER),
-                new Animal(17_4_0, Animal.Kind.TIGER));
-        var mutableCancelledAnimals = new HashSet<>(cancelledAnimals);
-
-        var board = Board.EMPTY
-                .withNewTile(t56)
-                .withNewTile(t17)
-                .withNewTile(t27)
-                .withMoreCancelledAnimals(mutableCancelledAnimals);
-
-        mutableCancelledAnimals.clear();
-        assertEquals(cancelledAnimals, board.cancelledAnimals());
+        mutablePlayers.clear();
+        assertEquals(players, gameState.players());
 
         try {
-            board.cancelledAnimals().clear();
+            gameState.players().clear();
         } catch (UnsupportedOperationException e) {
-            // nothing to do
+            // expected
         }
-        assertEquals(cancelledAnimals, board.cancelledAnimals());
+        assertEquals(players, gameState.players());
     }
 
     @Test
-    void boardOccupantsWorksOnSmallExample() {
-        var allTiles = allTiles();
-        var t56 = new PlacedTile(allTiles.get(56), null, Rotation.NONE, new Pos(0, 0));
-        var t17 = new PlacedTile(allTiles.get(17), PlayerColor.RED, Rotation.NONE, new Pos(-1, 0));
-        var t27 = new PlacedTile(allTiles.get(27), PlayerColor.RED, Rotation.NONE, new Pos(1, 0));
-
-        var occupant17 = new Occupant(Occupant.Kind.PAWN, 17_0);
-        var occupant27 = new Occupant(Occupant.Kind.HUT, 27_1);
-
-        var board = Board.EMPTY
-                .withNewTile(t56)
-                .withNewTile(t17)
-                .withOccupant(occupant17)
-                .withNewTile(t27)
-                .withOccupant(occupant27);
-
-        assertEquals(Set.of(occupant17, occupant27), board.occupants());
+    void gameStateInitialProducesCorrectState() {
+        var players = List.of(PlayerColor.values());
+        var tileDecks = shuffledTileDecks();
+        var textMaker = new BasicTextMaker();
+        for (int i = 2; i <= players.size(); i += 1) {
+            var subPlayers = players.subList(0, i);
+            var state = initial(subPlayers, tileDecks, textMaker);
+            assertEquals(subPlayers, state.players());
+            assertEquals(tileDecks, state.tileDecks());
+            assertNull(state.tileToPlace());
+            assertEquals(Board.EMPTY, state.board());
+            assertEquals(Action.START_GAME, state.nextAction());
+            assertEquals(textMaker, state.messageBoard().textMaker());
+            assertTrue(state.messageBoard().messages().isEmpty());
+        }
     }
 
     @Test
-    void boardForestAreaWorksOnSmallExample() {
-        var allTiles = allTiles();
-        var t56 = new PlacedTile(allTiles.get(56), null, Rotation.NONE, new Pos(0, 0));
-        var t17 = new PlacedTile(allTiles.get(17), PlayerColor.RED, Rotation.NONE, new Pos(-1, 0));
-        var t27 = new PlacedTile(allTiles.get(27), PlayerColor.RED, Rotation.NONE, new Pos(1, 0));
-
-        var board = Board.EMPTY
-                .withNewTile(t56)
-                .withNewTile(t17)
-                .withNewTile(t27);
-
-        var allForests = Stream.of(t17, t27, t56)
-                .flatMap(t -> t.forestZones().stream())
-                .collect(Collectors.toSet());
-
-        var forest56 = t56.forestZones().iterator().next();
-        assertEquals(new Area<>(allForests, List.of(), 1), board.forestArea(forest56));
-    }
-
-    @Test
-    void boardMeadowAreaWorksOnSmallExample() {
-        var allTiles = allTiles();
-        var t56 = new PlacedTile(allTiles.get(56), null, Rotation.NONE, new Pos(0, 0));
-        var t17 = new PlacedTile(allTiles.get(17), PlayerColor.RED, Rotation.NONE, new Pos(-1, 0));
-        var t27 = new PlacedTile(allTiles.get(27), PlayerColor.RED, Rotation.NONE, new Pos(1, 0));
-
-        var board = Board.EMPTY
-                .withNewTile(t56)
-                .withNewTile(t17)
-                .withNewTile(t27);
-
-        var aurochsZone = (Zone.Meadow) t56.zoneWithId(56_0);
-        var aurochAndDeerMeadows = Set.of(
-                aurochsZone,
-                (Zone.Meadow) t17.zoneWithId(17_2));
-
-        var emptyStartingZone = (Zone.Meadow) t56.zoneWithId(56_2);
-        var emptyMeadows = Set.of(
-                emptyStartingZone,
-                (Zone.Meadow) t17.zoneWithId(17_0));
-
-        var area1 = new Area<>(aurochAndDeerMeadows, List.of(), 2);
-        var area2 = new Area<>(emptyMeadows, List.of(), 3);
-
-        assertEquals(area1, board.meadowArea(aurochsZone));
-        assertEquals(area2, board.meadowArea(emptyStartingZone));
-    }
-
-    @Test
-    void boardRiverAreaWorksOnSmallExample() {
-        var allTiles = allTiles();
-        var t56 = new PlacedTile(allTiles.get(56), null, Rotation.NONE, new Pos(0, 0));
-        var t17 = new PlacedTile(allTiles.get(17), PlayerColor.RED, Rotation.NONE, new Pos(-1, 0));
-        var t27 = new PlacedTile(allTiles.get(27), PlayerColor.RED, Rotation.NONE, new Pos(1, 0));
-
-        var board = Board.EMPTY
-                .withNewTile(t56)
-                .withNewTile(t17)
-                .withNewTile(t27);
-
-        var startingRiver = (Zone.River) t56.zoneWithId(56_3);
-        var lakeConnectedRivers = Set.of(
-                startingRiver,
-                (Zone.River) t17.zoneWithId(17_1));
-        var area = new Area<>(lakeConnectedRivers, List.of(), 1);
-        assertEquals(area, board.riverArea(startingRiver));
-    }
-
-    @Test
-    void boardRiverSystemAreaWorksOnSmallExample() {
-        var allTiles = allTiles();
-        var t56 = new PlacedTile(allTiles.get(56), null, Rotation.NONE, new Pos(0, 0));
-        var t17 = new PlacedTile(allTiles.get(17), PlayerColor.RED, Rotation.NONE, new Pos(-1, 0));
-        var t27 = new PlacedTile(allTiles.get(27), PlayerColor.RED, Rotation.NONE, new Pos(1, 0));
-
-        var board = Board.EMPTY
-                .withNewTile(t56)
-                .withNewTile(t17)
-                .withNewTile(t27);
-
-        var startingRiver = (Zone.River) t56.zoneWithId(56_3);
-        var riverSystemZones = Set.<Zone.Water>of(
-                startingRiver,
-                (Zone.River) t17.zoneWithId(17_1),
-                (Zone.Lake) t56.zoneWithId(56_8));
-        var area = new Area<>(riverSystemZones, List.of(), 1);
-        assertEquals(area, board.riverSystemArea(startingRiver));
-    }
-
-    @Test
-    void boardMeadowAreasWorksOnSmallExample() {
-        var allTiles = allTiles();
-        var t56 = new PlacedTile(allTiles.get(56), null, Rotation.NONE, new Pos(0, 0));
-        var t17 = new PlacedTile(allTiles.get(17), PlayerColor.RED, Rotation.NONE, new Pos(-1, 0));
-        var t27 = new PlacedTile(allTiles.get(27), PlayerColor.RED, Rotation.NONE, new Pos(1, 0));
-
-        var board = Board.EMPTY
-                .withNewTile(t56)
-                .withNewTile(t17)
-                .withNewTile(t27);
-
-        var meadows1 = Set.of(
-                ((Zone.Meadow) t17.zoneWithId(17_0)),
-                ((Zone.Meadow) t56.zoneWithId(56_2)));
-        var area1 = new Area<>(meadows1, List.of(), 3);
-
-        var meadows2 = Set.of((Zone.Meadow) t17.zoneWithId(17_4));
-        var area2 = new Area<>(meadows2, List.of(), 2);
-
-        var meadows3 = Set.of(
-                (Zone.Meadow) t17.zoneWithId(17_2),
-                (Zone.Meadow) t56.zoneWithId(56_0));
-        var area3 = new Area<>(meadows3, List.of(), 2);
-
-        var meadows4 = Set.of((Zone.Meadow) t27.zoneWithId(27_0));
-        var area4 = new Area<>(meadows4, List.of(), 3);
-
-        var meadows5 = Set.of((Zone.Meadow) t27.zoneWithId(27_2));
-        var area5 = new Area<>(meadows5, List.of(), 2);
-
-        var allMeadowAreas = Set.of(area1, area2, area3, area4, area5);
-        assertEquals(allMeadowAreas, board.meadowAreas());
-    }
-
-    @Test
-    void boardRiverSystemAreasWorksOnSmallExample() {
-        var allTiles = allTiles();
-        var t56 = new PlacedTile(allTiles.get(56), null, Rotation.NONE, new Pos(0, 0));
-        var t01 = new PlacedTile(allTiles.get(1), null, Rotation.NONE, new Pos(-1, 0));
-        var t03 = new PlacedTile(allTiles.get(3), null, Rotation.NONE, new Pos(-2, 0));
-
-        var board = Board.EMPTY
-                .withNewTile(t56)
-                .withNewTile(t01)
-                .withNewTile(t03);
-
-        var waterZones = Set.of(
-                (Zone.Water) t56.zoneWithId(56_8),
-                (Zone.Water) t56.zoneWithId(56_3),
-                (Zone.Water) t01.zoneWithId(1_1),
-                (Zone.Water) t01.zoneWithId(1_5),
-                (Zone.Water) t01.zoneWithId(1_8),
-                (Zone.Water) t03.zoneWithId(3_1),
-                (Zone.Water) t03.zoneWithId(3_3),
-                (Zone.Water) t03.zoneWithId(3_5),
-                (Zone.Water) t03.zoneWithId(3_8));
-        var riverSystem = new Area<>(waterZones, List.of(), 2);
-        assertEquals(Set.of(riverSystem), board.riverSystemAreas());
-    }
-
-    @Test
-    void boardAdjacentMeadowWorksOnGivenExample() {
-        var allTiles = allTiles();
-
-        var t56 = new PlacedTile(allTiles.get(56), null, Rotation.NONE, new Pos(0, 0));
-        var t42 = new PlacedTile(allTiles.get(42), PlayerColor.RED, Rotation.LEFT, new Pos(1, 0));
-        var t60 = new PlacedTile(allTiles.get(60), PlayerColor.BLUE, Rotation.RIGHT, new Pos(1, -1));
-        var t49 = new PlacedTile(allTiles.get(49), PlayerColor.GREEN, Rotation.NONE, new Pos(-1, 0));
-        var t27 = new PlacedTile(allTiles.get(27), PlayerColor.YELLOW, Rotation.NONE, new Pos(-2, 0));
-        var t62 = new PlacedTile(allTiles.get(62), PlayerColor.PURPLE, Rotation.NONE, new Pos(-2, -1));
-        var t61 = new PlacedTile(allTiles.get(61), PlayerColor.RED, Rotation.NONE, new Pos(-1, -1));
-        var t94 = new PlacedTile(allTiles.get(94), PlayerColor.BLUE, Rotation.NONE, new Pos(0, -1));
-
-        var meadow56 = (Zone.Meadow) t56.zoneWithId(56_0);
-        var meadow94 = (Zone.Meadow) t94.zoneWithId(94_1);
-        var meadow60 = (Zone.Meadow) t60.zoneWithId(60_2);
-        var meadow49 = (Zone.Meadow) t49.zoneWithId(49_0);
-        var meadow62 = (Zone.Meadow) t62.zoneWithId(62_0);
-        var meadow42 = (Zone.Meadow) t42.zoneWithId(42_1);
-        var meadow61 = (Zone.Meadow) t61.zoneWithId(61_0);
-
-        var board = Board.EMPTY
-                .withNewTile(t56)
-                .withNewTile(t42)
-                .withOccupant(new Occupant(Occupant.Kind.PAWN, meadow42.id()))
-                .withNewTile(t60)
-                .withOccupant(new Occupant(Occupant.Kind.PAWN, meadow60.id()))
-                .withNewTile(t49)
-                .withNewTile(t27)
-                .withNewTile(t62)
-                .withOccupant(new Occupant(Occupant.Kind.PAWN, meadow62.id()))
-                .withNewTile(t61)
-                .withNewTile(t94);
-
-        var adjacentMeadows = Set.of(meadow60, meadow56, meadow94, meadow49, meadow61);
-        var occupants = Stream.of(PlayerColor.BLUE, PlayerColor.PURPLE)
-                .sorted()
-                .toList();
-
-        var actualAdjacentMeadow = board.adjacentMeadow(t94.pos(), meadow94);
-        assertEquals(adjacentMeadows, actualAdjacentMeadow.zones());
-        assertEquals(occupants, actualAdjacentMeadow.occupants());
-    }
-
-    @Test
-    void boardOccupantCountWorks() {
-        var allTiles = allTiles();
-
-        var t56 = new PlacedTile(allTiles.get(56), null, Rotation.NONE, new Pos(0, 0));
-        var t42 = new PlacedTile(allTiles.get(42), PlayerColor.RED, Rotation.LEFT, new Pos(1, 0));
-        var t60 = new PlacedTile(allTiles.get(60), PlayerColor.BLUE, Rotation.RIGHT, new Pos(1, -1));
-        var t49 = new PlacedTile(allTiles.get(49), PlayerColor.GREEN, Rotation.NONE, new Pos(-1, 0));
-        var t27 = new PlacedTile(allTiles.get(27), PlayerColor.YELLOW, Rotation.NONE, new Pos(-2, 0));
-        var t62 = new PlacedTile(allTiles.get(62), PlayerColor.PURPLE, Rotation.NONE, new Pos(-2, -1));
-        var t61 = new PlacedTile(allTiles.get(61), PlayerColor.RED, Rotation.NONE, new Pos(-1, -1));
-        var t94 = new PlacedTile(allTiles.get(94), PlayerColor.BLUE, Rotation.NONE, new Pos(0, -1));
-
-        var board = Board.EMPTY
-                .withNewTile(t56)
-                .withNewTile(t42)
-                .withOccupant(new Occupant(Occupant.Kind.PAWN, 42_1))
-                .withNewTile(t60)
-                .withOccupant(new Occupant(Occupant.Kind.PAWN, 60_1))
-                .withNewTile(t49)
-                .withOccupant(new Occupant(Occupant.Kind.HUT, 49_1))
-                .withNewTile(t27)
-                .withOccupant(new Occupant(Occupant.Kind.PAWN, 27_1))
-                .withNewTile(t62)
-                .withOccupant(new Occupant(Occupant.Kind.PAWN, 62_0))
-                .withNewTile(t61)
-                .withNewTile(t94)
-                .withOccupant(new Occupant(Occupant.Kind.PAWN, 94_0));
-
-        var expectedPawns = Map.of(
-                PlayerColor.RED, 1,
-                PlayerColor.BLUE, 2,
-                PlayerColor.GREEN, 0,
-                PlayerColor.YELLOW, 1,
-                PlayerColor.PURPLE, 1);
-
-        var expectedHuts = Map.of(
-                PlayerColor.RED, 0,
-                PlayerColor.BLUE, 0,
-                PlayerColor.GREEN, 1,
-                PlayerColor.YELLOW, 0,
-                PlayerColor.PURPLE, 0);
-
-        expectedPawns.forEach((p, c) ->
-                assertEquals(c, board.occupantCount(p, Occupant.Kind.PAWN)));
-        expectedHuts.forEach((p, c) ->
-                assertEquals(c, board.occupantCount(p, Occupant.Kind.HUT)));
-    }
-
-    @Test
-    void boardInsertionPositionsWorksWithTilesInTheMiddleOfBoard() {
-        var allTiles = allTiles();
-
-        var t56 = new PlacedTile(allTiles.get(56), null, Rotation.NONE, new Pos(0, 0));
-        var t42 = new PlacedTile(allTiles.get(42), PlayerColor.RED, Rotation.LEFT, new Pos(1, 0));
-        var t94 = new PlacedTile(allTiles.get(94), PlayerColor.BLUE, Rotation.NONE, new Pos(0, -1));
-
-        var board = Board.EMPTY
-                .withNewTile(t56)
-                .withNewTile(t42)
-                .withNewTile(t94);
-
-        var expectedInsertionPositions = Set.of(
-                new Pos(1, 1),
-                new Pos(0, 1),
-                new Pos(0, -2),
-                new Pos(-1, 0),
-                new Pos(1, -1),
-                new Pos(2, 0),
-                new Pos(-1, -1));
-
-        assertEquals(expectedInsertionPositions, board.insertionPositions());
-    }
-
-    @Test
-    void boardInsertionPositionsWorkWithTilesOnBoardSide() {
-        var allTiles = allTiles();
-
-        var t56 = new PlacedTile(allTiles.get(56), null, Rotation.NONE, new Pos(0, 0));
-        var t1 = new PlacedTile(allTiles.get(1), null, Rotation.NONE, new Pos(-1, 0));
-        var t3 = new PlacedTile(allTiles.get(3), null, Rotation.NONE, new Pos(-2, 0));
-        var t5 = new PlacedTile(allTiles.get(5), null, Rotation.NONE, new Pos(-3, 0));
-        var t6 = new PlacedTile(allTiles.get(6), null, Rotation.NONE, new Pos(-4, 0));
-        var t8 = new PlacedTile(allTiles.get(8), null, Rotation.NONE, new Pos(-5, 0));
-        var t10 = new PlacedTile(allTiles.get(10), null, Rotation.NONE, new Pos(-6, 0));
-        var t11 = new PlacedTile(allTiles.get(11), null, Rotation.NONE, new Pos(-7, 0));
-        var t13 = new PlacedTile(allTiles.get(13), null, Rotation.NONE, new Pos(-8, 0));
-        var t46 = new PlacedTile(allTiles.get(46), null, Rotation.NONE, new Pos(-9, 0));
-        var t47 = new PlacedTile(allTiles.get(47), null, Rotation.NONE, new Pos(-10, 0));
-        var t48 = new PlacedTile(allTiles.get(48), null, Rotation.NONE, new Pos(-11, 0));
-        var t49 = new PlacedTile(allTiles.get(49), null, Rotation.NONE, new Pos(-12, 0));
-
-        var board = Board.EMPTY
-                .withNewTile(t56)
-                .withNewTile(t1)
-                .withNewTile(t3)
-                .withNewTile(t5)
-                .withNewTile(t6)
-                .withNewTile(t8)
-                .withNewTile(t10)
-                .withNewTile(t11)
-                .withNewTile(t13)
-                .withNewTile(t46)
-                .withNewTile(t47)
-                .withNewTile(t48)
-                .withNewTile(t49);
-
-        var expectedInsertionPositions = new HashSet<>(Set.of(new Pos(1, 0)));
-        for (int x = -12; x <= 0; x += 1)
-            expectedInsertionPositions.addAll(Set.of(new Pos(x, -1), new Pos(x, 1)));
-
-        assertEquals(expectedInsertionPositions, board.insertionPositions());
-    }
-
-    @Test
-    void boardLastPlacedTileWorks() {
-        var allTiles = allTiles();
-
-        var t56 = new PlacedTile(allTiles.get(56), null, Rotation.NONE, new Pos(0, 0));
-        var t42 = new PlacedTile(allTiles.get(42), PlayerColor.RED, Rotation.LEFT, new Pos(1, 0));
-        var t94 = new PlacedTile(allTiles.get(94), PlayerColor.BLUE, Rotation.NONE, new Pos(0, -1));
-
+    void gameStateCurrentPlayerWorks() {
+        var players = Arrays.asList(PlayerColor.values());
+        var tileDecks = shuffledTileDecks();
+        var tileToPlace = allTiles().get(1);
         var board = Board.EMPTY;
-        assertNull(board.lastPlacedTile());
-        board = board.withNewTile(t56);
-        assertEquals(t56, board.lastPlacedTile());
-        board = board.withNewTile(t42);
-        assertEquals(t42, board.lastPlacedTile());
-        board = board.withNewTile(t94);
-        assertEquals(t94, board.lastPlacedTile());
-    }
+        var messageBoard = new MessageBoard(new BasicTextMaker(), List.of());
+        for (int i = 0; i < players.size(); i += 1) {
+            var immutablePlayers = List.copyOf(players);
+            for (var action : Action.values()) {
+                var actualTileToPlace = action == Action.PLACE_TILE ? tileToPlace : null;
+                var state = new GameState(immutablePlayers, tileDecks, actualTileToPlace, board, action, messageBoard);
 
-    @Test
-    void boardForestsClosedByLastTileWorksWithNoForestClosed() {
-        var allTiles = allTiles();
-        var t56 = new PlacedTile(allTiles.get(56), null, Rotation.NONE, new Pos(0, 0));
-        var t17 = new PlacedTile(allTiles.get(17), PlayerColor.RED, Rotation.NONE, new Pos(-1, 0));
-        var t27 = new PlacedTile(allTiles.get(27), PlayerColor.RED, Rotation.NONE, new Pos(1, 0));
-
-        var board = Board.EMPTY.withNewTile(t56);
-        assertEquals(Set.of(), board.forestsClosedByLastTile());
-
-        board = board.withNewTile(t17);
-        assertEquals(Set.of(), board.forestsClosedByLastTile());
-
-        board = board.withNewTile(t27);
-        assertEquals(Set.of(), board.forestsClosedByLastTile());
-    }
-
-    @Test
-    void boardForestsClosedByLastTileWorksWithOneClosedForest() {
-        var allTiles = allTiles();
-        var t56 = new PlacedTile(allTiles.get(56), null, Rotation.NONE, new Pos(0, 0));
-        var t17 = new PlacedTile(allTiles.get(17), PlayerColor.RED, Rotation.NONE, new Pos(-1, 0));
-        var t27 = new PlacedTile(allTiles.get(27), PlayerColor.RED, Rotation.NONE, new Pos(1, 0));
-        var t37 = new PlacedTile(allTiles.get(37), PlayerColor.RED, Rotation.NONE, new Pos(0, 1));
-
-        var board = Board.EMPTY
-                .withNewTile(t56)
-                .withNewTile(t17)
-                .withNewTile(t27)
-                .withNewTile(t37);
-
-        var forest56 = (Zone.Forest) t56.zoneWithId(56_1);
-        var forest27 = (Zone.Forest) t27.zoneWithId(27_3);
-        var forest37 = (Zone.Forest) t37.zoneWithId(37_0);
-
-        var expectedForest = new Area<>(Set.of(forest56, forest27, forest37), List.of(), 0);
-        assertEquals(Set.of(expectedForest), board.forestsClosedByLastTile());
-    }
-
-    @Test
-    void boardForestsClosedByLastTileWorksWithOneComplexClosedForest() {
-        var allTiles = allTiles();
-
-        var t56 = new PlacedTile(allTiles.get(56), PlayerColor.RED, Rotation.NONE, new Pos(0,0));
-        var t1 = new PlacedTile(allTiles.get(1), null, Rotation.NONE, new Pos(-1,0));
-        var t42 = new PlacedTile(allTiles.get(42), PlayerColor.RED, Rotation.NONE, new Pos(-1,1));
-        var t47 = new PlacedTile(allTiles.get(47), PlayerColor.RED, Rotation.RIGHT, new Pos(1,0));
-        var t28 = new PlacedTile(allTiles.get(28), PlayerColor.RED, Rotation.RIGHT, new Pos(1,1));
-        var t58 = new PlacedTile(allTiles.get(58), PlayerColor.RED, Rotation.NONE, new Pos(0,1));
-
-        var board = Board.EMPTY
-                .withNewTile(t56)
-                .withNewTile(t1)
-                .withNewTile(t42)
-                .withNewTile(t47)
-                .withNewTile(t28)
-                .withNewTile(t58);
-
-        var forest56 = (Zone.Forest) t56.zoneWithId(56_1);
-        var forest1 = (Zone.Forest) t1.zoneWithId(1_3);
-        var forest42 = (Zone.Forest) t42.zoneWithId(42_0);
-        var forest47 = (Zone.Forest) t47.zoneWithId(47_3);
-        var forest28 = (Zone.Forest) t28.zoneWithId(28_3);
-        var forest58 = (Zone.Forest) t58.zoneWithId(58_0);
-
-        var forestZones = Set.of(forest56, forest1, forest42, forest47, forest28, forest58);
-
-        var expectedForest = new Area<>(forestZones, List.of(), 0);
-        assertEquals(Set.of(expectedForest), board.forestsClosedByLastTile());
-    }
-
-    @Test
-    void boardForestsClosedByLastTileWorksWithThreeForests() {
-        var allTiles = allTiles();
-
-        var t56 = new PlacedTile(allTiles.get(56), PlayerColor.RED, Rotation.NONE, new Pos(0,0));
-        var t67 = new PlacedTile(allTiles.get(67), PlayerColor.RED, Rotation.NONE, new Pos(0,1));
-        var t54 = new PlacedTile(allTiles.get(54), PlayerColor.RED, Rotation.NONE, new Pos(1,1));
-        var t53 = new PlacedTile(allTiles.get(53), PlayerColor.RED, Rotation.NONE, new Pos(2,1));
-        var t34 = new PlacedTile(allTiles.get(34), PlayerColor.RED, Rotation.NONE, new Pos(2,0));
-        var t14 = new PlacedTile(allTiles.get(14), PlayerColor.RED, Rotation.NONE, new Pos(1,0));
-
-        var board = Board.EMPTY
-                .withNewTile(t56)
-                .withNewTile(t67)
-                .withNewTile(t54)
-                .withNewTile(t53)
-                .withNewTile(t34)
-                .withNewTile(t14);
-
-        var forests1 = Set.of(
-                (Zone.Forest) t56.zoneWithId(56_1),
-                (Zone.Forest) t67.zoneWithId(67_0),
-                (Zone.Forest) t14.zoneWithId(14_5));
-        var forests2 = Set.of(
-                (Zone.Forest) t67.zoneWithId(67_1),
-                (Zone.Forest) t54.zoneWithId(54_0),
-                (Zone.Forest) t14.zoneWithId(14_4));
-        var forests3 = Set.of(
-                (Zone.Forest) t34.zoneWithId(34_3),
-                (Zone.Forest) t14.zoneWithId(14_3));
-
-        var forest1 = new Area<>(forests1, List.of(), 0);
-        var forest2 = new Area<>(forests2, List.of(), 0);
-        var forest3 = new Area<>(forests3, List.of(), 0);
-        assertEquals(Set.of(forest1, forest2, forest3), board.forestsClosedByLastTile());
-    }
-
-    @Test
-    void boardRiversClosedByLastTileWorksWithNoRiverClosed() {
-        var allTiles = allTiles();
-        var t56 = new PlacedTile(allTiles.get(56), null, Rotation.NONE, new Pos(0, 0));
-        var t17 = new PlacedTile(allTiles.get(17), PlayerColor.RED, Rotation.NONE, new Pos(-1, 0));
-        var t27 = new PlacedTile(allTiles.get(27), PlayerColor.RED, Rotation.NONE, new Pos(1, 0));
-
-        var board = Board.EMPTY.withNewTile(t56);
-        assertEquals(Set.of(), board.riversClosedByLastTile());
-
-        board = board.withNewTile(t17);
-        assertEquals(Set.of(), board.riversClosedByLastTile());
-
-        board = board.withNewTile(t27);
-        assertEquals(Set.of(), board.riversClosedByLastTile());
-    }
-
-    @Test
-    void boardRiversClosedByLastTileWorksWithOneClosedRiver() {
-        var allTiles = allTiles();
-        var t56 = new PlacedTile(allTiles.get(56), null, Rotation.NONE, new Pos(0, 0));
-        var t53 = new PlacedTile(allTiles.get(53), PlayerColor.RED, Rotation.NONE, new Pos(-1, 0));
-        var t86 = new PlacedTile(allTiles.get(86), PlayerColor.RED, Rotation.NONE, new Pos(-2, 0));
-
-        var board = Board.EMPTY
-                .withNewTile(t56)
-                .withNewTile(t53)
-                .withNewTile(t86);
-
-        var rivers = Set.of(
-                (Zone.River) t56.zoneWithId(56_3),
-                (Zone.River) t53.zoneWithId(53_1),
-                (Zone.River) t86.zoneWithId(86_3));
-
-        var expectedRiver = new Area<>(rivers, List.of(), 0);
-        assertEquals(Set.of(expectedRiver), board.riversClosedByLastTile());
-    }
-
-    @Test
-    void boardRiversClosedByLastTileWorksWithOneRiverLoop() {
-        var allTiles = allTiles();
-
-        var t56 = new PlacedTile(allTiles.get(56), PlayerColor.RED, Rotation.NONE, new Pos(0,0));
-        var t61 = new PlacedTile(allTiles.get(61), PlayerColor.RED, Rotation.NONE, new Pos(0,-1));
-        var t3 = new PlacedTile(allTiles.get(3), PlayerColor.RED, Rotation.NONE, new Pos(-1,0));
-        var t17 = new PlacedTile(allTiles.get(17), PlayerColor.RED, Rotation.NONE, new Pos(-2,0));
-        var t15 = new PlacedTile(allTiles.get(15), PlayerColor.RED, Rotation.NONE, new Pos(-2,-1));
-        var t16 = new PlacedTile(allTiles.get(16), PlayerColor.RED, Rotation.RIGHT, new Pos(-1,-1));
-
-        var board = Board.EMPTY
-                .withNewTile(t56)
-                .withNewTile(t61)
-                .withNewTile(t3)
-                .withNewTile(t17)
-                .withNewTile(t15)
-                .withNewTile(t16);
-
-        var rivers = Set.of(
-                (Zone.River) t3.zoneWithId(3_1),
-                (Zone.River) t3.zoneWithId(3_5),
-                (Zone.River) t17.zoneWithId(17_1),
-                (Zone.River) t15.zoneWithId(15_1),
-                (Zone.River) t16.zoneWithId(16_1));
-
-        var expectedRiver = new Area<>(rivers, List.of(), 0);
-        assertEquals(Set.of(expectedRiver), board.riversClosedByLastTile());
-    }
-
-    @Test
-    void boardRiversClosedByLastTileWorksWithFourRivers() {
-        var allTiles = allTiles();
-
-        var t56 = new PlacedTile(allTiles.get(56), PlayerColor.RED, Rotation.NONE, new Pos(0,0));
-        var t44 = new PlacedTile(allTiles.get(44), PlayerColor.RED, Rotation.NONE, new Pos(0,-1));
-        var t58 = new PlacedTile(allTiles.get(58), PlayerColor.RED, Rotation.NONE, new Pos(-1,-1));
-        var t60 = new PlacedTile(allTiles.get(60), PlayerColor.RED, Rotation.NONE, new Pos(-2,-1));
-        var t2 = new PlacedTile(allTiles.get(2), PlayerColor.RED, Rotation.NONE, new Pos(-2,0));
-        var t42 = new PlacedTile(allTiles.get(42), PlayerColor.RED, Rotation.NONE, new Pos(-2,1));
-        var t0 = new PlacedTile(allTiles.get(0), PlayerColor.RED, Rotation.NONE, new Pos(-1,1));
-        var t13 = new PlacedTile(allTiles.get(13), PlayerColor.RED, Rotation.NONE, new Pos(-1,0));
-
-        var board = Board.EMPTY
-                .withNewTile(t56)
-                .withNewTile(t44)
-                .withNewTile(t58)
-                .withNewTile(t60)
-                .withNewTile(t2)
-                .withNewTile(t42)
-                .withNewTile(t0)
-                .withNewTile(t13);
-
-        var rivers1 = Set.of(
-                (Zone.River) t56.zoneWithId(56_3),
-                (Zone.River) t13.zoneWithId(13_3));
-        var rivers2 = Set.of(
-                (Zone.River) t0.zoneWithId(1),
-                (Zone.River) t13.zoneWithId(13_5));
-        var rivers3 = Set.of(
-                (Zone.River) t2.zoneWithId(2_1),
-                (Zone.River) t13.zoneWithId(13_7));
-        var rivers4 = Set.of(
-                (Zone.River) t58.zoneWithId(58_2),
-                (Zone.River) t13.zoneWithId(13_1));
-
-        var expectedRivers = Set.of(
-                new Area<>(rivers1, List.of(), 0),
-                new Area<>(rivers2, List.of(), 0),
-                new Area<>(rivers3, List.of(), 0),
-                new Area<>(rivers4, List.of(), 0));
-        assertEquals(expectedRivers, board.riversClosedByLastTile());
-    }
-
-    @Test
-    void boardCouldPlaceTileWorksWhenTileCanBePlaced() {
-        var allTiles = allTiles();
-
-        var t56 = new PlacedTile(allTiles.get(56), null, Rotation.NONE, new Pos(0, 0));
-
-        var board = Board.EMPTY.withNewTile(t56);
-
-        for (var tile : allTiles) {
-            if (tile.id() == 56) continue;
-            assertTrue(board.couldPlaceTile(tile));
+                if (action == Action.START_GAME || action == Action.END_GAME)
+                    assertNull(state.currentPlayer());
+                else
+                    assertEquals(immutablePlayers.getFirst(), state.currentPlayer());
+            }
+            Collections.rotate(players, 1);
         }
     }
 
     @Test
-    void boardCouldPlaceTileWorksWhenTileCannotBePlaced() {
-        var allTiles = allTiles();
+    void gameStateWithStartingTilePlacedWorks() {
+        for (var seed : List.of(0, 2024, 65536)) {
+            var players = List.of(PlayerColor.RED, PlayerColor.BLUE, PlayerColor.GREEN);
+            var tileDecks = shuffledTileDecks(seed);
+            var board = Board.EMPTY;
+            var messageBoard = new MessageBoard(new BasicTextMaker(), List.of());
+            var state = new GameState(players, tileDecks, null, board, Action.START_GAME, messageBoard)
+                    .withStartingTilePlaced();
 
-        var t56 = new PlacedTile(allTiles.get(56), null, Rotation.NONE, new Pos(0, 0));
-        var t65 = new PlacedTile(allTiles.get(65), null, Rotation.NONE, new Pos(0, -1));
-        var t2 = new PlacedTile(allTiles.get(2), null, Rotation.NONE, new Pos(-1, 0));
+            var expectedPlacedInitialTile =
+                    new PlacedTile(tileDecks.startTiles().getFirst(), null, Rotation.NONE, Pos.ORIGIN);
 
-        var board = Board.EMPTY
-                .withNewTile(t56)
-                .withNewTile(t65); // block meadow
-        for (var tileId : List.of(61, 62, 85))
-            assertFalse(board.couldPlaceTile(allTiles.get(tileId)));
-
-        var board2 = Board.EMPTY
-                .withNewTile(t56)
-                .withNewTile(t2); // block river
-        for (var tileId : List.of(13, 17, 83))
-            assertFalse(board2.couldPlaceTile(allTiles.get(tileId)));
+            assertEquals(players, state.players());
+            assertTrue(state.tileDecks().startTiles().isEmpty());
+            assertEquals(
+                    tileDecks.normalTiles().subList(1, tileDecks.normalTiles().size()),
+                    state.tileDecks().normalTiles());
+            assertEquals(tileDecks.menhirTiles(), state.tileDecks().menhirTiles());
+            assertEquals(tileDecks.normalTiles().getFirst(), state.tileToPlace());
+            assertEquals(expectedPlacedInitialTile, state.board().tileAt(Pos.ORIGIN));
+            assertEquals(Action.PLACE_TILE, state.nextAction());
+            assertEquals(messageBoard, state.messageBoard());
+        }
     }
 
     @Test
-    void boardCanAddTileWorksForOutsideOfBordOrOccupiedPositions() {
-        var allTiles = allTiles();
+    void gameStateWithPlacedTileWorksForNormalTile() {
+        var state = initialGameState(List.of(0), List.of());
 
-        var t56 = new PlacedTile(allTiles.get(56), null, Rotation.NONE, new Pos(0, 0));
-        var t65 = new PlacedTile(allTiles.get(65), null, Rotation.NONE, new Pos(0, -1));
-        // t2 is outside of board
-        var t2 = new PlacedTile(allTiles.get(2), null, Rotation.NONE, new Pos(13, 13));
+        assert state.tileToPlace().id() == 0;
+        var placedTile0 = new PlacedTile(state.tileToPlace(), PlayerColor.RED, Rotation.NONE, new Pos(1, 0));
 
-        var board = Board.EMPTY
-                .withNewTile(t56)
-                .withNewTile(t65);
+        var state1 = state.withPlacedTile(placedTile0);
 
-        assertFalse(board.canAddTile(t56));
-        assertFalse(board.canAddTile(t65));
-        assertFalse(board.canAddTile(t2));
+        assertEquals(state.players(), state1.players());
+        assertEquals(state.tileDecks(), state1.tileDecks());
+        assertEquals(placedTile0, state1.board().lastPlacedTile());
+        assertEquals(Action.OCCUPY_TILE, state1.nextAction());
+        assertEquals(state.messageBoard(), state1.messageBoard());
     }
 
     @Test
-    void boardCanAddTileWorksForPositionsWithoutNeighbors() {
-        var allTiles = allTiles();
+    void gameStateWithPlacedTileWorksForNormalUnoccupyableTile() {
+        var state = initialGameState(List.of(61, 62, 0), List.of());
 
-        var t56 = new PlacedTile(allTiles.get(56), null, Rotation.NONE, new Pos(0, 0));
-        // t65 and t2 are not next to the t56
-        var t65 = new PlacedTile(allTiles.get(65), null, Rotation.NONE, new Pos(0, -2));
-        var t2 = new PlacedTile(allTiles.get(2), null, Rotation.NONE, new Pos(1, 1));
+        // Place tile 61 (containing a single meadow) and occupy its only zone.
+        assert state.tileToPlace().id() == 61;
+        var placedTile61 = new PlacedTile(state.tileToPlace(), PlayerColor.RED, Rotation.NONE, new Pos(0, -1));
+        state = state
+                .withPlacedTile(placedTile61)
+                .withNewOccupant(new Occupant(Occupant.Kind.PAWN, 61_0));
 
-        var board = Board.EMPTY
-                .withNewTile(t56);
+        // Place tile 62 (containing a single meadow), whose single zone cannot be occupied.
+        assertEquals(62, state.tileToPlace().id());
+        var placedTile62 = new PlacedTile(state.tileToPlace(), PlayerColor.BLUE, Rotation.NONE, new Pos(0, -2));
+        state = state.withPlacedTile(placedTile62);
 
-        assertFalse(board.canAddTile(t65));
-        assertFalse(board.canAddTile(t2));
+        assertEquals(Action.PLACE_TILE, state.nextAction());
+        assertEquals(0, state.tileToPlace().id());
+        assertEquals(PlayerColor.GREEN, state.currentPlayer());
     }
 
     @Test
-    void boardCanAddTileWorksForVariousRotations() {
-        var allTiles = allTiles();
+    void gameStateWithPlacedTileCorrectlyHandlesOccupantsOfClosedRiver() {
+        var state = initialGameState(List.of(1, 0), List.of());
 
-        var t56 = new PlacedTile(allTiles.get(56), null, Rotation.NONE, new Pos(0, 0));
-        var t0 = allTiles.get(0);
+        assert state.tileToPlace().id() == 1;
+        var placedTile1 = new PlacedTile(state.tileToPlace(), PlayerColor.RED, Rotation.NONE, new Pos(-1, 0));
+        state = state
+                .withPlacedTile(placedTile1)
+                .withNewOccupant(new Occupant(Occupant.Kind.PAWN, 1_1)); // occupy river
 
-        var board = Board.EMPTY
-                .withNewTile(t56);
+        var expectedRiverMessage = new MessageBoard.Message(
+                "{RED}|6|4|2",
+                6,
+                Set.of(PlayerColor.RED),
+                Set.of(56, 1));
+        assertEquals(expectedRiverMessage, state.messageBoard().messages().getLast());
+        assertEquals(5, state.freeOccupantsCount(PlayerColor.RED, Occupant.Kind.PAWN));
 
-        record PosRot(Pos pos, Rotation rotation) {}
-        var validPositionsAndRotations = Set.of(
-                new PosRot(new Pos(1, 0), Rotation.NONE),
-                new PosRot(new Pos(1, 0), Rotation.RIGHT),
-                new PosRot(new Pos(0, 1), Rotation.RIGHT),
-                new PosRot(new Pos(0, 1), Rotation.HALF_TURN),
-                new PosRot(new Pos(-1, 0), Rotation.RIGHT),
-                new PosRot(new Pos(0, -1), Rotation.RIGHT));
-        for (var rotation : Rotation.ALL) {
-            for (var pos : List.of(new Pos(1, 0), new Pos(0, 1), new Pos(-1, 0), new Pos(0, -1))) {
-                var tile = new PlacedTile(t0, null, rotation, pos);
-                assertEquals(
-                        validPositionsAndRotations.contains(new PosRot(pos, rotation)),
-                        board.canAddTile(tile));
+        assertEquals(0, state.tileToPlace().id());
+    }
+
+    @Test
+    void gameStateWithPlacedTileCorrectlyHandlesOccupantsOfClosedForest() {
+        var state = initialGameState(List.of(1, 37, 0), List.of());
+
+        assert state.tileToPlace().id() == 1;
+        var placedTile1 = new PlacedTile(state.tileToPlace(), PlayerColor.RED, Rotation.NONE, new Pos(-1, 0));
+        state = state
+                .withPlacedTile(placedTile1)
+                .withNewOccupant(new Occupant(Occupant.Kind.PAWN, 1_3)); // occupy forest
+
+        assert state.tileToPlace().id() == 37;
+        var placedTile37 = new PlacedTile(state.tileToPlace(), PlayerColor.BLUE, Rotation.NONE, new Pos(-1, 1));
+        state = state
+                .withPlacedTile(placedTile37)
+                .withNewOccupant(null);
+
+        var expectedForestMessage = new MessageBoard.Message(
+                "{RED}|4|0|2",
+                4,
+                Set.of(PlayerColor.RED),
+                Set.of(37, 1));
+        assertEquals(expectedForestMessage, state.messageBoard().messages().getLast());
+        assertEquals(5, state.freeOccupantsCount(PlayerColor.RED, Occupant.Kind.PAWN));
+
+        assertEquals(0, state.tileToPlace().id());
+    }
+
+    @Test
+    void gameStateWithPlacedTileCorrectlyHandlesOccupantsOfForestWithManyOfThem() {
+        var state = initialGameState(List.of(1, 42, 47, 28, 58, 0), List.of());
+
+        var t1 = new PlacedTile(state.tileToPlace(), PlayerColor.RED, Rotation.NONE, new Pos(-1,0));
+        state = state
+                .withPlacedTile(t1)
+                .withNewOccupant(new Occupant(Occupant.Kind.PAWN, 1_3));
+
+        var t42 = new PlacedTile(state.tileToPlace(), PlayerColor.BLUE, Rotation.NONE, new Pos(-1,1));
+        state = state
+                .withPlacedTile(t42)
+                .withNewOccupant(new Occupant(Occupant.Kind.PAWN, 42_1));
+
+        var t47 = new PlacedTile(state.tileToPlace(), PlayerColor.GREEN, Rotation.RIGHT, new Pos(1,0));
+        state = state
+                .withPlacedTile(t47)
+                .withNewOccupant(new Occupant(Occupant.Kind.PAWN, 47_3));
+
+        var t28 = new PlacedTile(state.tileToPlace(), PlayerColor.YELLOW, Rotation.RIGHT, new Pos(1,1));
+        state = state
+                .withPlacedTile(t28)
+                .withNewOccupant(new Occupant(Occupant.Kind.PAWN, 28_3));
+
+        var t58 = new PlacedTile(state.tileToPlace(), PlayerColor.PURPLE, Rotation.NONE, new Pos(0,1));
+        state = state
+                .withPlacedTile(t58)
+                .withNewOccupant(null);
+
+        var expectedForestMessage = new MessageBoard.Message(
+                "{RED,GREEN,YELLOW}|12|0|6",
+                12,
+                Set.of(PlayerColor.RED, PlayerColor.GREEN, PlayerColor.YELLOW),
+                Set.of(42, 56, 58, 47, 1, 28));
+
+        assertTrue(state.messageBoard().messages().contains(expectedForestMessage));
+        for (PlayerColor playerColor : PlayerColor.values()) {
+            var expectedFreePawns = playerColor == PlayerColor.BLUE ? 4 : 5;
+            assertEquals(expectedFreePawns, state.freeOccupantsCount(playerColor, Occupant.Kind.PAWN));
+        }
+    }
+
+    @Test
+    void gameStateWithPlacedTileWorksWhenClosingForestWithMenhir() {
+        var state = initialGameState(List.of(37, 41, 0), List.of());
+        var topMenhirTile = state.tileDecks().topTile(Tile.Kind.MENHIR);
+
+        assert state.tileToPlace().id() == 37;
+        var placedTile37 = new PlacedTile(state.tileToPlace(), PlayerColor.RED, Rotation.NONE, new Pos(0, 1));
+        state = state
+                .withPlacedTile(placedTile37)
+                .withNewOccupant(null);
+
+        assertEquals(41, state.tileToPlace().id());
+        var placedTile41 = new PlacedTile(state.tileToPlace(), PlayerColor.BLUE, Rotation.NONE, new Pos(1, 0));
+        state = state
+                .withPlacedTile(placedTile41)
+                .withNewOccupant(null);
+
+        assertEquals(Action.PLACE_TILE, state.nextAction());
+        assertEquals(topMenhirTile, state.tileToPlace());
+        assertEquals(PlayerColor.BLUE, state.currentPlayer());
+        assertEquals(1, state.messageBoard().messages().size());
+    }
+
+    @Test
+    void gameStateWithPlacedTileWorksWhenPlacingShamanButNoOccupantCanBeRetaken() {
+        var state = initialGameState(List.of(37, 41, 0), List.of(88));
+
+        assert state.tileToPlace().id() == 37;
+        var placedTile37 = new PlacedTile(state.tileToPlace(), PlayerColor.RED, Rotation.NONE, new Pos(0, 1));
+        state = state
+                .withPlacedTile(placedTile37)
+                .withNewOccupant(null);
+
+        assertEquals(41, state.tileToPlace().id());
+        var placedTile41 = new PlacedTile(state.tileToPlace(), PlayerColor.BLUE, Rotation.NONE, new Pos(1, 0));
+        state = state
+                .withPlacedTile(placedTile41)
+                .withNewOccupant(null);
+
+        assertEquals(88, state.tileToPlace().id()); // Shaman tile
+        var placedTile88 = new PlacedTile(state.tileToPlace(), PlayerColor.BLUE, Rotation.NONE, new Pos(-1, 0));
+        state = state.withPlacedTile(placedTile88);
+
+        assertEquals(Action.OCCUPY_TILE, state.nextAction());
+        assertEquals(PlayerColor.BLUE, state.currentPlayer());
+    }
+
+    @Test
+    void gameStateWithPlacedTileWorksWhenPlacingShamanAndOccupantCanBeRetaken() {
+        var state = initialGameState(List.of(37, 41, 0), List.of(88));
+
+        assert state.tileToPlace().id() == 37;
+        var placedTile37 = new PlacedTile(state.tileToPlace(), PlayerColor.RED, Rotation.NONE, new Pos(0, 1));
+        state = state
+                .withPlacedTile(placedTile37)
+                .withNewOccupant(null);
+
+        assertEquals(41, state.tileToPlace().id());
+        var placedTile41 = new PlacedTile(state.tileToPlace(), PlayerColor.BLUE, Rotation.NONE, new Pos(1, 0));
+        var occupant = new Occupant(Occupant.Kind.PAWN, 41_0);
+        state = state
+                .withPlacedTile(placedTile41)
+                .withNewOccupant(occupant);
+
+        assertEquals(88, state.tileToPlace().id()); // Shaman tile
+        var placedTile88 = new PlacedTile(state.tileToPlace(), PlayerColor.BLUE, Rotation.NONE, new Pos(-1, 0));
+        state = state.withPlacedTile(placedTile88);
+
+        assertEquals(Action.RETAKE_PAWN, state.nextAction());
+        assertEquals(PlayerColor.BLUE, state.currentPlayer());
+        assertEquals(4, state.freeOccupantsCount(PlayerColor.BLUE, Occupant.Kind.PAWN));
+
+        // First possible future: player retakes a pawn
+        var state1 = state.withOccupantRemoved(occupant);
+        assertEquals(5, state1.freeOccupantsCount(PlayerColor.BLUE, Occupant.Kind.PAWN));
+
+        // Second possible future: player does not retake a pawn
+        var state2 = state.withOccupantRemoved(null);
+        assertEquals(4, state2.freeOccupantsCount(PlayerColor.BLUE, Occupant.Kind.PAWN));
+    }
+
+    @Test
+    void gameStateWithOccupantRemovedAllowsShamanToRetakeOccupant() {
+        var state = initialGameState(List.of(37, 41, 0), List.of(88));
+
+        assert state.tileToPlace().id() == 37;
+        var placedTile37 = new PlacedTile(state.tileToPlace(), PlayerColor.RED, Rotation.NONE, new Pos(0, 1));
+        state = state
+                .withPlacedTile(placedTile37)
+                .withNewOccupant(null);
+
+        assertEquals(41, state.tileToPlace().id());
+        var placedTile41 = new PlacedTile(state.tileToPlace(), PlayerColor.BLUE, Rotation.NONE, new Pos(1, 0));
+        var occupant41 = new Occupant(Occupant.Kind.PAWN, 41_0);
+        state = state
+                .withPlacedTile(placedTile41)
+                .withNewOccupant(occupant41);
+
+        assertEquals(88, state.tileToPlace().id()); // Shaman tile
+        var placedTile88 = new PlacedTile(state.tileToPlace(), PlayerColor.BLUE, Rotation.NONE, new Pos(-1, 0));
+        state = state
+                .withPlacedTile(placedTile88)
+                .withOccupantRemoved(occupant41);
+
+        assertEquals(Action.OCCUPY_TILE, state.nextAction());
+        assertEquals(5, state.freeOccupantsCount(PlayerColor.BLUE, Occupant.Kind.PAWN));
+        assertEquals(PlayerColor.BLUE, state.currentPlayer());
+    }
+
+    @Test
+    void gameStateWithPlacedTileWorksWithLogboat() {
+        var state = initialGameState(List.of(5, 37, 41), List.of(93));
+
+        assert state.tileToPlace().id() == 5;
+        var placedTile5 = new PlacedTile(state.tileToPlace(), PlayerColor.RED, Rotation.NONE, new Pos(-1, 0));
+        state = state
+                .withPlacedTile(placedTile5)
+                .withNewOccupant(null);
+
+        var placedTile37 = new PlacedTile(state.tileToPlace(), PlayerColor.BLUE, Rotation.NONE, new Pos(0, 1));
+        state = state
+                .withPlacedTile(placedTile37)
+                .withNewOccupant(null);
+
+        assertEquals(41, state.tileToPlace().id());
+        var placedTile41 = new PlacedTile(state.tileToPlace(), PlayerColor.GREEN, Rotation.NONE, new Pos(1, 0));
+        state = state
+                .withPlacedTile(placedTile41)
+                .withNewOccupant(null);
+
+        assertEquals(93, state.tileToPlace().id());
+        var placedTile93 = new PlacedTile(state.tileToPlace(), PlayerColor.GREEN, Rotation.NONE, new Pos(-2, 0));
+        state = state.withPlacedTile(placedTile93)
+                .withNewOccupant(null);
+
+        var expectedLogboatMessage = new MessageBoard.Message("GREEN|6|3", 6, Set.of(PlayerColor.GREEN), Set.of(56, 5, 93));
+        assertEquals(expectedLogboatMessage, state.messageBoard().messages().getLast());
+    }
+
+    @Test
+    void gameStateWithPlacedTileWorksWithHuntingTrap() {
+        var state = initialGameState(List.of(8, 37, 41), List.of(94));
+
+        assert state.tileToPlace().id() == 8;
+        var placedTile8 = new PlacedTile(state.tileToPlace(), PlayerColor.RED, Rotation.NONE, new Pos(-1, 0));
+        state = state
+                .withPlacedTile(placedTile8)
+                .withNewOccupant(null);
+
+        var placedTile37 = new PlacedTile(state.tileToPlace(), PlayerColor.BLUE, Rotation.NONE, new Pos(0, 1));
+        state = state
+                .withPlacedTile(placedTile37)
+                .withNewOccupant(null);
+
+        assertEquals(41, state.tileToPlace().id());
+        var placedTile41 = new PlacedTile(state.tileToPlace(), PlayerColor.GREEN, Rotation.NONE, new Pos(1, 0));
+        state = state
+                .withPlacedTile(placedTile41)
+                .withNewOccupant(null);
+
+        assertEquals(94, state.tileToPlace().id());
+        var placedTile94 = new PlacedTile(state.tileToPlace(), PlayerColor.GREEN, Rotation.NONE, new Pos(0, -1));
+        state = state.withPlacedTile(placedTile94)
+                .withNewOccupant(null);
+
+        var expectedHuntingTrapMessage = new MessageBoard.Message(
+                "GREEN|3|0×MAMMOTH/1×AUROCHS/1×DEER/0×TIGER",
+                3,
+                Set.of(PlayerColor.GREEN),
+                Set.of(56, 94, 8));
+        assertEquals(expectedHuntingTrapMessage, state.messageBoard().messages().getLast());
+    }
+
+    @Test
+    void gameStateWithPlacedTileWorksWithNonImmediateSpecialPower() {
+        var state = initialGameState(List.of(5, 37, 41, 0), List.of(92));
+
+        assert state.tileToPlace().id() == 5;
+        var placedTile5 = new PlacedTile(state.tileToPlace(), PlayerColor.RED, Rotation.NONE, new Pos(-1, 0));
+        state = state
+                .withPlacedTile(placedTile5)
+                .withNewOccupant(null);
+
+        var placedTile37 = new PlacedTile(state.tileToPlace(), PlayerColor.BLUE, Rotation.NONE, new Pos(0, 1));
+        state = state
+                .withPlacedTile(placedTile37)
+                .withNewOccupant(null);
+
+        assertEquals(41, state.tileToPlace().id());
+        var placedTile41 = new PlacedTile(state.tileToPlace(), PlayerColor.GREEN, Rotation.NONE, new Pos(1, 0));
+        state = state
+                .withPlacedTile(placedTile41)
+                .withNewOccupant(null);
+
+        assertEquals(92, state.tileToPlace().id());
+        var placedTile92 = new PlacedTile(state.tileToPlace(), PlayerColor.GREEN, Rotation.NONE, new Pos(0, -1));
+        state = state.withPlacedTile(placedTile92)
+                .withNewOccupant(null);
+
+        assertEquals(Action.PLACE_TILE, state.nextAction());
+        assertEquals(PlayerColor.YELLOW, state.currentPlayer());
+        assertEquals(0, state.tileToPlace().id());
+    }
+
+    @Test
+    void gameStateLastTilePotentialOccupantsWorksWhenPlayerIsOutOfPawns() {
+        var positions = Map.ofEntries(
+                Map.entry(34, new Pos(-3, -1)),
+                Map.entry(67, new Pos(-2, -1)),
+                Map.entry(31, new Pos(-1, -1)),
+                Map.entry(61, new Pos(0, -1)),
+                Map.entry(62, new Pos(-3, 0)),
+                Map.entry(18, new Pos(-2, 0)),
+                Map.entry(51, new Pos(-1, 0)),
+                Map.entry(1, new Pos(-3, 1)),
+                Map.entry(3, new Pos(-2, 1)),
+                Map.entry(49, new Pos(-1, 1)),
+                Map.entry(55, new Pos(0, 1)));
+
+        var occupants = Map.of(
+                55, new Occupant(Occupant.Kind.PAWN, 55_0), // gatherer (BLUE)
+                18, new Occupant(Occupant.Kind.PAWN, 18_2), // hunter (BLUE)
+                1, new Occupant(Occupant.Kind.PAWN, 1_3), // gatherer (BLUE)
+                67, new Occupant(Occupant.Kind.PAWN, 67_0), // gatherer (BLUE)
+                3, new Occupant(Occupant.Kind.PAWN, 3_0) // hunter (BLUE)
+        );
+
+        var normalTilesIds = List.of(61, 55, 51, 18, 62, 1, 34, 67, 31, 3, 49, 48);
+        var state = initialGameState(List.of(PlayerColor.RED, PlayerColor.BLUE), normalTilesIds, List.of());
+
+        var players = state.players();
+        var playersIt = Stream.generate(() -> players)
+                .flatMap(Collection::stream)
+                .iterator();
+
+        var nextPlacedTile = (Function<GameState, PlacedTile>) s -> {
+            var t = s.tileToPlace();
+            return new PlacedTile(t, playersIt.next(), Rotation.NONE, positions.get(t.id()));
+        };
+
+        // Place all tiles
+        for (int i = 0; i < positions.size(); i += 1) {
+            var placedTile = nextPlacedTile.apply(state);
+            state = state
+                    .withPlacedTile(placedTile)
+                    .withNewOccupant(occupants.get(placedTile.id()));
+        }
+
+        assertEquals(48, state.tileToPlace().id());
+        state = state.withPlacedTile(new PlacedTile(state.tileToPlace(), playersIt.next(), Rotation.NONE, new Pos(-4, 1)));
+        assertEquals(Set.of(new Occupant(Occupant.Kind.HUT, 48_1)), state.lastTilePotentialOccupants());
+    }
+
+    @Test
+    void gameStateLastTilePotentialOccupantsWorksWhenPlayerIsOutOfHuts() {
+        var positions = Map.ofEntries(
+                Map.entry(34, new Pos(-3, -1)),
+                Map.entry(67, new Pos(-2, -1)),
+                Map.entry(31, new Pos(-1, -1)),
+                Map.entry(61, new Pos(0, -1)),
+                Map.entry(62, new Pos(-3, 0)),
+                Map.entry(18, new Pos(-2, 0)),
+                Map.entry(51, new Pos(-1, 0)),
+                Map.entry(1, new Pos(-3, 1)),
+                Map.entry(3, new Pos(-2, 1)),
+                Map.entry(49, new Pos(-1, 1)),
+                Map.entry(55, new Pos(0, 1)));
+
+        var occupants = Map.of(
+                55, new Occupant(Occupant.Kind.HUT, 55_3), // fisher's hut (BLUE)
+                18, new Occupant(Occupant.Kind.HUT, 18_1), // fisher's hut (BLUE)
+                 1, new Occupant(Occupant.Kind.HUT, 1_8) // fisher's hut (BLUE)
+        );
+
+        var normalTilesIds = List.of(61, 55, 51, 18, 62, 1, 34, 67, 31, 3, 49, 0);
+        var state = initialGameState(List.of(PlayerColor.RED, PlayerColor.BLUE), normalTilesIds, List.of());
+
+        var players = state.players();
+        var playersIt = Stream.generate(() -> players)
+                .flatMap(Collection::stream)
+                .iterator();
+
+        var nextPlacedTile = (Function<GameState, PlacedTile>) s -> {
+            var t = s.tileToPlace();
+            return new PlacedTile(t, playersIt.next(), Rotation.NONE, positions.get(t.id()));
+        };
+
+        // Place all tiles
+        for (int i = 0; i < positions.size(); i += 1) {
+            var placedTile = nextPlacedTile.apply(state);
+            state = state
+                    .withPlacedTile(placedTile)
+                    .withNewOccupant(occupants.get(placedTile.id()));
+        }
+
+        assertEquals(0, state.tileToPlace().id());
+        state = state.withPlacedTile(new PlacedTile(state.tileToPlace(), playersIt.next(), Rotation.NONE, new Pos(-1, -2)));
+        var expectedOccupants = Set.of(
+                new Occupant(Occupant.Kind.PAWN, 0),
+                new Occupant(Occupant.Kind.PAWN, 1),
+                new Occupant(Occupant.Kind.PAWN, 2),
+                new Occupant(Occupant.Kind.PAWN, 3),
+                new Occupant(Occupant.Kind.PAWN, 4));
+        assertEquals(expectedOccupants, state.lastTilePotentialOccupants());
+    }
+
+    @Test
+    void gameStateWithPlacedTileWorksAtEndOfGame() {
+        var positions = Map.ofEntries(
+                Map.entry(34, new Pos(-3, -1)),
+                Map.entry(67, new Pos(-2, -1)),
+                Map.entry(31, new Pos(-1, -1)),
+                Map.entry(61, new Pos(0, -1)),
+                Map.entry(62, new Pos(-3, 0)),
+                Map.entry(18, new Pos(-2, 0)),
+                Map.entry(51, new Pos(-1, 0)),
+                Map.entry(1, new Pos(-3, 1)),
+                Map.entry(3, new Pos(-2, 1)),
+                Map.entry(49, new Pos(-1, 1)),
+                Map.entry(55, new Pos(0, 1)));
+
+        var occupants = Map.of(
+                61, new Occupant(Occupant.Kind.PAWN, 61_0), // hunter (RED)
+                55, new Occupant(Occupant.Kind.PAWN, 55_3), // fisher (BLUE)
+                51, new Occupant(Occupant.Kind.PAWN, 51_1), // fisher (GREEN)
+                18, new Occupant(Occupant.Kind.PAWN, 18_2), // hunter (YELLOW)
+                 1, new Occupant(Occupant.Kind.HUT, 1_8), // fisher's hut (RED)
+                34, new Occupant(Occupant.Kind.PAWN, 34_1), // hunter (BLUE)
+                 3, new Occupant(Occupant.Kind.PAWN, 3_5), // fisher (PURPLE)
+                49, new Occupant(Occupant.Kind.PAWN, 49_2) // hunter (RED)
+        );
+
+        var unoccupyableTiles = Set.of(62);
+
+        var normalTilesIds = List.of(61, 55, 51, 18, 62, 1, 34, 67, 31, 3, 49);
+        var state = initialGameState(normalTilesIds, List.of());
+
+        state = truncateDeck(state, Tile.Kind.NORMAL, normalTilesIds.size() - 1);
+
+        var players = state.players();
+        var playersIt = Stream.generate(() -> players)
+                .flatMap(Collection::stream)
+                .iterator();
+
+        var nextPlacedTile = (Function<GameState, PlacedTile>) s -> {
+            var t = s.tileToPlace();
+            return new PlacedTile(t, playersIt.next(), Rotation.NONE, positions.get(t.id()));
+        };
+
+        // Place all tiles
+        for (int i = 0; i < positions.size(); i += 1) {
+            var placedTile = nextPlacedTile.apply(state);
+            state = state.withPlacedTile(placedTile);
+            if (!unoccupyableTiles.contains(placedTile.id()))
+                state = state.withNewOccupant(occupants.get(placedTile.id()));
+        }
+
+        var expectedPoints = Map.of(
+                PlayerColor.RED, 13,
+                PlayerColor.BLUE, 12,
+                PlayerColor.GREEN, 6,
+                PlayerColor.YELLOW, 1,
+                PlayerColor.PURPLE, 6);
+
+        var actualPoints = new HashMap<>(state.messageBoard().points());
+        actualPoints.values().removeIf(v -> v == 0);
+
+        assertEquals(Action.END_GAME, state.nextAction());
+        assertEquals(expectedPoints, actualPoints);
+        assertEquals("{RED}|13", state.messageBoard().messages().getLast().text());
+    }
+
+    @Test
+    void gameStateWithPlacedTileWorksAtEndOfGameWithFire() {
+        var positions = Map.ofEntries(
+                Map.entry(34, new Pos(-3, -1)),
+                Map.entry(67, new Pos(-2, -1)),
+                Map.entry(31, new Pos(-1, -1)),
+                Map.entry(85, new Pos(0, -1)), // WILD_FIRE
+                Map.entry(62, new Pos(-3, 0)),
+                Map.entry(18, new Pos(-2, 0)),
+                Map.entry(51, new Pos(-1, 0)),
+                Map.entry(1, new Pos(-3, 1)),
+                Map.entry(3, new Pos(-2, 1)),
+                Map.entry(49, new Pos(-1, 1)),
+                Map.entry(55, new Pos(0, 1)),
+                Map.entry(36, new Pos(-1, -2)));
+
+        var occupants = Map.of(
+                51, new Occupant(Occupant.Kind.PAWN, 51_0) // hunter (BLUE)
+        );
+
+        var unoccupyableTiles = Set.of(62, 85);
+
+        var normalTilesIds = List.of(55, 51, 18, 62, 1, 34, 67, 31, 36, 3, 49);
+        var state = initialGameState(normalTilesIds, List.of(85));
+
+        state = truncateDeck(state, Tile.Kind.NORMAL, normalTilesIds.size() - 1);
+
+        var players = state.players();
+        var playersIt = Stream.generate(() -> players)
+                .flatMap(Collection::stream)
+                .iterator();
+
+        var nextPlacedTile = (Function<GameState, PlacedTile>) s -> {
+            var t = s.tileToPlace();
+            var placer = switch (t.kind()) {
+                case NORMAL -> playersIt.next();
+                case MENHIR -> s.board().lastPlacedTile().placer();
+                default -> throw new Error();
+            };
+            return new PlacedTile(t, placer, Rotation.NONE, positions.get(t.id()));
+        };
+
+        // Place all tiles
+        for (int i = 0; i < positions.size(); i += 1) {
+            var placedTile = nextPlacedTile.apply(state);
+            state = state.withPlacedTile(placedTile);
+            if (!unoccupyableTiles.contains(placedTile.id()))
+                state = state.withNewOccupant(occupants.get(placedTile.id()));
+        }
+
+        var expectedPoints = Map.of(PlayerColor.BLUE, 7);
+
+        var actualPoints = new HashMap<>(state.messageBoard().points());
+        actualPoints.values().removeIf(v -> v == 0);
+
+        assertEquals(expectedPoints, actualPoints);
+    }
+
+    @Test
+    void gameStateWithPlacedTileWorksAtEndOfGameWithPitTrap() {
+        var positions = Map.ofEntries(
+                Map.entry(92, new Pos(-3, -1)), // PIT_TRAP
+                Map.entry(67, new Pos(-2, -1)),
+                Map.entry(31, new Pos(-1, -1)),
+                Map.entry(62, new Pos(0, -1)),
+                Map.entry(34, new Pos(-3, 0)),
+                Map.entry(18, new Pos(-2, 0)),
+                Map.entry(51, new Pos(-1, 0)),
+                Map.entry(1, new Pos(-3, 1)),
+                Map.entry(3, new Pos(-2, 1)),
+                Map.entry(49, new Pos(-1, 1)),
+                Map.entry(55, new Pos(0, 1)),
+                Map.entry(36, new Pos(-1, -2)));
+
+        var rotations = Map.of(92, Rotation.LEFT);
+
+        var occupants = Map.of(
+                62, new Occupant(Occupant.Kind.PAWN, 62_0) // hunter (RED)
+        );
+
+        var normalTilesIds = List.of(62, 55, 51, 18, 34, 1, 67, 31, 3, 49, 36);
+        var state = initialGameState(normalTilesIds, List.of(92));
+
+        state = truncateDeck(state, Tile.Kind.NORMAL, normalTilesIds.size() - 1);
+
+        var players = state.players();
+        var playersIt = Stream.generate(() -> players)
+                .flatMap(Collection::stream)
+                .iterator();
+
+        var nextPlacedTile = (Function<GameState, PlacedTile>) s -> {
+            var t = s.tileToPlace();
+            var r = rotations.getOrDefault(t.id(), Rotation.NONE);
+            return new PlacedTile(t, playersIt.next(), r, positions.get(t.id()));
+        };
+
+        // Place all tiles
+        for (int i = 0; i < positions.size(); i += 1) {
+            var placedTile = nextPlacedTile.apply(state);
+            state = state.withPlacedTile(placedTile)
+                    .withNewOccupant(occupants.get(placedTile.id()));
+        }
+
+        var expectedPoints = Map.of(PlayerColor.RED, 6);
+
+        var actualPoints = new HashMap<>(state.messageBoard().points());
+        actualPoints.values().removeIf(v -> v == 0);
+
+        assertEquals(Action.END_GAME, state.nextAction());
+        assertEquals(expectedPoints, actualPoints);
+        assertEquals("{RED}|6", state.messageBoard().messages().getLast().text());
+    }
+
+    @Test
+    void gameStateWithPlacedTileWorksAtEndOfGameWithRaft() {
+        var positions = Map.ofEntries(
+                Map.entry(34, new Pos(-3, -1)),
+                Map.entry(67, new Pos(-2, -1)),
+                Map.entry(31, new Pos(-1, -1)),
+                Map.entry(61, new Pos(0, -1)),
+                Map.entry(62, new Pos(-3, 0)),
+                Map.entry(18, new Pos(-2, 0)),
+                Map.entry(51, new Pos(-1, 0)),
+                Map.entry(1, new Pos(-3, 1)),
+                Map.entry(91, new Pos(-2, 1)), // RAFT
+                Map.entry(49, new Pos(-1, 1)),
+                Map.entry(55, new Pos(0, 1)),
+                Map.entry(36, new Pos(-1, -2)));
+
+        var occupants = Map.of(
+                51, new Occupant(Occupant.Kind.HUT, 51_1) // fisher's hut (GREEN)
+        );
+
+        var normalTilesIds = List.of(61, 55, 51, 18, 62, 1, 34, 67, 31, 49, 36);
+        var state = initialGameState(normalTilesIds, List.of(91));
+
+        state = truncateDeck(state, Tile.Kind.NORMAL, normalTilesIds.size() - 1);
+
+        var players = state.players();
+        var playersIt = Stream.generate(() -> players)
+                .flatMap(Collection::stream)
+                .iterator();
+
+        var nextPlacedTile = (Function<GameState, PlacedTile>) s -> {
+            var t = s.tileToPlace();
+            return new PlacedTile(t, playersIt.next(), Rotation.NONE, positions.get(t.id()));
+        };
+
+        // Place all tiles
+        for (int i = 0; i < positions.size(); i += 1) {
+            var placedTile = nextPlacedTile.apply(state);
+            state = state
+                    .withPlacedTile(placedTile)
+                    .withNewOccupant(occupants.get(placedTile.id()));
+        }
+
+        var expectedPoints = Map.of(PlayerColor.GREEN, 8);
+
+        var actualPoints = new HashMap<>(state.messageBoard().points());
+        actualPoints.values().removeIf(v -> v == 0);
+
+        assertEquals(Action.END_GAME, state.nextAction());
+        assertEquals(expectedPoints, actualPoints);
+        assertEquals("{GREEN}|8", state.messageBoard().messages().getLast().text());
+    }
+
+    private static GameState initialGameState(List<Integer> firstNormalTiles, List<Integer> firstMenhirTiles) {
+        return initialGameState(List.of(PlayerColor.values()), firstNormalTiles, firstMenhirTiles);
+    }
+
+    private static GameState initialGameState(List<PlayerColor> players,
+                                              List<Integer> firstNormalTiles,
+                                              List<Integer> firstMenhirTiles) {
+        var tileDecks = tileDecks(firstNormalTiles, firstMenhirTiles);
+
+        var startingTile = tileDecks.topTile(Tile.Kind.START);
+        var firstTileToPlace = tileDecks.topTile(Tile.Kind.NORMAL);
+        var tileDecks1 = tileDecks
+                .withTopTileDrawn(Tile.Kind.START)
+                .withTopTileDrawn(Tile.Kind.NORMAL);
+        var placedStartingTile = new PlacedTile(startingTile, null, Rotation.NONE, Pos.ORIGIN);
+        var board = Board.EMPTY.withNewTile(placedStartingTile);
+        var messageBoard = new MessageBoard(new BasicTextMaker(), List.of());
+        return new GameState(players, tileDecks1, firstTileToPlace, board, Action.PLACE_TILE, messageBoard);
+    }
+
+    private static GameState truncateDeck(GameState state, Tile.Kind deckKind, int deckSize) {
+        var decks1 = switch (state.tileDecks()) {
+            case TileDecks(List<Tile> s, List<Tile> n, List<Tile> m) when deckKind == Tile.Kind.NORMAL ->
+                    new TileDecks(s, n.subList(0, deckSize), m);
+            case TileDecks(List<Tile> s, List<Tile> n, List<Tile> m) when deckKind == Tile.Kind.MENHIR ->
+                    new TileDecks(s, n, m.subList(0, deckSize));
+            default -> throw new Error("cannot truncate that deck");
+        };
+        return new GameState(
+                state.players(),
+                decks1,
+                state.tileToPlace(),
+                state.board(),
+                state.nextAction(),
+                state.messageBoard());
+    }
+
+    private static TileDecks shuffledTileDecks() {
+        return shuffledTileDecks(2024);
+    }
+
+    private static TileDecks shuffledTileDecks(long shufflingSeed) {
+        var tileDecks = tileDecks(List.of(), List.of());
+        var random = new Random(shufflingSeed);
+
+        var shuffledNormalTiles = new ArrayList<>(tileDecks.normalTiles());
+        Collections.shuffle(shuffledNormalTiles, random);
+
+        var shuffledMenhirTiles = new ArrayList<>(tileDecks.menhirTiles());
+        Collections.shuffle(shuffledMenhirTiles, random);
+
+        return new TileDecks(
+                tileDecks.startTiles(),
+                List.copyOf(shuffledNormalTiles),
+                List.copyOf(shuffledMenhirTiles));
+    }
+
+    private static TileDecks tileDecks(List<Integer> firstNormalTiles, List<Integer> firstMenhirTiles) {
+        var partitionedTiles = allTiles().stream()
+                .collect(Collectors.groupingBy(Tile::kind));
+
+        var normalTiles = moveTilesToFront(partitionedTiles.get(Tile.Kind.NORMAL), firstNormalTiles);
+        var menhirTiles = moveTilesToFront(partitionedTiles.get(Tile.Kind.MENHIR), firstMenhirTiles);
+
+        return new TileDecks(
+                List.copyOf(partitionedTiles.get(Tile.Kind.START)),
+                List.copyOf(normalTiles),
+                List.copyOf(menhirTiles));
+    }
+
+    private static List<Tile> moveTilesToFront(List<Tile> tiles, List<Integer> tileIds) {
+        var reorderedTiles = new ArrayList<Tile>(Collections.nCopies(tileIds.size(), null));
+        for (var t : tiles) {
+            var i = tileIds.indexOf(t.id());
+            if (i == -1)
+                reorderedTiles.add(t);
+            else {
+                var oldTile = reorderedTiles.set(i, t);
+                assert oldTile == null;
             }
         }
+        return List.copyOf(reorderedTiles);
     }
 
-    // No explicit test for `withNewTile`, which is used extensively by other tests
-
-    @Test
-    void boardWithOccupantAddsOccupantToBoardAndPartition() {
-        var allTiles = allTiles();
-        var t56 = new PlacedTile(allTiles.get(56), null, Rotation.NONE, new Pos(0, 0));
-        var t17 = new PlacedTile(allTiles.get(17), PlayerColor.BLUE, Rotation.NONE, new Pos(-1, 0));
-        var t27 = new PlacedTile(allTiles.get(27), PlayerColor.GREEN, Rotation.NONE, new Pos(1, 0));
-
-        var occupant17 = new Occupant(Occupant.Kind.PAWN, 17_0);
-        var occupant27 = new Occupant(Occupant.Kind.PAWN, 27_3);
-
-        var board = Board.EMPTY
-                .withNewTile(t56)
-                .withNewTile(t17)
-                .withOccupant(occupant17)
-                .withNewTile(t27)
-                .withOccupant(occupant27);
-
-        var occupiedMeadow = board.meadowArea((Zone.Meadow) t17.zoneWithId(17_0));
-        assertEquals(List.of(PlayerColor.BLUE), occupiedMeadow.occupants());
-        assertEquals(occupant17, board.tileWithId(17).occupant());
-
-        var occupiedForest = board.forestArea((Zone.Forest) t27.zoneWithId(27_3));
-        assertEquals(List.of(PlayerColor.GREEN), occupiedForest.occupants());
-        assertEquals(occupant27, board.tileWithId(27).occupant());
-    }
-
-    @Test
-    void boardWithoutOccupantRemovesOccupantFromBoardAndPartition() {
-        var allTiles = allTiles();
-        var t56 = new PlacedTile(allTiles.get(56), null, Rotation.NONE, new Pos(0, 0));
-        var t17 = new PlacedTile(allTiles.get(17), PlayerColor.BLUE, Rotation.NONE, new Pos(-1, 0));
-        var t27 = new PlacedTile(allTiles.get(27), PlayerColor.GREEN, Rotation.NONE, new Pos(-2, 0));
-
-        var occupant17 = new Occupant(Occupant.Kind.PAWN, 17_3);
-        var occupant27 = new Occupant(Occupant.Kind.HUT, 27_1);
-
-        var board = Board.EMPTY
-                .withNewTile(t56)
-                .withNewTile(t17)
-                .withOccupant(occupant17)
-                .withNewTile(t27)
-                .withOccupant(occupant27)
-                .withoutOccupant(occupant17);
-
-        var unoccupiedRiver = board.riverArea((Zone.River) t17.zoneWithId(17_3));
-        assertEquals(List.of(), unoccupiedRiver.occupants());
-        assertNull(board.tileWithId(17).occupant());
-
-        var occupiedRiverSystem = board.riverSystemArea((Zone.River) t17.zoneWithId(17_3));
-        assertEquals(List.of(PlayerColor.GREEN), occupiedRiverSystem.occupants());
-        assertEquals(occupant27, board.tileWithId(27).occupant());
-    }
-
-    @Test
-    void boardWithoutGatherersOrFishersInWorksWithForest() {
-        var allTiles = allTiles();
-
-        var t56 = new PlacedTile(allTiles.get(56), null, Rotation.NONE, new Pos(0,0));
-        var t1 = new PlacedTile(allTiles.get(1), PlayerColor.RED, Rotation.NONE, new Pos(-1,0));
-        var t42 = new PlacedTile(allTiles.get(42), PlayerColor.GREEN, Rotation.NONE, new Pos(-1,1));
-        var t47 = new PlacedTile(allTiles.get(47), PlayerColor.BLUE, Rotation.RIGHT, new Pos(1,0));
-        var t28 = new PlacedTile(allTiles.get(28), PlayerColor.YELLOW, Rotation.RIGHT, new Pos(1,1));
-        var t58 = new PlacedTile(allTiles.get(58), PlayerColor.PURPLE, Rotation.NONE, new Pos(0,1));
-
-        var board = Board.EMPTY
-                .withNewTile(t56)
-                .withNewTile(t1)
-                .withOccupant(new Occupant(Occupant.Kind.PAWN, 1_3)) // gatherer
-                .withNewTile(t42)
-                .withOccupant(new Occupant(Occupant.Kind.PAWN, 42_1)) // hunter
-                .withNewTile(t47)
-                .withOccupant(new Occupant(Occupant.Kind.PAWN, 47_3)) // gatherer
-                .withNewTile(t28)
-                .withOccupant(new Occupant(Occupant.Kind.PAWN, 28_3)) // gatherer
-                .withNewTile(t58);
-
-        var forest56 = (Zone.Forest) t56.zoneWithId(56_1);
-        var meadow42 = (Zone.Meadow) t42.zoneWithId(42_1);
-
-        var occupiedForest = board.forestArea(forest56);
-        assertEquals(
-                List.of(PlayerColor.RED, PlayerColor.BLUE, PlayerColor.YELLOW),
-                occupiedForest.occupants());
-        assertEquals(List.of(PlayerColor.GREEN), board.meadowArea(meadow42).occupants());
-
-        var board1 = board.withoutGatherersOrFishersIn(Set.of(occupiedForest), Set.of());
-        assertEquals(List.of(), board1.forestArea(forest56).occupants());
-        assertEquals(List.of(PlayerColor.GREEN), board1.meadowArea(meadow42).occupants());
-    }
-
-    @Test
-    void boardWithMoreCancelledAnimalsWorks() {
-        var allTiles = allTiles();
-        var t56 = new PlacedTile(allTiles.get(56), null, Rotation.NONE, new Pos(0, 0));
-        var t17 = new PlacedTile(allTiles.get(17), PlayerColor.BLUE, Rotation.NONE, new Pos(-1, 0));
-        var t27 = new PlacedTile(allTiles.get(27), PlayerColor.GREEN, Rotation.NONE, new Pos(1, 0));
-
-        var board = Board.EMPTY
-                .withNewTile(t56)
-                .withNewTile(t17)
-                .withNewTile(t27);
-
-        var animalsToCancel = List.of(
-                new Animal(17_4_0, Animal.Kind.TIGER),
-                new Animal(56_0_0, Animal.Kind.AUROCHS),
-                new Animal(27_2_0, Animal.Kind.DEER),
-                new Animal(17_2_0, Animal.Kind.DEER));
-
-        for (int i = 0; i < animalsToCancel.size(); i += 1) {
-            assertEquals(Set.copyOf(animalsToCancel.subList(0, i)), board.cancelledAnimals());
-            board = board.withMoreCancelledAnimals(Set.of(animalsToCancel.get(i)));
+    private static class BasicTextMaker implements TextMaker {
+        private static String scorers(Set<PlayerColor> scorers) {
+            return scorers.stream()
+                    .sorted()
+                    .map(Object::toString)
+                    .collect(Collectors.joining(",", "{", "}"));
         }
-        assertEquals(Set.copyOf(animalsToCancel), board.cancelledAnimals());
-    }
 
-    @Test
-    void boardEqualsComparesByStructure() {
-        var allTiles = allTiles();
+        private static String animals(Map<Animal.Kind, Integer> animals) {
+            return Arrays.stream(Animal.Kind.values())
+                    .map(k -> animals.getOrDefault(k, 0) + "×" + k)
+                    .collect(Collectors.joining("/"));
+        }
 
-        var t56 = new PlacedTile(allTiles.get(56), null, Rotation.NONE, new Pos(0, 0));
-        var t17 = new PlacedTile(allTiles.get(17), PlayerColor.BLUE, Rotation.NONE, new Pos(-1, 0));
-        var t27 = new PlacedTile(allTiles.get(27), PlayerColor.GREEN, Rotation.NONE, new Pos(1, 0));
+        @Override
+        public String playerName(PlayerColor playerColor) {
+            return playerColor.name();
+        }
 
-        var board1 = Board.EMPTY
-                .withNewTile(t56)
-                .withNewTile(t17)
-                .withNewTile(t27);
+        @Override
+        public String points(int points) {
+            return String.valueOf(points);
+        }
 
-        var board2 = Board.EMPTY
-                .withNewTile(t56)
-                .withNewTile(t17)
-                .withNewTile(t27);
+        @Override
+        public String playerClosedForestWithMenhir(PlayerColor player) {
+            return playerName(player);
+        }
 
-        assertEquals(board1, board2);
-    }
+        @Override
+        public String playersScoredForest(Set<PlayerColor> scorers,
+                                          int points,
+                                          int mushroomGroupCount,
+                                          int tileCount) {
+            return String.join("|",
+                    scorers(scorers),
+                    points(points),
+                    String.valueOf(mushroomGroupCount),
+                    String.valueOf(tileCount));
+        }
 
-    @Test
-    void boardEqualsComparesAllComponents() {
-        var allTiles = allTiles();
+        @Override
+        public String playersScoredRiver(Set<PlayerColor> scorers,
+                                         int points,
+                                         int fishCount,
+                                         int tileCount) {
+            return String.join("|",
+                    scorers(scorers),
+                    points(points),
+                    String.valueOf(fishCount),
+                    String.valueOf(tileCount));
+        }
 
-        var t56 = new PlacedTile(allTiles.get(56), null, Rotation.NONE, new Pos(0, 0));
-        var t17 = new PlacedTile(allTiles.get(17), PlayerColor.BLUE, Rotation.NONE, new Pos(-1, 0));
-        var t27 = new PlacedTile(allTiles.get(27), PlayerColor.GREEN, Rotation.NONE, new Pos(1, 0));
+        @Override
+        public String playerScoredHuntingTrap(PlayerColor scorer,
+                                              int points,
+                                              Map<Animal.Kind, Integer> animals) {
+            return String.join("|",
+                    playerName(scorer),
+                    String.valueOf(points),
+                    animals(animals));
+        }
 
-        var board = Board.EMPTY
-                .withNewTile(t56)
-                .withNewTile(t17);
+        @Override
+        public String playerScoredLogboat(PlayerColor scorer, int points, int lakeCount) {
+            return String.join("|",
+                    playerName(scorer),
+                    points(points),
+                    String.valueOf(lakeCount));
+        }
 
-        assertNotEquals(board, board.withNewTile(t27));
-        assertNotEquals(board, board.withOccupant(new Occupant(Occupant.Kind.PAWN, 17_0)));
-        assertNotEquals(board, board.withMoreCancelledAnimals(Set.of(new Animal(17_4_0, Animal.Kind.TIGER))));
+        @Override
+        public String playersScoredMeadow(Set<PlayerColor> scorers,
+                                          int points,
+                                          Map<Animal.Kind, Integer> animals) {
+            return String.join(
+                    "|",
+                    scorers(scorers),
+                    points(points),
+                    animals(animals));
+        }
 
-        var board1 = Board.EMPTY
-                .withNewTile(t56)
-                .withNewTile(t17)
-                .withNewTile(t27);
-        var board2 = Board.EMPTY
-                .withNewTile(t56)
-                .withNewTile(t27)
-                .withNewTile(t17);
-        assertNotEquals(board1, board2);
-    }
+        @Override
+        public String playersScoredRiverSystem(Set<PlayerColor> scorers, int points, int fishCount) {
+            return String.join(
+                    "|",
+                    scorers(scorers),
+                    points(points),
+                    String.valueOf(fishCount));
+        }
 
-    @Test
-    void boardHashcodeHashedByStructure() {
-        var allTiles = allTiles();
+        @Override
+        public String playersScoredPitTrap(Set<PlayerColor> scorers,
+                                           int points,
+                                           Map<Animal.Kind, Integer> animals) {
+            return String.join("|",
+                    scorers(scorers),
+                    String.valueOf(points),
+                    animals(animals));
+        }
 
-        var t56 = new PlacedTile(allTiles.get(56), null, Rotation.NONE, new Pos(0, 0));
-        var t17 = new PlacedTile(allTiles.get(17), PlayerColor.BLUE, Rotation.NONE, new Pos(-1, 0));
-        var t27 = new PlacedTile(allTiles.get(27), PlayerColor.GREEN, Rotation.NONE, new Pos(1, 0));
+        @Override
+        public String playersScoredRaft(Set<PlayerColor> scorers, int points, int lakeCount) {
+            return String.join("|",
+                    scorers(scorers),
+                    String.valueOf(points),
+                    String.valueOf(lakeCount));
+        }
 
-        var board1 = Board.EMPTY
-                .withNewTile(t56)
-                .withNewTile(t17)
-                .withNewTile(t27);
+        @Override
+        public String playersWon(Set<PlayerColor> winners, int points) {
+            return String.join("|",
+                    scorers(winners),
+                    points(points));
+        }
 
-        var board2 = Board.EMPTY
-                .withNewTile(t56)
-                .withNewTile(t17)
-                .withNewTile(t27);
+        @Override
+        public String clickToOccupy() {
+            return "clickToOccupy";
+        }
 
-        assertEquals(board1.hashCode(), board2.hashCode());
+        @Override
+        public String clickToUnoccupy() {
+            return "clickToUnoccupy";
+        }
     }
 
     //<editor-fold desc="Tiles">

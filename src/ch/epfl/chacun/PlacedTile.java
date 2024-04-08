@@ -3,7 +3,6 @@ package ch.epfl.chacun;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Represents a tile that has been placed on the board.
@@ -17,6 +16,11 @@ import java.util.stream.Collectors;
  * @author Balthazar Baillat (sciper: 373420)
  */
 public record PlacedTile(Tile tile, PlayerColor placer, Rotation rotation, Pos pos, Occupant occupant) {
+
+    /**
+     * The maximum number of zones of a given type that can be present in a tile.
+     */
+    private static final int MAX_ZONE_TYPE_PER_TILE = 4;
 
     /**
      * Additional constructor to ease to creating tiles placed without an occupant.
@@ -84,8 +88,8 @@ public record PlacedTile(Tile tile, PlayerColor placer, Rotation rotation, Pos p
      * @throws IllegalArgumentException if the tile has no area with this id
      */
     public Zone zoneWithId(int id) {
-        return tile.zones().stream().filter(z -> z.id() == id).findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Unknown zone id: " + id));
+        return tile.zones().stream().filter(z -> z.id() == id)
+                .findFirst().orElseThrow(() -> new IllegalArgumentException("Unknown zone id: " + id));
     }
 
     /**
@@ -94,7 +98,8 @@ public record PlacedTile(Tile tile, PlayerColor placer, Rotation rotation, Pos p
      * @return the special power zone of the placed tile or null if there is none
      */
     public Zone specialPowerZone() {
-        return tile.zones().stream().filter(z -> z.specialPower() != null).findFirst().orElse(null);
+        return tile.zones().stream().filter(z -> z.specialPower() != null)
+                .findFirst().orElse(null);
     }
 
     /**
@@ -103,8 +108,12 @@ public record PlacedTile(Tile tile, PlayerColor placer, Rotation rotation, Pos p
      * @return all zones present in the tile that have the forest type
      */
     public Set<Zone.Forest> forestZones() {
-        return tile.zones().stream().filter(Zone.Forest.class::isInstance)
-                .map(Zone.Forest.class::cast).collect(Collectors.toSet());
+        Set<Zone.Forest> forestZones = new HashSet<>(MAX_ZONE_TYPE_PER_TILE);
+        for (Zone zone : tile.zones()) {
+            if (zone instanceof Zone.Forest forest)
+                forestZones.add(forest);
+        }
+        return forestZones;
     }
 
     /**
@@ -113,8 +122,12 @@ public record PlacedTile(Tile tile, PlayerColor placer, Rotation rotation, Pos p
      * @return all zones present in the tile that have the meadow type
      */
     public Set<Zone.Meadow> meadowZones() {
-        return tile.zones().stream().filter(Zone.Meadow.class::isInstance)
-                .map(Zone.Meadow.class::cast).collect(Collectors.toSet());
+        Set<Zone.Meadow> meadowZones = new HashSet<>(MAX_ZONE_TYPE_PER_TILE);
+        for (Zone zone : tile.zones()) {
+            if (zone instanceof Zone.Meadow meadow)
+                meadowZones.add(meadow);
+        }
+        return meadowZones;
     }
 
     /**
@@ -123,8 +136,12 @@ public record PlacedTile(Tile tile, PlayerColor placer, Rotation rotation, Pos p
      * @return all zones present in the tile that have the river type
      */
     public Set<Zone.River> riverZones() {
-        return tile.zones().stream().filter(Zone.River.class::isInstance)
-                .map(Zone.River.class::cast).collect(Collectors.toSet());
+        Set<Zone.River> riverZones = new HashSet<>(MAX_ZONE_TYPE_PER_TILE);
+        for (Zone zone : tile.zones()) {
+            if (zone instanceof Zone.River river)
+                riverZones.add(river);
+        }
+        return riverZones;
     }
 
     /**
@@ -139,13 +156,11 @@ public record PlacedTile(Tile tile, PlayerColor placer, Rotation rotation, Pos p
         if (placer != null) {
             for (Zone zone : tile.zones()) {
                 // A pawn can only be placed on a meadow, a forest or a river
-                if (!(zone instanceof Zone.Lake)) {
+                if (!(zone instanceof Zone.Lake))
                     potentialOccupants.add(new Occupant(Occupant.Kind.PAWN, zone.id()));
-                }
                 // A hut can only be placed on a lake or on a river if there's no lake
-                if (zone instanceof Zone.Lake || (zone instanceof Zone.River river && !river.hasLake())) {
+                if (zone instanceof Zone.Lake || (zone instanceof Zone.River river && !river.hasLake()))
                     potentialOccupants.add(new Occupant(Occupant.Kind.HUT, zone.id()));
-                }
             }
         }
         return potentialOccupants;
@@ -159,9 +174,7 @@ public record PlacedTile(Tile tile, PlayerColor placer, Rotation rotation, Pos p
      * @throws IllegalArgumentException if the tile already has an occupant
      */
     public PlacedTile withOccupant(Occupant occupant) {
-        if (this.occupant != null) {
-            throw new IllegalArgumentException("Tile already has an occupant");
-        }
+        Preconditions.checkArgument(this.occupant == null);
         return new PlacedTile(tile, placer, rotation, pos, occupant);
     }
 
@@ -182,9 +195,8 @@ public record PlacedTile(Tile tile, PlayerColor placer, Rotation rotation, Pos p
      * @return the id of the zone occupied by the given kind of occupant, or -1 if there is none
      */
     public int idOfZoneOccupiedBy(Occupant.Kind occupantKind) {
-        if (occupant != null && occupant.kind() == occupantKind) {
+        if (occupant != null && occupant.kind() == occupantKind)
             return occupant.zoneId();
-        }
         return -1;
     }
 

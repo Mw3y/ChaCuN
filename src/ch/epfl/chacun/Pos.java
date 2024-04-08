@@ -10,7 +10,9 @@ package ch.epfl.chacun;
  */
 public record Pos(int x, int y) {
 
-    // The origin of the board
+    /**
+     * The origin of the board
+     */
     public final static Pos ORIGIN = new Pos(0, 0);
 
     /**
