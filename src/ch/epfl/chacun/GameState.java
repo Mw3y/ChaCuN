@@ -355,11 +355,9 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
                         .withMoreCancelledAnimals(computeCancelledAnimals(meadow, 0));
                 // Check if the meadow contains a pit trap
                 if (meadow.tileIds().contains(PIT_TRAP_TILE_ID)) {
-
                     // Change the cancelled animals to optimize the points scored by the pit trap
                     updatedBoard = updatedBoard
                             .withMoreCancelledAnimals(computeCancelledAnimalsWithPitTrap(meadow, updatedBoard));
-
                 }
             }
             if (meadow.tileIds().contains(PIT_TRAP_TILE_ID)) {
