@@ -93,51 +93,64 @@ public final class TextMakerFr implements TextMaker {
 
     @Override
     public String playersScoredRiver(Set<PlayerColor> scorers, int points, int fishCount, int tileCount) {
-        return null;
+        return STR."\{playerNames(scorers)} \{conjugateEarn(scorers)} \{points(points)} en tant qu'" +
+                STR."\{plural("occupant·e", scorers)} \{plural("majoritaire", scorers)} d'une rivière " +
+                STR."composée de \{accord("tuile", tileCount)}" +
+                STR."\{fishCount > 0 ? STR." et contenant \{accord("poisson", fishCount)}" : ""}.";
     }
 
     @Override
     public String playerScoredHuntingTrap(PlayerColor scorer, int points, Map<Animal.Kind, Integer> animals) {
-        return null;
+        return STR."\{playerName(scorer)} a remporté \{points(points)} en plaçant la fosse à pieux dans un pré dans lequel elle " +
+                STR."est entourée de \{animalsWithQuantities(animals)}.";
     }
 
     @Override
     public String playerScoredLogboat(PlayerColor scorer, int points, int lakeCount) {
-        return null;
+        return STR."\{playerName(scorer)} a remporté \{points(points)} en plaçant la pirogue dans un réseau " +
+                STR."hydrographique contenant \{accord("lac", lakeCount)}.";
     }
 
     @Override
     public String playersScoredMeadow(Set<PlayerColor> scorers, int points, Map<Animal.Kind, Integer> animals) {
-        return null;
+        return STR."\{playerNames(scorers)} \{conjugateEarn(scorers)} \{points(points)} en tant qu'" +
+                STR."\{plural("occupant·e", scorers)} \{plural("majoritaire", scorers)} d'un pré contenant " +
+                STR."\{animalsWithQuantities(animals)}.";
     }
 
     @Override
     public String playersScoredRiverSystem(Set<PlayerColor> scorers, int points, int fishCount) {
-        return null;
+        return STR."\{playerNames(scorers)} \{conjugateEarn(scorers)} \{points(points)} en tant qu'" +
+                STR."\{plural("occupant·e", scorers)} \{plural("majoritaire", scorers)} d'un réseau " +
+                STR."hydrographique contenant \{accord("poisson", fishCount)}.";
     }
 
     @Override
     public String playersScoredPitTrap(Set<PlayerColor> scorers, int points, Map<Animal.Kind, Integer> animals) {
-        return null;
+        return STR."\{playerNames(scorers)} \{conjugateEarn(scorers)} \{points(points)} en tant qu'" +
+                STR."\{plural("occupant·e", scorers)} \{plural("majoritaire", scorers)} d'un pré contenant " +
+                STR."la grande fosse à pieux entourée de \{animalsWithQuantities(animals)}.";
     }
 
     @Override
     public String playersScoredRaft(Set<PlayerColor> scorers, int points, int lakeCount) {
-        return null;
+        return STR."\{playerNames(scorers)} \{conjugateEarn(scorers)} \{points(points)} en tant " +
+                STR."qu'\{plural("occupant·e", scorers)} \{plural("majoritaire", scorers)} " +
+                STR."d'un réseau hydrographique contenant le radeau et \{accord("lac", lakeCount)}.";
     }
 
     @Override
     public String playersWon(Set<PlayerColor> winners, int points) {
-        return null;
+        return STR."\{playerNames(winners)} \{conjugateEarn(winners)} la partie avec \{points(points)} !";
     }
 
     @Override
     public String clickToOccupy() {
-        return null;
+        return "Cliquez sur le pion ou la hutte que vous désirez placer, ou ici pour ne pas en placer.";
     }
 
     @Override
     public String clickToUnoccupy() {
-        return null;
+        return "Cliquez sur le pion que vous désirez reprendre, ou ici pour ne pas en reprendre.";
     }
 }
