@@ -350,15 +350,15 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
         for (Area<Zone.Meadow> meadow : board.meadowAreas()) {
             // Check that the meadow does not contain a wildfire
             if (!meadow.tileIds().contains(WILD_FIRE_TILE_ID)) {
-                // Determine the cancelled animals of the meadow
-                updatedBoard = updatedBoard
-                        .withMoreCancelledAnimals(computeCancelledAnimals(meadow, 0));
                 // Check if the meadow contains a pit trap
                 if (meadow.tileIds().contains(PIT_TRAP_TILE_ID)) {
                     // Change the cancelled animals to optimize the points scored by the pit trap
                     updatedBoard = updatedBoard
                             .withMoreCancelledAnimals(computeCancelledAnimalsWithPitTrap(meadow, updatedBoard));
                 }
+                // Determine the cancelled animals of the meadow
+                updatedBoard = updatedBoard
+                        .withMoreCancelledAnimals(computeCancelledAnimals(meadow, 0));
             }
             if (meadow.tileIds().contains(PIT_TRAP_TILE_ID)) {
                 Area<Zone.Meadow> adjacentMeadow = updatedBoard
@@ -449,7 +449,7 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
         // Subtract the number of deer which are out of the pit trap reach from the tiger number
         tigerNb -= getAnimalsOfKind(Area.animals(outOfReachMeadowArea, Set.of()), Animal.Kind.DEER).size();
         // Add the remaining cancelled animals from the adjacent meadows
-        cancelledAnimals.addAll(computeCancelledAnimals(adjacentMeadowArea, tigerNb));
+        //cancelledAnimals.addAll(computeCancelledAnimals(adjacentMeadowArea, tigerNb));
         return cancelledAnimals;
     }
 
