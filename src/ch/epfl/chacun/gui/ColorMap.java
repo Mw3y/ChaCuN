@@ -14,7 +14,7 @@ public final class ColorMap {
     /**
      * The opacity factor to use for the stroke color.
      */
-    private static final double STROKE_OPACITY_FACTOR = .6;
+    private static final double STROKE_BRIGHTNESS_FACTOR = .6;
 
     /**
      * Non-instantiable class constructor
@@ -48,7 +48,7 @@ public final class ColorMap {
         // For better contrast with light colors, use a darker stroke color
         if (playerColor == PlayerColor.YELLOW || playerColor == PlayerColor.GREEN)
             return fillColor(playerColor)
-                    .deriveColor(0, 1, 1, STROKE_OPACITY_FACTOR);
+                    .deriveColor(0, 1, STROKE_BRIGHTNESS_FACTOR, 1);
         // For dark colors, use a lighter stroke color
         return Color.WHITE;
     }
