@@ -14,27 +14,27 @@ public final class TextMakerFr implements TextMaker {
     private final Map<PlayerColor, String> players;
 
     public TextMakerFr(Map<PlayerColor, String> players) {
-        this.players = players;
+        this.players = new HashMap<>(players);
     }
 
-    private String plural(String word, boolean isPlural) {
+    private String pluralize(String word, boolean isPlural) {
         boolean isInclusive = word.contains("·");
         return isPlural ? STR."\{word}\{isInclusive ? "·" : ""}s" : word;
     }
 
-    private <E> String plural(String word, Collection<E> values) {
-        return plural(word, values.size() > 1);
+    private <E> String pluralize(String word, Collection<E> values) {
+        return pluralize(word, values.size() > 1);
     }
 
     private String accord(String word, int value) {
-        return STR."\{value} \{plural(word, value > 1)}";
+        return STR."\{value} \{pluralize(word, value > 1)}";
     }
 
     private String conjugateEarn(Set<PlayerColor> players) {
         return players.size() > 1 ? "ont remporté" : "a remporté";
     }
 
-    private String naturalJoin(List<String> strings) {
+    private String humanizedJoin(List<String> strings) {
         Preconditions.checkArgument(!strings.isEmpty());
         if (strings.size() == 2) {
             return String.join(" et ", strings);
@@ -46,12 +46,12 @@ public final class TextMakerFr implements TextMaker {
         return strings.getFirst();
     }
 
-    private String playerNames(Set<PlayerColor> playerColors) {
-        return naturalJoin(playerColors.stream().sorted().map(this::playerName).toList());
+    private String joinPlayerNames(Set<PlayerColor> playerColors) {
+        return humanizedJoin(playerColors.stream().sorted().map(this::playerName).toList());
     }
 
-    private String animalsWithQuantities(Map<Animal.Kind, Integer> animals) {
-        return naturalJoin(animals.entrySet().stream()
+    private String joinAnimalsWithQuantities(Map<Animal.Kind, Integer> animals) {
+        return humanizedJoin(animals.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
                 .filter(e -> e.getValue() > 0)
                 .map(e -> accord(getAnimalName(e.getKey()), e.getValue()))
@@ -86,23 +86,25 @@ public final class TextMakerFr implements TextMaker {
     public String playersScoredForest(Set<PlayerColor> scorers, int points, int mushroomGroupCount, int tileCount) {
         String mushrooms = mushroomGroupCount > 0 ?
                 STR." et de \{accord("groupe", mushroomGroupCount)} de champignons" : "";
-        return STR."\{playerNames(scorers)} \{conjugateEarn(scorers)} \{points(points)} en tant " +
-                STR."qu'\{plural("occupant·e", scorers)} \{plural("majoritaire", scorers)} d'une forêt " +
+        return STR."\{joinPlayerNames(scorers)} \{conjugateEarn(scorers)} \{points(points)} en tant " +
+                STR."qu'\{pluralize("occupant·e", scorers)} " +
+                STR."\{pluralize("majoritaire", scorers)} d'une forêt " +
                 STR."composée de \{accord("tuile", tileCount)}\{mushroomGroupCount > 0 ? mushrooms : ""}.";
     }
 
     @Override
     public String playersScoredRiver(Set<PlayerColor> scorers, int points, int fishCount, int tileCount) {
-        return STR."\{playerNames(scorers)} \{conjugateEarn(scorers)} \{points(points)} en tant qu'" +
-                STR."\{plural("occupant·e", scorers)} \{plural("majoritaire", scorers)} d'une rivière " +
+        return STR."\{joinPlayerNames(scorers)} \{conjugateEarn(scorers)} \{points(points)} en tant qu'" +
+                STR."\{pluralize("occupant·e", scorers)} " +
+                STR."\{pluralize("majoritaire", scorers)} d'une rivière " +
                 STR."composée de \{accord("tuile", tileCount)}" +
                 STR."\{fishCount > 0 ? STR." et contenant \{accord("poisson", fishCount)}" : ""}.";
     }
 
     @Override
     public String playerScoredHuntingTrap(PlayerColor scorer, int points, Map<Animal.Kind, Integer> animals) {
-        return STR."\{playerName(scorer)} a remporté \{points(points)} en plaçant la fosse à pieux dans un pré dans lequel elle " +
-                STR."est entourée de \{animalsWithQuantities(animals)}.";
+        return STR."\{playerName(scorer)} a remporté \{points(points)} en plaçant la fosse à pieux dans un pré " +
+                STR."dans lequel elle est entourée de \{joinAnimalsWithQuantities(animals)}.";
     }
 
     @Override
@@ -113,35 +115,39 @@ public final class TextMakerFr implements TextMaker {
 
     @Override
     public String playersScoredMeadow(Set<PlayerColor> scorers, int points, Map<Animal.Kind, Integer> animals) {
-        return STR."\{playerNames(scorers)} \{conjugateEarn(scorers)} \{points(points)} en tant qu'" +
-                STR."\{plural("occupant·e", scorers)} \{plural("majoritaire", scorers)} d'un pré contenant " +
-                STR."\{animalsWithQuantities(animals)}.";
+        return STR."\{joinPlayerNames(scorers)} \{conjugateEarn(scorers)} \{points(points)} en tant qu'" +
+                STR."\{pluralize("occupant·e", scorers)} " +
+                STR."\{pluralize("majoritaire", scorers)} d'un pré contenant " +
+                STR."\{joinAnimalsWithQuantities(animals)}.";
     }
 
     @Override
     public String playersScoredRiverSystem(Set<PlayerColor> scorers, int points, int fishCount) {
-        return STR."\{playerNames(scorers)} \{conjugateEarn(scorers)} \{points(points)} en tant qu'" +
-                STR."\{plural("occupant·e", scorers)} \{plural("majoritaire", scorers)} d'un réseau " +
+        return STR."\{joinPlayerNames(scorers)} \{conjugateEarn(scorers)} \{points(points)} en tant qu'" +
+                STR."\{pluralize("occupant·e", scorers)} " +
+                STR."\{pluralize("majoritaire", scorers)} d'un réseau " +
                 STR."hydrographique contenant \{accord("poisson", fishCount)}.";
     }
 
     @Override
     public String playersScoredPitTrap(Set<PlayerColor> scorers, int points, Map<Animal.Kind, Integer> animals) {
-        return STR."\{playerNames(scorers)} \{conjugateEarn(scorers)} \{points(points)} en tant qu'" +
-                STR."\{plural("occupant·e", scorers)} \{plural("majoritaire", scorers)} d'un pré contenant " +
-                STR."la grande fosse à pieux entourée de \{animalsWithQuantities(animals)}.";
+        return STR."\{joinPlayerNames(scorers)} \{conjugateEarn(scorers)} \{points(points)} " +
+                STR."en tant qu'\{pluralize("occupant·e", scorers)} " +
+                STR."\{pluralize("majoritaire", scorers)} d'un pré contenant " +
+                STR."la grande fosse à pieux entourée de \{joinAnimalsWithQuantities(animals)}.";
     }
 
     @Override
     public String playersScoredRaft(Set<PlayerColor> scorers, int points, int lakeCount) {
-        return STR."\{playerNames(scorers)} \{conjugateEarn(scorers)} \{points(points)} en tant " +
-                STR."qu'\{plural("occupant·e", scorers)} \{plural("majoritaire", scorers)} " +
+        return STR."\{joinPlayerNames(scorers)} \{conjugateEarn(scorers)} \{points(points)} en tant " +
+                STR."qu'\{pluralize("occupant·e", scorers)} " +
+                STR."\{pluralize("majoritaire", scorers)} " +
                 STR."d'un réseau hydrographique contenant le radeau et \{accord("lac", lakeCount)}.";
     }
 
     @Override
     public String playersWon(Set<PlayerColor> winners, int points) {
-        return STR."\{playerNames(winners)} \{conjugateEarn(winners)} la partie avec \{points(points)} !";
+        return STR."\{joinPlayerNames(winners)} \{conjugateEarn(winners)} la partie avec \{points(points)} !";
     }
 
     @Override
