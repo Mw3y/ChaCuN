@@ -19,6 +19,11 @@ import java.util.stream.Collectors;
 public record PlacedTile(Tile tile, PlayerColor placer, Rotation rotation, Pos pos, Occupant occupant) {
 
     /**
+     * The maximum number of zones of a given type that can be present in a tile.
+     */
+    private static final int MAX_ZONE_TYPE_PER_TILE = 4;
+
+    /**
      * Additional constructor to ease to creating tiles placed without an occupant.
      *
      * @param tile     the tile that has been placed
@@ -103,8 +108,12 @@ public record PlacedTile(Tile tile, PlayerColor placer, Rotation rotation, Pos p
      * @return all zones present in the tile that have the forest type
      */
     public Set<Zone.Forest> forestZones() {
-        return tile.zones().stream().filter(Zone.Forest.class::isInstance)
-                .map(Zone.Forest.class::cast).collect(Collectors.toSet());
+        Set<Zone.Forest> forestZones = new HashSet<>(MAX_ZONE_TYPE_PER_TILE);
+        for (Zone zone : tile.zones()) {
+            if (zone instanceof Zone.Forest forest)
+                forestZones.add(forest);
+        }
+        return forestZones;
     }
 
     /**
@@ -113,8 +122,12 @@ public record PlacedTile(Tile tile, PlayerColor placer, Rotation rotation, Pos p
      * @return all zones present in the tile that have the meadow type
      */
     public Set<Zone.Meadow> meadowZones() {
-        return tile.zones().stream().filter(Zone.Meadow.class::isInstance)
-                .map(Zone.Meadow.class::cast).collect(Collectors.toSet());
+        Set<Zone.Meadow> meadowZones = new HashSet<>(MAX_ZONE_TYPE_PER_TILE);
+        for (Zone zone : tile.zones()) {
+            if (zone instanceof Zone.Meadow meadow)
+                meadowZones.add(meadow);
+        }
+        return meadowZones;
     }
 
     /**
@@ -123,8 +136,12 @@ public record PlacedTile(Tile tile, PlayerColor placer, Rotation rotation, Pos p
      * @return all zones present in the tile that have the river type
      */
     public Set<Zone.River> riverZones() {
-        return tile.zones().stream().filter(Zone.River.class::isInstance)
-                .map(Zone.River.class::cast).collect(Collectors.toSet());
+        Set<Zone.River> riverZones = new HashSet<>(MAX_ZONE_TYPE_PER_TILE);
+        for (Zone zone : tile.zones()) {
+            if (zone instanceof Zone.River river)
+                riverZones.add(river);
+        }
+        return riverZones;
     }
 
     /**
