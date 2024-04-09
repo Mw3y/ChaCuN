@@ -3,7 +3,11 @@ package ch.epfl.chacun;
 import java.util.Map;
 import java.util.Set;
 
-
+/**
+ * A text maker. It is responsible for generating the text of messages that are displayed to the players.
+ *
+ * @author Michel Schinz (sciper: 103610)
+ */
 public interface TextMaker {
     /**
      * Returns the name of the player of the given color.

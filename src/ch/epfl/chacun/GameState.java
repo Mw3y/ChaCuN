@@ -123,7 +123,8 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
             // Prevent the player from placing a pawn on a zone within an occupied area
             return switch (zone) {
                 case Zone.Forest forest -> board.forestArea(forest).isOccupied();
-                case Zone.River river when occupant.kind() == Occupant.Kind.PAWN -> board.riverArea(river).isOccupied();
+                case Zone.River river when occupant.kind() == Occupant.Kind.PAWN ->
+                        board.riverArea(river).isOccupied();
                 case Zone.Meadow meadow -> board.meadowArea(meadow).isOccupied();
                 case Zone.Water water -> board.riverSystemArea(water).isOccupied();
             };
@@ -275,7 +276,7 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
      * - Determines whether the current player can play again.<p>
      * - Draws from the deck containing the next tile to place all the tiles which can't be placed.<p>
      * - Pass to the next player if the current one can't play again.<p>
-     * - Ends the game when the there is no more normal tiles to place.
+     * - Ends the game when there is no more normal tiles to place.
      *
      * @return an updated game state
      */
@@ -337,7 +338,7 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
      * Manages the attribution of the points at the end of the game.
      * <p>
      * Attributes the points given by : <p>
-     * - the meadows, considering the presence of the wildfire or the pit trap.<p>
+     * - the meadows, considering the presence of the wildfire and the pit trap.<p>
      * - the river systems, considering the presence of the raft.<p>
      * Determines the winners of the game.
      *
@@ -360,10 +361,13 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
                 updatedBoard = updatedBoard
                         .withMoreCancelledAnimals(computeCancelledAnimals(meadow, 0));
             }
+            // Check if the meadow contains a pit trap
             if (meadow.tileIds().contains(PIT_TRAP_TILE_ID)) {
+                // Determine the adjacent meadows of the pit trap
                 Area<Zone.Meadow> adjacentMeadow = updatedBoard
                         .adjacentMeadow(updatedBoard.tileWithId(PIT_TRAP_TILE_ID).pos(),
                                 (Zone.Meadow) meadow.zoneWithSpecialPower(Zone.SpecialPower.PIT_TRAP));
+                // Attribute points scored by the pit trap
                 updatedMessageBoard = updatedMessageBoard
                         .withScoredPitTrap(adjacentMeadow, updatedBoard.cancelledAnimals());
             }
@@ -449,7 +453,7 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
         // Subtract the number of deer which are out of the pit trap reach from the tiger number
         tigerNb -= getAnimalsOfKind(Area.animals(outOfReachMeadowArea, Set.of()), Animal.Kind.DEER).size();
         // Add the remaining cancelled animals from the adjacent meadows
-        //cancelledAnimals.addAll(computeCancelledAnimals(adjacentMeadowArea, tigerNb));
+        if (tigerNb > 0) cancelledAnimals.addAll(computeCancelledAnimals(adjacentMeadowArea, tigerNb));
         return cancelledAnimals;
     }
 
