@@ -114,7 +114,6 @@ public final class TextMakerFr implements TextMaker {
      */
     private String joinAnimalsWithQuantities(Map<Animal.Kind, Integer> animals) {
         return humanizedJoin(animals.entrySet().stream()
-                .filter(e -> e.getValue() > 0)
                 .sorted(Map.Entry.comparingByKey())
                 .map(e -> accord(animalNames.get(e.getKey()), e.getValue()))
                 .toList());
