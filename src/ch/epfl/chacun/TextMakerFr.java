@@ -4,12 +4,14 @@ import java.util.*;
 
 /**
  * Implementation of the French text maker.
+ * <p>
  * It generates the text of French messages that are displayed to the players.
  *
  * @author Maxence Espagnet (sciper: 372808)
  * @author Balthazar Baillat (sciper: 373420)
  */
 public final class TextMakerFr implements TextMaker {
+
     /**
      * The names of the animals in French.
      */

@@ -10,7 +10,7 @@ import java.util.Set;
  * @param id   the id of the tile
  * @param kind the kind of the tile
  * @param n    north side of the tile
- * @param e    east side od^f the tile
+ * @param e    east side of the tile
  * @param s    south side of the tile
  * @param w    west side of the tile
  * @author Maxence Espagnet (sciper: 372808)

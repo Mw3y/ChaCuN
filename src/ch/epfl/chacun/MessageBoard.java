@@ -7,6 +7,8 @@ import java.util.*;
  *
  * @param textMaker the text maker used to create the messages
  * @param messages  the list of messages on the message board
+ * @author Maxence Espagnet (sciper: 372808)
+ * @author Balthazar Baillat (sciper: 373420)
  */
 public record MessageBoard(TextMaker textMaker, List<Message> messages) {
 
@@ -25,9 +27,8 @@ public record MessageBoard(TextMaker textMaker, List<Message> messages) {
     public Map<PlayerColor, Integer> points() {
         Map<PlayerColor, Integer> scorers = new HashMap<>();
         for (Message message : messages) {
-            for (PlayerColor scorer : message.scorers) {
+            for (PlayerColor scorer : message.scorers)
                 scorers.merge(scorer, message.points, Integer::sum);
-            }
         }
         return scorers;
     }
@@ -309,6 +310,9 @@ public record MessageBoard(TextMaker textMaker, List<Message> messages) {
 
         /**
          * Validates the given text, points, scorers and tileIds.
+         *
+         * @throws NullPointerException     if the text is null
+         * @throws IllegalArgumentException if the points are negative
          */
         public Message {
             Objects.requireNonNull(text);
@@ -317,7 +321,6 @@ public record MessageBoard(TextMaker textMaker, List<Message> messages) {
             scorers = Set.copyOf(scorers);
             tileIds = Set.copyOf(tileIds);
         }
-
 
     }
 

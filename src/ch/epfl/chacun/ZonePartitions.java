@@ -19,7 +19,8 @@ public record ZonePartitions(ZonePartition<Zone.Forest> forests, ZonePartition<Z
     /**
      * Represent a group of four empty partitions
      */
-    public final static ZonePartitions EMPTY = new ZonePartitions(new ZonePartition<>(), new ZonePartition<>(), new ZonePartition<>(), new ZonePartition<>());
+    public final static ZonePartitions EMPTY = new ZonePartitions(new ZonePartition<>(),
+            new ZonePartition<>(), new ZonePartition<>(), new ZonePartition<>());
 
     /**
      * Represents the builder of zone partitions.
@@ -95,8 +96,7 @@ public record ZonePartitions(ZonePartition<Zone.Forest> forests, ZonePartition<Z
                             }
                             // Create the union between the river and the lake
                             riverSystems.union(r, r.lake());
-                        }
-                        else {
+                        } else {
                             rivers.addSingleton(r, openConnections[r.localId()]);
                             riverSystems.addSingleton(r, openConnections[r.localId()]);
                         }

@@ -30,7 +30,8 @@ public final class Points {
     /**
      * Private constructor to prevent instantiation.
      */
-    private Points() {}
+    private Points() {
+    }
 
     /**
      * Returns the number of points obtained by the majority pickers in a closed
@@ -44,7 +45,8 @@ public final class Points {
     public static int forClosedForest(int tileCount, int mushroomGroupCount) {
         Preconditions.checkArgument(tileCount > 1);
         Preconditions.checkArgument(mushroomGroupCount >= 0);
-        return CLOSED_FOREST_POINTS_BY_MAJORITY_OCCUPANTS * tileCount + CLOSED_FOREST_POINTS_BY_MUSHROOM * mushroomGroupCount;
+        return CLOSED_FOREST_POINTS_BY_MAJORITY_OCCUPANTS * tileCount
+                + CLOSED_FOREST_POINTS_BY_MUSHROOM * mushroomGroupCount;
     }
 
     /**
@@ -81,7 +83,8 @@ public final class Points {
         Preconditions.checkArgument(mammothCount >= 0);
         Preconditions.checkArgument(aurochsCount >= 0);
         Preconditions.checkArgument(deerCount >= 0);
-        return MEADOW_POINTS_BY_MAMMOTH * mammothCount + MEADOW_POINTS_BY_AUROCHS * aurochsCount + MEADOW_POINTS_BY_DEER * deerCount;
+        return MEADOW_POINTS_BY_MAMMOTH * mammothCount
+                + MEADOW_POINTS_BY_AUROCHS * aurochsCount + MEADOW_POINTS_BY_DEER * deerCount;
     }
 
     /**

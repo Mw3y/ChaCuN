@@ -73,9 +73,8 @@ public final class Board {
      */
     public PlacedTile tileAt(Pos pos) {
         int index = calculateRowMajorIndex(pos);
-        if (index < 0 || index >= placedTiles.length) {
+        if (index < 0 || index >= placedTiles.length)
             return null;
-        }
         return placedTiles[index];
     }
 
@@ -89,9 +88,8 @@ public final class Board {
     public PlacedTile tileWithId(int tileId) {
         for (int placedTileIndex : tileIndices) {
             PlacedTile placedTile = placedTiles[placedTileIndex];
-            if (placedTile.tile().id() == tileId) {
+            if (placedTile.tile().id() == tileId)
                 return placedTile;
-            }
         }
         throw new IllegalArgumentException("No tile with given id found.");
     }
@@ -198,9 +196,8 @@ public final class Board {
             // Check if the given tile is adjacent to the given one
             int dX = Math.abs(pos.x() - tile.pos().x());
             int dY = Math.abs(pos.y() - tile.pos().y());
-            if (dX <= 1 && dY <= 1) {
+            if (dX <= 1 && dY <= 1)
                 adjacentZones.add(zone);
-            }
         }
         // Create the adjacent area, with the same occupants
         return new Area<>(adjacentZones, originalArea.occupants(), 0);
@@ -239,9 +236,8 @@ public final class Board {
             PlacedTile placedTile = placedTiles[placedTileIndex];
             for (Direction direction : Direction.ALL) {
                 Pos neighbor = placedTile.pos().neighbor(direction);
-                if (tileAt(neighbor) == null && isPosWithinBoard(neighbor)) {
+                if (tileAt(neighbor) == null && isPosWithinBoard(neighbor))
                     insertionPositions.add(neighbor);
-                }
             }
         }
         return insertionPositions;
@@ -256,9 +252,8 @@ public final class Board {
      * @return the last placed tile on the board
      */
     public PlacedTile lastPlacedTile() {
-        if (tileIndices.length > 0) {
+        if (tileIndices.length > 0)
             return placedTiles[tileIndices[tileIndices.length - 1]];
-        }
         return null;
     }
 
@@ -299,13 +294,12 @@ public final class Board {
      * an edge of a tile already placed is of the same kind as it.
      *
      * @param tile the placed tile to check
-     * @return true if the given placed tile can be added to the board
+     * @return {@code true} if the given placed tile can be added to the board
      */
     public boolean canAddTile(PlacedTile tile) {
         // Check if the tile cannot be placed on the board
-        if (!insertionPositions().contains(tile.pos()) || tileAt(tile.pos()) != null) {
+        if (!insertionPositions().contains(tile.pos()) || tileAt(tile.pos()) != null)
             return false;
-        }
         // Check for potential conflicts with adjacent tiles
         for (Direction direction : Direction.ALL) {
             Pos neighbor = tile.pos().neighbor(direction);
@@ -313,9 +307,8 @@ public final class Board {
             if (neighborTile != null) {
                 TileSide neighborSide = neighborTile.side(direction.opposite());
                 TileSide tileSide = tile.side(direction);
-                if (!tileSide.isSameKindAs(neighborSide)) {
+                if (!tileSide.isSameKindAs(neighborSide))
                     return false;
-                }
             }
         }
         return true;
@@ -332,9 +325,8 @@ public final class Board {
         for (Pos insertionPosition : insertionPositions()) {
             for (Rotation rotation : Rotation.ALL) {
                 PlacedTile potentialTile = new PlacedTile(tile, null, rotation, insertionPosition);
-                if (canAddTile(potentialTile)) {
+                if (canAddTile(potentialTile))
                     return true;
-                }
             }
         }
         return false;
@@ -376,6 +368,7 @@ public final class Board {
      *
      * @param occupant the occupant to place
      * @return the same board, but with the given occupant on the given tile
+     * @throws IllegalArgumentException if an occupant is already on the tile
      */
     public Board withOccupant(Occupant occupant) {
         PlacedTile placedTile = tileWithId(Zone.tileId(occupant.zoneId()));

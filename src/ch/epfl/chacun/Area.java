@@ -23,7 +23,6 @@ public record Area<Z extends Zone>(Set<Z> zones, List<PlayerColor> occupants, in
      */
     public Area {
         Preconditions.checkArgument(openConnections >= 0);
-
         zones = Set.copyOf(zones);
         occupants = new ArrayList<>(occupants);
         Collections.sort(occupants);
@@ -145,9 +144,8 @@ public record Area<Z extends Zone>(Set<Z> zones, List<PlayerColor> occupants, in
         // Find the majority occupants
         Set<PlayerColor> majorityOccupants = new HashSet<>();
         for (int i = 0; i < occupantCount.length; i++) {
-            if (occupantCount[i] == max) {
+            if (occupantCount[i] == max)
                 majorityOccupants.add(PlayerColor.ALL.get(i));
-            }
         }
 
         return majorityOccupants;
@@ -222,7 +220,6 @@ public record Area<Z extends Zone>(Set<Z> zones, List<PlayerColor> occupants, in
      */
     public Set<Integer> tileIds() {
         return zones.stream().map(Zone::tileId).collect(Collectors.toSet());
-
     }
 
     /**
