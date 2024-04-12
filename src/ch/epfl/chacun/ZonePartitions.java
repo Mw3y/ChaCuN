@@ -101,8 +101,8 @@ public record ZonePartitions(ZonePartition<Zone.Forest> forests, ZonePartition<Z
                             riverSystems.addSingleton(r, openConnections[r.localId()]);
                         }
                     }
-                    // A lake should not be in the side zones
-                    default -> throw new IllegalArgumentException("A lake shouldn't be in the side zones");
+                    default -> {
+                    }
                 }
             }
         }
