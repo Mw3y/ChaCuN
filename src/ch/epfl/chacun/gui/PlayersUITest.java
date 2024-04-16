@@ -6,6 +6,7 @@ import javafx.application.Application;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.scene.Scene;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 import java.util.*;
@@ -18,8 +19,8 @@ public final class PlayersUITest extends Application {
 
     @Override
     public void start(Stage primaryStage) throws InterruptedException {
-        var playerNames = Map.of(PlayerColor.RED, "Rose",
-                PlayerColor.BLUE, "Bernard");
+        var playerNames = Map.of(PlayerColor.BLUE, "Bernard", PlayerColor.RED, "Rose"
+                );
         var playerColors = playerNames.keySet().stream()
                 .sorted()
                 .toList();
@@ -67,8 +68,9 @@ public final class PlayersUITest extends Application {
         var normalTilesIds = List.of(61, 55, 51, 18, 62, 1, 34, 67, 31, 3, 49);
         var gameStateO = new SimpleObjectProperty<>(initialGameState(playerNames, normalTilesIds, List.of()));
         var playersNode = PlayersUI.create(gameStateO, textMaker);
-        var rootNode = new BorderPane(playersNode);
-        primaryStage.setScene(new Scene(rootNode, 500, 500));
+        var messagesNode = MessageBoardUI.create(gameStateO.map(g -> g.messageBoard().messages()), new SimpleObjectProperty<>(Set.of()));
+        var rootNode = new VBox(playersNode, messagesNode);
+        primaryStage.setScene(new Scene(rootNode, 320, 720));
 
         primaryStage.setTitle("ChaCuN test");
         primaryStage.show();
@@ -86,12 +88,13 @@ public final class PlayersUITest extends Application {
         };
 
         // Place all tiles
-        for (int i = 0; i < positions.size() -1; i += 1) {
+        for (int i = 0; i < positions.size(); i += 1) {
             var placedTile = nextPlacedTile.apply(gameStateO.getValue());
             gameStateO.setValue(gameStateO.getValue().withPlacedTile(placedTile));
             if (!unoccupyableTiles.contains(placedTile.id()))
                 gameStateO.setValue(gameStateO.getValue().withNewOccupant(occupants.get(placedTile.id())));
         }
+        System.out.println(gameStateO.getValue().board());
     }
 
     private static GameState initialGameState(Map<PlayerColor, String> players,
