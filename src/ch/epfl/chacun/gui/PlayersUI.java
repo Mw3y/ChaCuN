@@ -14,6 +14,9 @@ import javafx.scene.shape.Circle;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
 
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -24,6 +27,8 @@ import java.util.Map;
  */
 public final class PlayersUI {
 
+    private static final float OCCUPANT_USED_OPACITY = 0.1f;
+
     /**
      * Non-instantiable class constructor
      */
@@ -33,52 +38,62 @@ public final class PlayersUI {
     public static Node create(ObservableValue<GameState> gameStateO, TextMaker textMaker) {
         VBox scene = new VBox();
         scene.setId("players");
-        scene.getStylesheets().add(PlayersUI.class.getResource("/players.css").toExternalForm());
+        // Add the CSS to the scene
+        URL sceneStyle = PlayersUI.class.getResource("/players.css");
+        scene.getStylesheets().add(sceneStyle.toExternalForm());
 
+        // General reactive state
         ObservableValue<PlayerColor> currentPlayerO =
                 gameStateO.map(GameState::currentPlayer);
-
         ObservableValue<Map<PlayerColor, Integer>> pointsO =
                 gameStateO.map((GameState gameState) -> gameState.messageBoard().points());
 
+        // Create the UI for each player
         for (PlayerColor playerColor : gameStateO.getValue().players()) {
             String playerName = textMaker.playerName(playerColor);
             TextFlow textFlow = new TextFlow();
             Text pointsText = new Text();
-            HBox hutsBox = new HBox(), pawnsBox = new HBox(), occupantsBox = new HBox();
+            HBox occupantsBox = new HBox();
             VBox playerBox = new VBox();
 
-            // Reactive state
+            // Dynamically update the points text
             ObservableValue<String> pointsTextO = pointsO.map(points -> {
                 int pointsValue = points.getOrDefault(playerColor, 0);
                 return STR." \{playerName} : \{textMaker.points(pointsValue)}";
             });
-
+            // Show which player is currently playing
             currentPlayerO.addListener((o, prev, currentPlayer) -> {
-                textFlow.getStyleClass().remove("current");
+                playerBox.getStyleClass().remove("current");
                 if (currentPlayer == playerColor)
-                    textFlow.getStyleClass().add("current");
+                    playerBox.getStyleClass().add("current");
             });
 
-            // Bindings
-            pointsText.textProperty().bind(pointsTextO);
-
-            // Add to UI
-            // The player's name and points
+            // Add the player's name and points to the UI
             textFlow.getChildren().add(new Circle(5, ColorMap.fillColor(playerColor)));
+            pointsText.textProperty().bind(pointsTextO);
             textFlow.getChildren().add(pointsText);
-            textFlow.getStyleClass().add("player");
-            // The player's occupants
-            // TODO: Dynamic occupants opacity
-            for (int i = 0; i < Occupant.occupantsCount(Occupant.Kind.HUT); ++i) {
-                hutsBox.getChildren().add(Icon.newFor(playerColor, Occupant.Kind.HUT));
+            playerBox.getStyleClass().add("player");
+            // Add the player's occupants to the UI
+            for (int i = Occupant.Kind.values().length - 1; i >= 0 ; --i) {
+                Occupant.Kind kind = Occupant.Kind.values()[i];
+                HBox box = new HBox();
+                for (int j = 0; j < Occupant.occupantsCount(kind); ++j) {
+                    Node icon = Icon.newFor(playerColor, kind);
+                    // Make the opacity of the icon dependent on the number of free occupants
+                    int occupantId = j;
+                    ObservableValue<Float> opacityO = gameStateO.map(gameState -> {
+                        int hutsCount = gameState.freeOccupantsCount(playerColor, kind);
+                        return hutsCount > occupantId ? 1f : OCCUPANT_USED_OPACITY;
+                    });
+                    icon.opacityProperty().bind(opacityO);
+                    box.getChildren().add(icon);
+                }
+                occupantsBox.getChildren().add(box);
             }
-            for (int i = 0; i < Occupant.occupantsCount(Occupant.Kind.PAWN); ++i) {
-                pawnsBox.getChildren().add(Icon.newFor(playerColor, Occupant.Kind.PAWN));
-            }
-            occupantsBox.getChildren().addAll(hutsBox, pawnsBox);
+
             occupantsBox.setSpacing(10);
-            // The player's box
+            playerBox.setSpacing(2);
+            // Add everything to the UI
             playerBox.getChildren().addAll(textFlow, occupantsBox);
             scene.getChildren().add(playerBox);
         }

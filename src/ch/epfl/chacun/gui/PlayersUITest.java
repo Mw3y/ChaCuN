@@ -86,7 +86,7 @@ public final class PlayersUITest extends Application {
         };
 
         // Place all tiles
-        for (int i = 0; i < positions.size(); i += 1) {
+        for (int i = 0; i < positions.size() -1; i += 1) {
             var placedTile = nextPlacedTile.apply(gameStateO.getValue());
             gameStateO.setValue(gameStateO.getValue().withPlacedTile(placedTile));
             if (!unoccupyableTiles.contains(placedTile.id()))
