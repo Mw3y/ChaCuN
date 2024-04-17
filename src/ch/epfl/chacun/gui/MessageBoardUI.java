@@ -38,10 +38,8 @@ public final class MessageBoardUI {
     public static Node create(ObservableValue<List<MessageBoard.Message>> messagesO,
                               ObjectProperty<Set<Integer>> tileIdsP) {
         ScrollPane scrollPane = new ScrollPane();
+        scrollPane.getStylesheets().add("/message-board.css");
         scrollPane.setId("message-board");
-        // Add the CSS to the scene
-        URL sceneStyle = PlayersUI.class.getResource("/message-board.css");
-        scrollPane.getStylesheets().add(sceneStyle.toExternalForm());
 
         VBox container = new VBox();
         messagesO.addListener((o, previousMessages, currentMessages) -> {

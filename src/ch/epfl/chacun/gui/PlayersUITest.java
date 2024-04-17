@@ -94,7 +94,6 @@ public final class PlayersUITest extends Application {
             if (!unoccupyableTiles.contains(placedTile.id()))
                 gameStateO.setValue(gameStateO.getValue().withNewOccupant(occupants.get(placedTile.id())));
         }
-        System.out.println(gameStateO.getValue().board());
     }
 
     private static GameState initialGameState(Map<PlayerColor, String> players,

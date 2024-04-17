@@ -40,10 +40,8 @@ public final class PlayersUI {
      */
     public static Node create(ObservableValue<GameState> gameStateO, TextMaker textMaker) {
         VBox scene = new VBox();
+        scene.getStylesheets().add("/players.css");
         scene.setId("players");
-        // Add the CSS to the scene
-        URL sceneStyle = PlayersUI.class.getResource("/players.css");
-        scene.getStylesheets().add(sceneStyle.toExternalForm());
 
         // General reactive state
         ObservableValue<PlayerColor> currentPlayerO =
@@ -59,25 +57,24 @@ public final class PlayersUI {
                 TextFlow textFlow = new TextFlow();
                 Text pointsText = new Text();
                 HBox occupantsBox = new HBox();
-                VBox playerBox = new VBox();
 
                 // Dynamically update the points text
                 ObservableValue<String> pointsTextO = pointsO.map(points -> {
                     int pointsValue = points.getOrDefault(playerColor, 0);
-                    return STR." \{playerName} : \{textMaker.points(pointsValue)}";
+                    return STR." \{playerName} : \{textMaker.points(pointsValue)}\n";
                 });
                 // Show which player is currently playing
                 currentPlayerO.addListener((_, _, currentPlayer) -> {
-                    playerBox.getStyleClass().remove("current");
+                    textFlow.getStyleClass().remove("current");
                     if (currentPlayer == playerColor)
-                        playerBox.getStyleClass().add("current");
+                        textFlow.getStyleClass().add("current");
                 });
 
                 // Add the player's name and points to the UI
                 textFlow.getChildren().add(new Circle(5, ColorMap.fillColor(playerColor)));
                 pointsText.textProperty().bind(pointsTextO);
                 textFlow.getChildren().add(pointsText);
-                playerBox.getStyleClass().add("player");
+                textFlow.getStyleClass().add("player");
                 // Add the player's occupants to the UI
                 for (int i = Occupant.Kind.values().length - 1; i >= 0; --i) {
                     Occupant.Kind kind = Occupant.Kind.values()[i];
@@ -97,10 +94,9 @@ public final class PlayersUI {
                 }
 
                 occupantsBox.setSpacing(10);
-                playerBox.setSpacing(2);
                 // Add everything to the UI
-                playerBox.getChildren().addAll(textFlow, occupantsBox);
-                scene.getChildren().add(playerBox);
+                textFlow.getChildren().add(occupantsBox);
+                scene.getChildren().add(textFlow);
             }
         }
         return scene;
