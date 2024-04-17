@@ -12,7 +12,6 @@ import javafx.scene.shape.Circle;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
 
-import java.net.URL;
 import java.util.Map;
 
 /**
@@ -23,6 +22,9 @@ import java.util.Map;
  */
 public final class PlayersUI {
 
+    /**
+     * The opacity of the occupant icon when it is used.
+     */
     private static final float OCCUPANT_USED_OPACITY = 0.1f;
 
     /**
