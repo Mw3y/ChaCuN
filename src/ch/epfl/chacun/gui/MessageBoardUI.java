@@ -40,14 +40,14 @@ public final class MessageBoardUI {
         scrollPane.setId("message-board");
 
         VBox container = new VBox();
-        messagesO.addListener((_, previousMessages, currentMessages) -> {
+        messagesO.addListener((o, previousMessages, currentMessages) -> {
             // Add the new messages to the container
             currentMessages.stream().skip(previousMessages.size()).forEach(newMessage -> {
                 Text message = new Text(newMessage.text());
                 message.setWrappingWidth(ImageLoader.LARGE_TILE_FIT_SIZE);
                 // Dynamically update the tile ids mentioned in the message if needed
-                message.setOnMouseEntered(_ -> tileIdsP.set(newMessage.tileIds()));
-                message.setOnMouseExited(_ -> tileIdsP.set(Set.of()));
+                message.setOnMouseEntered(e -> tileIdsP.set(newMessage.tileIds()));
+                message.setOnMouseExited(e -> tileIdsP.set(Set.of()));
                 container.getChildren().add(message);
             });
             // Scroll to the last message

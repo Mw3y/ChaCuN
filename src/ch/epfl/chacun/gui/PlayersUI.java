@@ -12,6 +12,7 @@ import javafx.scene.shape.Circle;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -66,7 +67,7 @@ public final class PlayersUI {
                     return STR." \{playerName} : \{textMaker.points(pointsValue)}\n";
                 });
                 // Show which player is currently playing
-                currentPlayerO.addListener((_, _, currentPlayer) -> {
+                currentPlayerO.addListener((o, previousPlayer, currentPlayer) -> {
                     textFlow.getStyleClass().remove("current");
                     if (currentPlayer == playerColor)
                         textFlow.getStyleClass().add("current");
