@@ -23,6 +23,11 @@ import java.util.Map;
 public final class PlayersUI {
 
     /**
+     * The default opacity of the occupant icon.
+     */
+    private static final float DEFAULT_OCCUPANT_OPACITY = 1f;
+
+    /**
      * The opacity of the occupant icon when it is used.
      */
     private static final float OCCUPANT_USED_OPACITY = 0.1f;
@@ -87,7 +92,7 @@ public final class PlayersUI {
                         int occupantId = j;
                         ObservableValue<Float> opacityO = gameStateO.map(gameState -> {
                             int hutsCount = gameState.freeOccupantsCount(playerColor, kind);
-                            return hutsCount > occupantId ? 1f : OCCUPANT_USED_OPACITY;
+                            return hutsCount > occupantId ? DEFAULT_OCCUPANT_OPACITY : OCCUPANT_USED_OPACITY;
                         });
                         icon.opacityProperty().bind(opacityO);
                         box.getChildren().add(icon);
