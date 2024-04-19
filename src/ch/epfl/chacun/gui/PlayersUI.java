@@ -12,7 +12,6 @@ import javafx.scene.shape.Circle;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
 
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -42,9 +41,9 @@ public final class PlayersUI {
      * @return the players UI
      */
     public static Node create(ObservableValue<GameState> gameStateO, TextMaker textMaker) {
-        VBox scene = new VBox();
-        scene.getStylesheets().add("/players.css");
-        scene.setId("players");
+        VBox container = new VBox();
+        container.getStylesheets().add("/players.css");
+        container.setId("players");
 
         // General reactive state
         ObservableValue<PlayerColor> currentPlayerO =
@@ -99,9 +98,10 @@ public final class PlayersUI {
                 occupantsBox.setSpacing(10);
                 // Add everything to the UI
                 textFlow.getChildren().add(occupantsBox);
-                scene.getChildren().add(textFlow);
+                container.getChildren().add(textFlow);
             }
         }
-        return scene;
+        return container;
     }
+
 }

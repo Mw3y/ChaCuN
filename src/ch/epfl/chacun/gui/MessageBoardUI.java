@@ -21,6 +21,11 @@ import java.util.Set;
 public final class MessageBoardUI {
 
     /**
+     * The width of the scroll bar, in pixels.
+     */
+    private static final int SCROLL_BAR_WIDTH = 8;
+
+    /**
      * Non-instantiable class constructor
      */
     private MessageBoardUI() {
@@ -35,26 +40,26 @@ public final class MessageBoardUI {
      */
     public static Node create(ObservableValue<List<MessageBoard.Message>> messagesO,
                               ObjectProperty<Set<Integer>> tileIdsP) {
-        ScrollPane scrollPane = new ScrollPane();
-        scrollPane.getStylesheets().add("/message-board.css");
-        scrollPane.setId("message-board");
+        ScrollPane container = new ScrollPane();
+        container.getStylesheets().add("/message-board.css");
+        container.setId("message-board");
 
-        VBox container = new VBox();
+        VBox wrapper = new VBox();
         messagesO.addListener((o, previousMessages, currentMessages) -> {
             // Add the new messages to the container
             currentMessages.stream().skip(previousMessages.size()).forEach(newMessage -> {
                 Text message = new Text(newMessage.text());
-                message.setWrappingWidth(ImageLoader.LARGE_TILE_FIT_SIZE);
+                message.setWrappingWidth(ImageLoader.LARGE_TILE_FIT_SIZE - SCROLL_BAR_WIDTH);
                 // Dynamically update the tile ids mentioned in the message if needed
                 message.setOnMouseEntered(e -> tileIdsP.set(newMessage.tileIds()));
                 message.setOnMouseExited(e -> tileIdsP.set(Set.of()));
-                container.getChildren().add(message);
+                wrapper.getChildren().add(message);
             });
             // Scroll to the last message
-            Platform.runLater(() -> scrollPane.setVvalue(1));
+            Platform.runLater(() -> container.setVvalue(1));
         });
 
-        scrollPane.setContent(container);
-        return scrollPane;
+        container.setContent(wrapper);
+        return container;
     }
 }

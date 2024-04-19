@@ -33,12 +33,6 @@ public final class PlayersUITest extends Application {
                         tilesByKind.get(Tile.Kind.MENHIR));
 
         var textMaker = new TextMakerFr(playerNames);
-
-        var gameState =
-                GameState.initial(playerColors,
-                        tileDecks,
-                        textMaker);
-
         var positions = Map.ofEntries(
                 Map.entry(34, new Pos(-3, -1)),
                 Map.entry(67, new Pos(-2, -1)),
@@ -64,13 +58,13 @@ public final class PlayersUITest extends Application {
         );
 
         var unoccupyableTiles = Set.of(62);
-
         var normalTilesIds = List.of(61, 55, 51, 18, 62, 1, 34, 67, 31, 3, 49);
         var gameStateO = new SimpleObjectProperty<>(initialGameState(playerNames, normalTilesIds, List.of()));
         var playersNode = PlayersUI.create(gameStateO, textMaker);
         var messagesNode = MessageBoardUI.create(gameStateO.map(g -> g.messageBoard().messages()), new SimpleObjectProperty<>(Set.of()));
-        var rootNode = new VBox(playersNode, messagesNode);
-        primaryStage.setScene(new Scene(rootNode, 320, 720));
+        var decksNode = DecksUI.create(new SimpleObjectProperty<>(gameStateO.getValue().tileToPlace()), new SimpleObjectProperty<>(normalTilesIds.size()), new SimpleObjectProperty<>(0), new SimpleObjectProperty<>("Lorem ipsum dolor sit amet"), o -> {});
+        var rootNode = new VBox(playersNode, messagesNode, decksNode);
+        primaryStage.setScene(new Scene(rootNode, 271, 720));
 
         primaryStage.setTitle("ChaCuN test");
         primaryStage.show();
