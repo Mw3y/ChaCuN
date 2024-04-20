@@ -8,6 +8,7 @@ import javafx.scene.Node;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
+import javafx.scene.text.TextAlignment;
 
 import java.util.List;
 import java.util.Set;
@@ -26,6 +27,11 @@ public final class MessageBoardUI {
      * The width of the scroll bar, in pixels.
      */
     private static final int SCROLL_BAR_WIDTH = 8;
+
+    /**
+     * The spacing between messages, in pixels.
+     */
+    private static final int MESSAGES_SPACING = 10;
 
     /**
      * Non-instantiable class constructor
@@ -51,6 +57,7 @@ public final class MessageBoardUI {
             // Add the new messages to the container
             currentMessages.stream().skip(previousMessages.size()).forEach(newMessage -> {
                 Text message = new Text(newMessage.text());
+                message.setTextAlignment(TextAlignment.JUSTIFY);
                 message.setWrappingWidth(LARGE_TILE_FIT_SIZE - SCROLL_BAR_WIDTH);
                 // Dynamically update the tile ids mentioned in the message if needed
                 message.setOnMouseEntered(e -> tileIdsP.set(newMessage.tileIds()));
@@ -61,6 +68,7 @@ public final class MessageBoardUI {
             Platform.runLater(() -> container.setVvalue(1));
         });
 
+        wrapper.setSpacing(MESSAGES_SPACING);
         container.setContent(wrapper);
         return container;
     }
