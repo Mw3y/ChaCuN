@@ -1,0 +1,30 @@
+#decks {
+    -fx-spacing: 5px;
+    -fx-padding: 5px;
+}
+
+#NORMAL {
+    -fx-image: url(256/NORMAL.jpg);
+}
+
+#MENHIR {
+    -fx-image: url(256/MENHIR.jpg);
+}
+
+#decks Text {
+    -fx-font-size: 84;
+    -fx-font-weight: bold;
+    -fx-text-alignment: center;
+    -fx-fill: white;
+    -fx-effect: dropshadow(two-pass-box,#333,10,0,5,5);
+}
+
+#next-tile {
+    -fx-padding: 3;
+}
+
+#next-tile Text {
+    -fx-font-size: 200%;
+    -fx-font-weight: bold;
+    -fx-text-alignment: center;
+}
