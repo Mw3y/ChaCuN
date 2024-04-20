@@ -12,6 +12,8 @@ import javafx.scene.text.Text;
 import java.util.List;
 import java.util.Set;
 
+import static ch.epfl.chacun.gui.ImageLoader.LARGE_TILE_FIT_SIZE;
+
 /**
  * Helper class to create the message board UI.
  *
@@ -49,7 +51,7 @@ public final class MessageBoardUI {
             // Add the new messages to the container
             currentMessages.stream().skip(previousMessages.size()).forEach(newMessage -> {
                 Text message = new Text(newMessage.text());
-                message.setWrappingWidth(ImageLoader.LARGE_TILE_FIT_SIZE - SCROLL_BAR_WIDTH);
+                message.setWrappingWidth(LARGE_TILE_FIT_SIZE - SCROLL_BAR_WIDTH);
                 // Dynamically update the tile ids mentioned in the message if needed
                 message.setOnMouseEntered(e -> tileIdsP.set(newMessage.tileIds()));
                 message.setOnMouseExited(e -> tileIdsP.set(Set.of()));
