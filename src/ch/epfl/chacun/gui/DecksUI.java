@@ -108,7 +108,7 @@ public final class DecksUI {
         // Display the image of the tile to place
         Image image = ImageLoader.largeImageForTile(tileToPlaceO.getValue().id());
         view.setImage(image);
-        tileToPlaceO.addListener((o, oldTile, newTile) -> {
+        tileToPlaceO.addListener((_, _, newTile) -> {
             Image newImage = ImageLoader.largeImageForTile(newTile.id());
             view.setImage(newImage);
         });
@@ -118,7 +118,7 @@ public final class DecksUI {
         text.textProperty().bind(textToDisplayO);
         text.visibleProperty().bind(textToDisplayO.map(s -> !s.isEmpty()));
         text.setWrappingWidth(TILE_COUNT_WRAPPING_FACTOR * LARGE_TILE_FIT_SIZE);
-        text.setOnMouseClicked(e -> occupantConsumer.accept(null));
+        text.setOnMouseClicked(_ -> occupantConsumer.accept(null));
 
         tileToPlace.getChildren().addAll(view, text);
         return tileToPlace;

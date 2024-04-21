@@ -71,7 +71,7 @@ public final class PlayersUI {
                     return STR." \{playerName} : \{textMaker.points(pointsValue)}\n";
                 });
                 // Show which player is currently playing
-                currentPlayerO.addListener((o, previousPlayer, currentPlayer) -> {
+                currentPlayerO.addListener((_, _, currentPlayer) -> {
                     textFlow.getStyleClass().remove("current");
                     if (currentPlayer == playerColor)
                         textFlow.getStyleClass().add("current");

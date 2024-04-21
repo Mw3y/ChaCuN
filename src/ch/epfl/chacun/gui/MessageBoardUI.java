@@ -53,15 +53,15 @@ public final class MessageBoardUI {
         container.setId("message-board");
 
         VBox wrapper = new VBox();
-        messagesO.addListener((o, previousMessages, currentMessages) -> {
+        messagesO.addListener((_, previousMessages, currentMessages) -> {
             // Add the new messages to the container
             currentMessages.stream().skip(previousMessages.size()).forEach(newMessage -> {
                 Text message = new Text(newMessage.text());
                 message.setTextAlignment(TextAlignment.JUSTIFY);
                 message.setWrappingWidth(LARGE_TILE_FIT_SIZE - SCROLL_BAR_WIDTH);
                 // Dynamically update the tile ids mentioned in the message if needed
-                message.setOnMouseEntered(e -> tileIdsP.set(newMessage.tileIds()));
-                message.setOnMouseExited(e -> tileIdsP.set(Set.of()));
+                message.setOnMouseEntered(_ -> tileIdsP.set(newMessage.tileIds()));
+                message.setOnMouseExited(_ -> tileIdsP.set(Set.of()));
                 wrapper.getChildren().add(message);
             });
             // Scroll to the last message
