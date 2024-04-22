@@ -57,6 +57,8 @@ public final class BoardUITest extends Application {
 
         gameStateO.set(gameStateO.get().withStartingTilePlaced());
 
+        gameStateO.set(gameStateO.get().withPlacedTile(new PlacedTile(Tiles.TILES.get(57), PlayerColor.RED, Rotation.HALF_TURN, new Pos(1, 0))));
+
         var rootNode = new BorderPane(boardNode);
         primaryStage.setScene(new Scene(rootNode));
 
