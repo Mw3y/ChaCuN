@@ -106,13 +106,8 @@ public final class DecksUI {
         view.setFitWidth(LARGE_TILE_FIT_SIZE);
         view.visibleProperty().bind(textToDisplayO.map(String::isEmpty));
         // Display the image of the tile to place
-        Image image = ImageLoader.largeImageForTile(tileToPlaceO.getValue().id());
-        view.setImage(image);
-        tileToPlaceO.addListener((_, _, newTile) -> {
-            Image newImage = ImageLoader.largeImageForTile(newTile.id());
-            view.setImage(newImage);
-        });
-
+        ObservableValue<Image> nextTileImage = tileToPlaceO.map(tile -> ImageLoader.largeImageForTile(tile.id()));
+        view.imageProperty().bind(nextTileImage);
         // Display the text of the special action and register a mouse click event to skip it
         Text text = new Text();
         text.textProperty().bind(textToDisplayO);
