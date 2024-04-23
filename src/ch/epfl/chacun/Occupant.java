@@ -12,6 +12,9 @@ import java.util.Objects;
  */
 public record Occupant(Kind kind, int zoneId) {
 
+    private static final int PAWNS_PER_PLAYER = 5;
+    private static final int HUT_PER_PLAYER = 3;
+
     /**
      * Checks for the validity of the given kind and zoneId.
      *
@@ -31,8 +34,8 @@ public record Occupant(Kind kind, int zoneId) {
      */
     public static int occupantsCount(Kind kind) {
         return switch (kind) {
-            case PAWN -> 5;
-            case HUT -> 3;
+            case PAWN -> PAWNS_PER_PLAYER;
+            case HUT -> HUT_PER_PLAYER;
         };
     }
 

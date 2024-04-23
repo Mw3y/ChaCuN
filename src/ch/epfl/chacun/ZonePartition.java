@@ -1,7 +1,6 @@
 package ch.epfl.chacun;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -94,11 +93,17 @@ public record ZonePartition<Z extends Zone>(Set<Area<Z>> areas) {
             }
         }
 
+        /**
+         * Returns the area containing the given zone if it is not occupied.
+         *
+         * @param zone the given zone
+         * @return the area containing the given zone if it is not occupied
+         * @throws IllegalArgumentException if the given zone is occupied
+         */
         private Area<Z> findAreaContainingZoneWithoutOccupant(Z zone) {
             Area<Z> areaContainingZone = findAreaContainingZone(zone);
-            if (areaContainingZone.isOccupied()) {
+            if (areaContainingZone.isOccupied())
                 throw new IllegalArgumentException("The area is already occupied.");
-            }
             return areaContainingZone;
         }
 
@@ -115,7 +120,6 @@ public record ZonePartition<Z extends Zone>(Set<Area<Z>> areas) {
             Area<Z> areaContainingZone = findAreaContainingZoneWithoutOccupant(zone);
             // Create a new area without the occupant of the given color
             Area<Z> newArea = areaContainingZone.withInitialOccupant(color);
-            // Replace the area containing the given zone by the new one in the set of areas
             areas.remove(areaContainingZone);
             areas.add(newArea);
         }
@@ -138,8 +142,7 @@ public record ZonePartition<Z extends Zone>(Set<Area<Z>> areas) {
         }
 
         /**
-         * Removes all the occupants of a given area of the partition, or throws an
-         * {@link IllegalArgumentException} if the area is not part of the partition.
+         * Removes all the occupants of a given area of the partition.
          *
          * @param area the area to be emptied of its occupants
          * @throws IllegalArgumentException if the area is not part of the partition
@@ -154,8 +157,7 @@ public record ZonePartition<Z extends Zone>(Set<Area<Z>> areas) {
         }
 
         /**
-         * Connects to each other two areas containing two zones, or throws {@link IllegalArgumentException}
-         * if at least one of the two zones is not assigned to any area of the partition
+         * Connects to each other two areas containing two zones.
          *
          * @param zone1 the first zone
          * @param zone2 the second zone
@@ -167,12 +169,10 @@ public record ZonePartition<Z extends Zone>(Set<Area<Z>> areas) {
             Area<Z> area2 = findAreaContainingZone(zone2);
             // If the two zones are not assigned to the same area, connect the two areas
             // Otherwise connect the area to itself
-            if(!area1.equals(area2)) {
-                // Remove the two areas from the set of areas and add the new one
+            if (!area1.equals(area2)) {
                 areas.remove(area1);
                 areas.remove(area2);
             } else {
-                // Remove the area from the set of areas and add the new one
                 areas.remove(area1);
             }
             areas.add(area1.connectTo(area2));
@@ -184,7 +184,7 @@ public record ZonePartition<Z extends Zone>(Set<Area<Z>> areas) {
          * @return the final zone partition
          */
         public ZonePartition<Z> build() {
-            return new ZonePartition<>(this.areas);
+            return new ZonePartition<>(areas);
         }
 
     }

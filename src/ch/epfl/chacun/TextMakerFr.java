@@ -4,6 +4,7 @@ import java.util.*;
 
 /**
  * Implementation of the French text maker.
+ * <p>
  * It generates the text of French messages that are displayed to the players.
  *
  * @author Maxence Espagnet (sciper: 372808)
@@ -11,60 +12,113 @@ import java.util.*;
  */
 public final class TextMakerFr implements TextMaker {
 
+    /**
+     * The names of the animals in French.
+     */
+    private static final Map<Animal.Kind, String> animalNames = Map.of(
+            Animal.Kind.MAMMOTH, "mammouth",
+            Animal.Kind.AUROCHS, "auroch",
+            Animal.Kind.DEER, "cerf"
+    );
+
+    /**
+     * The name of each player, assigned to its color.
+     */
     private final Map<PlayerColor, String> players;
 
+    /**
+     * Constructs a new French text maker with the given player names.
+     *
+     * @param players the player names
+     */
     public TextMakerFr(Map<PlayerColor, String> players) {
         this.players = new HashMap<>(players);
     }
 
+    /**
+     * Pluralizes a word according to the given condition.
+     *
+     * @param word     the word to pluralize
+     * @param isPlural whether the word should be plural
+     * @return the pluralized word
+     */
     private String pluralize(String word, boolean isPlural) {
         boolean isInclusive = word.contains("·");
         return isPlural ? STR."\{word}\{isInclusive ? "·" : ""}s" : word;
     }
 
+    /**
+     * Pluralizes a word according to the size of a collection.
+     *
+     * @param word   the word to pluralize
+     * @param values the collection of values
+     * @param <E>    the type of the values
+     * @return the pluralized word
+     */
     private <E> String pluralize(String word, Collection<E> values) {
         return pluralize(word, values.size() > 1);
     }
 
+    /**
+     * Returns a string with the given word, pluralized if needed, and value.
+     *
+     * @param word  the word associated with the given quantity
+     * @param value the value
+     * @return a string with the given word, pluralized if needed, and value.
+     */
     private String accord(String word, int value) {
         return STR."\{value} \{pluralize(word, value > 1)}";
     }
 
+    /**
+     * Conjuguates the verb "remporter" according to the number of players.
+     *
+     * @param players the players
+     * @return the conjuguated verb
+     */
     private String conjugateEarn(Set<PlayerColor> players) {
         return players.size() > 1 ? "ont remporté" : "a remporté";
     }
 
+    /**
+     * Joins a list of strings in a human friendly way.
+     *
+     * @param strings the strings to join
+     * @return the joined string
+     */
     private String humanizedJoin(List<String> strings) {
         Preconditions.checkArgument(!strings.isEmpty());
-        if (strings.size() == 2) {
+        // Two elements case
+        if (strings.size() == 2)
             return String.join(" et ", strings);
-        }
+        // General case
         if (strings.size() > 2) {
             String firstHalf = String.join(", ", strings.subList(0, strings.size() - 1));
             return STR."\{firstHalf} et \{strings.getLast()}";
         }
+        // Only one element case
         return strings.getFirst();
     }
 
+    /**
+     * Joins the names of the players based on their color and the RED, BLUE, GREEN, YELLOW order.
+     * @param playerColors the player colors
+     * @return the joined player names
+     */
     private String joinPlayerNames(Set<PlayerColor> playerColors) {
         return humanizedJoin(playerColors.stream().sorted().map(this::playerName).toList());
     }
 
+    /**
+     * Joins the names of the animals along with their quantities in the MAMMOTH, AUROCHS, DEER order.
+     * @param animals the animals and their quantities
+     * @return the joined animals with their quantities
+     */
     private String joinAnimalsWithQuantities(Map<Animal.Kind, Integer> animals) {
         return humanizedJoin(animals.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
-                .filter(e -> e.getValue() > 0)
-                .map(e -> accord(getAnimalName(e.getKey()), e.getValue()))
+                .map(e -> accord(animalNames.get(e.getKey()), e.getValue()))
                 .toList());
-    }
-
-    private String getAnimalName(Animal.Kind kind) {
-        return switch (kind) {
-            case MAMMOTH -> "mammouth";
-            case AUROCHS -> "auroch";
-            case DEER -> "cerf";
-            case TIGER -> "smilodon";
-        };
     }
 
     @Override

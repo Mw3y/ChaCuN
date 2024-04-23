@@ -51,7 +51,7 @@ public class TextMakerFrTest {
     @Test
     void playerScoredHuntingTrapWorks() {
         String expected = "Bachir a remporté 10 points en plaçant la fosse à pieux dans un pré dans lequel elle est entourée de 1 mammouth, 2 aurochs et 3 cerfs.";
-        assertEquals(expected, textMaker.playerScoredHuntingTrap(PlayerColor.GREEN, 10, Map.of(Animal.Kind.DEER, 3, Animal.Kind.MAMMOTH, 1, Animal.Kind.AUROCHS, 2, Animal.Kind.TIGER, 0)));
+        assertEquals(expected, textMaker.playerScoredHuntingTrap(PlayerColor.GREEN, 10, Map.of(Animal.Kind.DEER, 3, Animal.Kind.MAMMOTH, 1, Animal.Kind.AUROCHS, 2)));
     }
 
     @Test
