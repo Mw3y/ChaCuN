@@ -390,7 +390,7 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
                 .forEach(entry -> winners.add(entry.getKey()));
         updatedMessageBoard = updatedMessageBoard.withWinners(winners, maxPoints);
         // Return a new game state with updated data
-        return new GameState(players, tileDecks, this.tileToPlace, updatedBoard,
+        return new GameState(players, tileDecks, null, updatedBoard,
                 Action.END_GAME, updatedMessageBoard);
     }
 

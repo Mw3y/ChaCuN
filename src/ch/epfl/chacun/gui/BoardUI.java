@@ -61,7 +61,6 @@ public final class BoardUI {
         for (int x = -reach; x <= reach; ++x) {
             for (int y = -reach; y <= reach; ++y) {
                 Group tileContainer = new Group();
-                tileContainer.rotateProperty().bind(rotationO.map(Rotation::degreesCW));
 
                 ImageView tileView = new ImageView();
                 tileView.setFitHeight(NORMAL_TILE_FIT_SIZE);
@@ -125,6 +124,9 @@ public final class BoardUI {
                         occupantIcon.setOnMouseClicked(_ -> selectedOccupant.accept(occupant));
                         tileContainer.getChildren().add(occupantIcon);
                     }
+
+                    // Apply the placed tile rotation
+                    tileContainer.setRotate(placedTile.rotation().degreesCW());
                 });
 
                 // Add the tile to the grid while ensuring its coordinates are positive

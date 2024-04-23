@@ -2,15 +2,18 @@ package ch.epfl.chacun.gui;
 
 import ch.epfl.chacun.*;
 import ch.epfl.chacun.tile.Tiles;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.scene.Scene;
 import javafx.scene.control.ScrollPane;
-import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 
 import java.util.*;
 import java.util.function.Function;
@@ -22,19 +25,9 @@ public final class ChaCuNUITest extends Application {
 
     @Override
     public void start(Stage primaryStage) throws InterruptedException {
-        var playerNames = Map.of(PlayerColor.BLUE, "Bernard", PlayerColor.RED, "Rose",
-                PlayerColor.GREEN, "Balthazar", PlayerColor.YELLOW, "Max"
+        var playerNames = Map.of(PlayerColor.RED, "Rose", PlayerColor.BLUE, "Bernard",
+                PlayerColor.GREEN, "Balthazar", PlayerColor.YELLOW, "Max", PlayerColor.PURPLE, "Maxim"
         );
-        var playerColors = playerNames.keySet().stream()
-                .sorted()
-                .toList();
-
-        var tilesByKind = Tiles.TILES.stream()
-                .collect(Collectors.groupingBy(Tile::kind));
-        var tileDecks =
-                new TileDecks(tilesByKind.get(Tile.Kind.START),
-                        tilesByKind.get(Tile.Kind.NORMAL),
-                        tilesByKind.get(Tile.Kind.MENHIR));
 
         var tileToPlaceRotationP =
                 new SimpleObjectProperty<>(Rotation.NONE);
@@ -45,32 +38,28 @@ public final class ChaCuNUITest extends Application {
 
         var textMaker = new TextMakerFr(playerNames);
         var positions = Map.ofEntries(
-                Map.entry(34, new Pos(-3, -1)),
+                Map.entry(92, new Pos(-3, -1)), // PIT_TRAP
                 Map.entry(67, new Pos(-2, -1)),
                 Map.entry(31, new Pos(-1, -1)),
-                Map.entry(61, new Pos(0, -1)),
-                Map.entry(62, new Pos(-3, 0)),
+                Map.entry(62, new Pos(0, -1)),
+                Map.entry(34, new Pos(-3, 0)),
                 Map.entry(18, new Pos(-2, 0)),
                 Map.entry(51, new Pos(-1, 0)),
                 Map.entry(1, new Pos(-3, 1)),
                 Map.entry(3, new Pos(-2, 1)),
                 Map.entry(49, new Pos(-1, 1)),
-                Map.entry(55, new Pos(0, 1)));
+                Map.entry(55, new Pos(0, 1)),
+                Map.entry(36, new Pos(-1, -2)));
 
         var occupants = Map.of(
-                61, new Occupant(Occupant.Kind.PAWN, 61_0), // hunter (RED)
-                55, new Occupant(Occupant.Kind.PAWN, 55_3), // fisher (BLUE)
-                51, new Occupant(Occupant.Kind.PAWN, 51_1), // fisher (GREEN)
-                18, new Occupant(Occupant.Kind.PAWN, 18_2), // hunter (YELLOW)
-                1, new Occupant(Occupant.Kind.HUT, 1_8), // fisher's hut (RED)
-                34, new Occupant(Occupant.Kind.PAWN, 34_1), // hunter (BLUE)
-                3, new Occupant(Occupant.Kind.PAWN, 3_5), // fisher (PURPLE)
-                49, new Occupant(Occupant.Kind.PAWN, 49_2) // hunter (RED)
+                62, new Occupant(Occupant.Kind.PAWN, 62_0) // hunter (RED)
         );
 
-        var unoccupyableTiles = Set.of(62);
-        var normalTilesIds = List.of(61, 55, 51, 18, 62, 1, 34, 67, 31, 3, 49);
-        var gameStateO = new SimpleObjectProperty<>(initialGameState(playerNames, normalTilesIds, List.of()));
+        var normalTilesIds = List.of(62, 55, 51, 18, 34, 1, 67, 31, 3, 49, 36);
+        var state = initialGameState(playerNames, normalTilesIds, List.of(92));
+        var gameStateO = new SimpleObjectProperty<>(state);
+        var unoccupyableTiles = Set.of();
+        var rotations = Map.of(92, Rotation.LEFT);
         var playersNode = PlayersUI.create(gameStateO, textMaker);
         var messagesNode = MessageBoardUI.create(gameStateO.map(g -> g.messageBoard().messages()), new SimpleObjectProperty<>(Set.of()));
         var decksNode = DecksUI.create(gameStateO.map(GameState::tileToPlace), gameStateO.map(g -> g.tileDecks().normalTiles().size()), gameStateO.map(g -> g.tileDecks().menhirTiles().size()), new SimpleObjectProperty<>(""), o -> {});
@@ -112,18 +101,26 @@ public final class ChaCuNUITest extends Application {
 
         var nextPlacedTile = (Function<GameState, PlacedTile>) s -> {
             var t = s.tileToPlace();
-            return new PlacedTile(t, playersIt.next(), Rotation.NONE, positions.get(t.id()));
+            var r = rotations.getOrDefault(t.id(), Rotation.NONE);
+            return new PlacedTile(t, playersIt.next(), r, positions.get(t.id()));
         };
 
         // Place all tiles
-        for (int i = 0; i < positions.size() - 1; i += 1) {
-            var placedTile = nextPlacedTile.apply(gameStateO.getValue());
-            gameStateO.setValue(gameStateO.getValue().withPlacedTile(placedTile));
-            if (!unoccupyableTiles.contains(placedTile.id())) {
-                gameStateO.setValue(gameStateO.getValue().withNewOccupant(occupants.get(placedTile.id())));
-                visibleOccupantsP.set(gameStateO.get().board().occupants());
-            }
+        int timelinePace = 1;
+        Timeline timeline = new Timeline();
+        for (int i = 0; i < positions.size(); i += 1) {
+            KeyFrame keyFrame = new KeyFrame(Duration.seconds((i+1)*timelinePace), _ -> {
+                var placedTile = nextPlacedTile.apply(gameStateO.getValue());
+                gameStateO.setValue(gameStateO.getValue().withPlacedTile(placedTile));
+                if (!unoccupyableTiles.contains(placedTile.id())) {
+                    gameStateO.setValue(gameStateO.getValue().withNewOccupant(occupants.get(placedTile.id())));
+                    visibleOccupantsP.set(gameStateO.get().board().occupants());
+                }
+            });
+            timeline.getKeyFrames().add(keyFrame);
         }
+
+        Platform.runLater(timeline::play);
     }
 
     private static GameState initialGameState(Map<PlayerColor, String> players,
@@ -139,7 +136,7 @@ public final class ChaCuNUITest extends Application {
         var placedStartingTile = new PlacedTile(startingTile, null, Rotation.NONE, Pos.ORIGIN);
         var board = Board.EMPTY.withNewTile(placedStartingTile);
         var messageBoard = new MessageBoard(new TextMakerFr(players), List.of());
-        return new GameState(List.copyOf(players.keySet()), tileDecks1, firstTileToPlace, board, GameState.Action.PLACE_TILE, messageBoard);
+        return new GameState(new ArrayList<>(players.keySet()).stream().sorted().toList(), tileDecks1, firstTileToPlace, board, GameState.Action.PLACE_TILE, messageBoard);
     }
 
     private static GameState truncateDeck(GameState state, Tile.Kind deckKind, int deckSize) {
