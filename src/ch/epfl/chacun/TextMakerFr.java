@@ -116,6 +116,8 @@ public final class TextMakerFr implements TextMaker {
      */
     private String joinAnimalsWithQuantities(Map<Animal.Kind, Integer> animals) {
         return humanizedJoin(animals.entrySet().stream()
+                // Tigers should never be mentioned since their only purpose is to eat deer
+                .filter(entry -> entry.getKey() != Animal.Kind.TIGER)
                 .sorted(Map.Entry.comparingByKey())
                 .map(e -> accord(animalNames.get(e.getKey()), e.getValue()))
                 .toList());

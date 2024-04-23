@@ -17,8 +17,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 
-import static ch.epfl.chacun.gui.ImageLoader.MARKER_PIXEL_SIZE;
-import static ch.epfl.chacun.gui.ImageLoader.NORMAL_TILE_FIT_SIZE;
+import static ch.epfl.chacun.gui.ImageLoader.*;
 
 /**
  * Helper class to display the board.
@@ -81,7 +80,7 @@ public final class BoardUI {
                 // Handle tile rotation and placement
                 tileContainer.setOnMouseClicked(event -> {
                     // Prevent the player from interacting with the tile when it has been placed
-                    if (placedTileO.getValue() != null) {
+                    if (placedTileO.getValue() == null) {
                         // Rotate the tile
                         if (event.getButton() == MouseButton.SECONDARY) {
                             // Allow for clockwise and counter-clockwise rotation using the ALT key
@@ -102,10 +101,10 @@ public final class BoardUI {
                         for (Animal animal : meadowZone.animals()) {
                             ImageView markerView = new ImageView();
                             // Style the marker
-                            markerView.setFitHeight(MARKER_PIXEL_SIZE);
-                            markerView.setFitWidth(MARKER_PIXEL_SIZE);
+                            markerView.setFitHeight(MARKER_FIT_SIZE);
+                            markerView.setFitWidth(MARKER_FIT_SIZE);
                             markerView.getStyleClass().add("marker");
-                            markerView.setId(STR."marker_\{animal.tileId()}");
+                            markerView.setId(STR."marker_\{animal.id()}");
                             // Hide the marker when not needed
                             ObservableValue<Boolean> isCancelledO = gameStateO
                                     .map(gameState -> gameState.board().cancelledAnimals().contains(animal));

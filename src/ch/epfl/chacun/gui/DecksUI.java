@@ -80,7 +80,6 @@ public final class DecksUI {
         view.setId(kind.toString());
         // Configure the text
         tileCount.textProperty().bind(sizeO.map(String::valueOf));
-        tileCount.visibleProperty().bind(sizeO.map(size -> size > 0));
         tileCount.setWrappingWidth(TILE_COUNT_WRAPPING_FACTOR * NORMAL_TILE_FIT_SIZE);
 
         return new StackPane(view, tileCount);

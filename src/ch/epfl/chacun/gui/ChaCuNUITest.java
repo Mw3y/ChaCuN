@@ -5,7 +5,10 @@ import ch.epfl.chacun.tile.Tiles;
 import javafx.application.Application;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.scene.Scene;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
@@ -14,13 +17,14 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public final class PlayersUITest extends Application {
+public final class ChaCuNUITest extends Application {
     public static void main(String[] args) { launch(args); }
 
     @Override
     public void start(Stage primaryStage) throws InterruptedException {
-        var playerNames = Map.of(PlayerColor.BLUE, "Bernard", PlayerColor.RED, "Rose"
-                );
+        var playerNames = Map.of(PlayerColor.BLUE, "Bernard", PlayerColor.RED, "Rose",
+                PlayerColor.GREEN, "Balthazar", PlayerColor.YELLOW, "Max"
+        );
         var playerColors = playerNames.keySet().stream()
                 .sorted()
                 .toList();
@@ -31,6 +35,13 @@ public final class PlayersUITest extends Application {
                 new TileDecks(tilesByKind.get(Tile.Kind.START),
                         tilesByKind.get(Tile.Kind.NORMAL),
                         tilesByKind.get(Tile.Kind.MENHIR));
+
+        var tileToPlaceRotationP =
+                new SimpleObjectProperty<>(Rotation.NONE);
+        var visibleOccupantsP =
+                new SimpleObjectProperty<>(Set.<Occupant>of());
+        var highlightedTilesP =
+                new SimpleObjectProperty<>(Set.<Integer>of());
 
         var textMaker = new TextMakerFr(playerNames);
         var positions = Map.ofEntries(
@@ -63,8 +74,31 @@ public final class PlayersUITest extends Application {
         var playersNode = PlayersUI.create(gameStateO, textMaker);
         var messagesNode = MessageBoardUI.create(gameStateO.map(g -> g.messageBoard().messages()), new SimpleObjectProperty<>(Set.of()));
         var decksNode = DecksUI.create(gameStateO.map(GameState::tileToPlace), gameStateO.map(g -> g.tileDecks().normalTiles().size()), gameStateO.map(g -> g.tileDecks().menhirTiles().size()), new SimpleObjectProperty<>(""), o -> {});
-        var rootNode = new VBox(playersNode, messagesNode, decksNode);
-        primaryStage.setScene(new Scene(rootNode, 271, 720));
+        var boardNode = (ScrollPane)BoardUI
+                .create(Board.REACH,
+                        gameStateO,
+                        tileToPlaceRotationP,
+                        visibleOccupantsP,
+                        highlightedTilesP,
+                        r -> System.out.println("Rotate: " + r),
+                        t -> System.out.println("Place: " + t),
+                        o -> System.out.println("Select: " + o));
+
+        var sideBar = new VBox(playersNode, messagesNode, decksNode);
+        VBox.setVgrow(messagesNode, Priority.ALWAYS);
+
+        boardNode.setFitToHeight(true);
+        boardNode.setFitToWidth(true);
+        boardNode.setMinWidth(720);
+        boardNode.maxHeightProperty().bind(primaryStage.heightProperty());
+        boardNode.maxWidthProperty().bind(primaryStage.widthProperty().map(w -> w.doubleValue() - sideBar.getWidth()));
+        boardNode.setHvalue(.5);
+        boardNode.setVvalue(.5);
+
+        var rootNode= new HBox(boardNode, sideBar);
+        HBox.setHgrow(sideBar, Priority.NEVER);
+        HBox.setHgrow(boardNode, Priority.ALWAYS);
+        primaryStage.setScene(new Scene(rootNode));
 
         primaryStage.setTitle("ChaCuN test");
         primaryStage.show();
@@ -82,11 +116,13 @@ public final class PlayersUITest extends Application {
         };
 
         // Place all tiles
-        for (int i = 0; i < positions.size(); i += 1) {
+        for (int i = 0; i < positions.size() - 1; i += 1) {
             var placedTile = nextPlacedTile.apply(gameStateO.getValue());
             gameStateO.setValue(gameStateO.getValue().withPlacedTile(placedTile));
-            if (!unoccupyableTiles.contains(placedTile.id()))
+            if (!unoccupyableTiles.contains(placedTile.id())) {
                 gameStateO.setValue(gameStateO.getValue().withNewOccupant(occupants.get(placedTile.id())));
+                visibleOccupantsP.set(gameStateO.get().board().occupants());
+            }
         }
     }
 

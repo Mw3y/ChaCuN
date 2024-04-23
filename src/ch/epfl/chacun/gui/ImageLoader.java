@@ -40,7 +40,7 @@ public final class ImageLoader {
     /**
      * Display size of the marker, in pixels.
      */
-    public final int MARKER_FIT_SIZE = 48;
+    public static final int MARKER_FIT_SIZE = 48;
 
     /**
      * Non-instantiable class constructor
