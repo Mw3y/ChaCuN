@@ -26,7 +26,7 @@ public final class ChaCuNUITest extends Application {
     @Override
     public void start(Stage primaryStage) throws InterruptedException {
         var playerNames = Map.of(PlayerColor.RED, "Rose", PlayerColor.BLUE, "Bernard",
-                PlayerColor.GREEN, "Balthazar", PlayerColor.YELLOW, "Max", PlayerColor.PURPLE, "Maxim"
+                PlayerColor.GREEN, "Balthazar", PlayerColor.PURPLE, "Maxim"
         );
 
         var tileToPlaceRotationP =
@@ -38,30 +38,36 @@ public final class ChaCuNUITest extends Application {
 
         var textMaker = new TextMakerFr(playerNames);
         var positions = Map.ofEntries(
-                Map.entry(92, new Pos(-3, -1)), // PIT_TRAP
+                Map.entry(34, new Pos(-3, -1)),
                 Map.entry(67, new Pos(-2, -1)),
                 Map.entry(31, new Pos(-1, -1)),
-                Map.entry(62, new Pos(0, -1)),
-                Map.entry(34, new Pos(-3, 0)),
+                Map.entry(61, new Pos(0, -1)),
+                Map.entry(62, new Pos(-3, 0)),
                 Map.entry(18, new Pos(-2, 0)),
                 Map.entry(51, new Pos(-1, 0)),
                 Map.entry(1, new Pos(-3, 1)),
                 Map.entry(3, new Pos(-2, 1)),
                 Map.entry(49, new Pos(-1, 1)),
-                Map.entry(55, new Pos(0, 1)),
-                Map.entry(36, new Pos(-1, -2)));
+                Map.entry(55, new Pos(0, 1)));
 
         var occupants = Map.of(
-                62, new Occupant(Occupant.Kind.PAWN, 62_0) // hunter (RED)
+                61, new Occupant(Occupant.Kind.PAWN, 61_0), // hunter (RED)
+                55, new Occupant(Occupant.Kind.PAWN, 55_3), // fisher (BLUE)
+                51, new Occupant(Occupant.Kind.PAWN, 51_1), // fisher (GREEN)
+                18, new Occupant(Occupant.Kind.PAWN, 18_2), // hunter (YELLOW)
+                1, new Occupant(Occupant.Kind.HUT, 1_8), // fisher's hut (RED)
+                34, new Occupant(Occupant.Kind.PAWN, 34_1), // hunter (BLUE)
+                3, new Occupant(Occupant.Kind.PAWN, 3_5), // fisher (PURPLE)
+                49, new Occupant(Occupant.Kind.PAWN, 49_2) // hunter (RED)
         );
 
-        var normalTilesIds = List.of(62, 55, 51, 18, 34, 1, 67, 31, 3, 49, 36);
+        var normalTilesIds = List.of(61, 55, 51, 18, 62, 1, 34, 67, 31, 3, 49);
         var state = initialGameState(playerNames, normalTilesIds, List.of(92));
         var gameStateO = new SimpleObjectProperty<>(state);
-        var unoccupyableTiles = Set.of();
-        var rotations = Map.of(92, Rotation.LEFT);
+        var unoccupyableTiles = Set.of(62);
+        Map<Integer, Rotation> rotations = Map.of();
         var playersNode = PlayersUI.create(gameStateO, textMaker);
-        var messagesNode = MessageBoardUI.create(gameStateO.map(g -> g.messageBoard().messages()), new SimpleObjectProperty<>(Set.of()));
+        var messagesNode = MessageBoardUI.create(gameStateO.map(g -> g.messageBoard().messages()), highlightedTilesP);
         var decksNode = DecksUI.create(gameStateO.map(GameState::tileToPlace), gameStateO.map(g -> g.tileDecks().normalTiles().size()), gameStateO.map(g -> g.tileDecks().menhirTiles().size()), new SimpleObjectProperty<>(""), o -> {});
         var boardNode = (ScrollPane)BoardUI
                 .create(Board.REACH,
@@ -84,8 +90,7 @@ public final class ChaCuNUITest extends Application {
         boardNode.setHvalue(.5);
         boardNode.setVvalue(.5);
 
-        var rootNode= new HBox(boardNode, sideBar);
-        HBox.setHgrow(sideBar, Priority.NEVER);
+        var rootNode = new HBox(boardNode, sideBar);
         HBox.setHgrow(boardNode, Priority.ALWAYS);
         primaryStage.setScene(new Scene(rootNode));
 
@@ -104,11 +109,11 @@ public final class ChaCuNUITest extends Application {
             var r = rotations.getOrDefault(t.id(), Rotation.NONE);
             return new PlacedTile(t, playersIt.next(), r, positions.get(t.id()));
         };
-
+        
         // Place all tiles
         int timelinePace = 1;
         Timeline timeline = new Timeline();
-        for (int i = 0; i < positions.size(); i += 1) {
+        for (int i = 0; i < positions.size() - 2; i += 1) {
             KeyFrame keyFrame = new KeyFrame(Duration.seconds((i+1)*timelinePace), _ -> {
                 var placedTile = nextPlacedTile.apply(gameStateO.getValue());
                 gameStateO.setValue(gameStateO.getValue().withPlacedTile(placedTile));

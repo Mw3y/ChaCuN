@@ -1,10 +1,15 @@
 package ch.epfl.chacun.gui;
 
 import ch.epfl.chacun.*;
+import javafx.beans.binding.Bindings;
+import javafx.beans.binding.ObjectBinding;
 import javafx.beans.value.ObservableValue;
 import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.effect.Blend;
+import javafx.scene.effect.BlendMode;
+import javafx.scene.effect.ColorInput;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.image.WritableImage;
@@ -17,7 +22,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 
-import static ch.epfl.chacun.gui.ImageLoader.*;
+import static ch.epfl.chacun.gui.ImageLoader.MARKER_FIT_SIZE;
+import static ch.epfl.chacun.gui.ImageLoader.NORMAL_TILE_FIT_SIZE;
 
 /**
  * Helper class to display the board.
@@ -129,6 +135,45 @@ public final class BoardUI {
                     tileContainer.setRotate(placedTile.rotation().degreesCW());
                 });
 
+                ObservableValue<Set<Pos>> insertionPositionsO = gameStateO
+                        .map(gameState -> gameState.board().insertionPositions());
+
+                ObjectBinding<CellData> cellData = Bindings.createObjectBinding(() -> {
+                    GameState gameState = gameStateO.getValue();
+                    PlacedTile placedTile = placedTileO.getValue();
+
+                    ColorInput veilColor = new ColorInput();
+                    veilColor.setHeight(NORMAL_TILE_FIT_SIZE);
+                    veilColor.setWidth(NORMAL_TILE_FIT_SIZE);
+
+                    Set<Integer> highlightedTileIds = tileIdsO.getValue();
+                    if(!highlightedTileIds.isEmpty() && (placedTile == null || !highlightedTileIds.contains(placedTile.id()))){
+                        veilColor.setPaint(Color.BLACK);
+                        return new CellData(null, null, veilColor);
+                    }
+
+                    if (gameState.tileToPlace() != null && insertionPositionsO.getValue().contains(tilePos)) {
+                        PlacedTile tileToPlace = new PlacedTile(gameState.tileToPlace(), gameState.currentPlayer(), rotationO.getValue(), tilePos);
+                        if (!tileContainer.isHover()) {
+                            veilColor.setPaint(ColorMap.fillColor(gameState.currentPlayer()));
+                            return new CellData(null, null, veilColor);
+                        }
+                        else if (placedTile == null && !gameState.board().canAddTile(tileToPlace)) {
+                            veilColor.setPaint(Color.WHITE);
+                            return new CellData(tileImageO.getValue(), rotationO.getValue(), veilColor);
+                        }
+                    }
+                    return new CellData(null, null, null);
+                }, rotationO, tileIdsO, insertionPositionsO, tileContainer.hoverProperty());
+
+                tileContainer.effectProperty().bind(cellData.map(data -> {
+                    Blend blend = new Blend();
+                    blend.setMode(BlendMode.SRC_OVER);
+                    blend.setTopInput(data.veilColor());
+                    blend.setOpacity(.5);
+                    return blend;
+                }));
+
                 // Add the tile to the grid while ensuring its coordinates are positive
                 gridPane.add(tileContainer, x + reach, y + reach);
             }
@@ -136,6 +181,10 @@ public final class BoardUI {
 
         container.setContent(gridPane);
         return container;
+    }
+
+    private record CellData(Image tileImage, Rotation tileRotation, ColorInput veilColor) {
+
     }
 
 }
