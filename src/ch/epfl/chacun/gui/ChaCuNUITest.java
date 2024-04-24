@@ -8,7 +8,9 @@ import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.input.MouseButton;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
@@ -26,7 +28,7 @@ public final class ChaCuNUITest extends Application {
     @Override
     public void start(Stage primaryStage) throws InterruptedException {
         var playerNames = Map.of(PlayerColor.RED, "Rose", PlayerColor.BLUE, "Bernard",
-                PlayerColor.GREEN, "Balthazar", PlayerColor.PURPLE, "Maxim"
+                PlayerColor.GREEN, "Balthazar", PlayerColor.YELLOW, "Max", PlayerColor.PURPLE, "Maxim"
         );
 
         var tileToPlaceRotationP =
@@ -75,9 +77,19 @@ public final class ChaCuNUITest extends Application {
                         tileToPlaceRotationP,
                         visibleOccupantsP,
                         highlightedTilesP,
-                        r -> System.out.println("Rotate: " + r),
-                        t -> System.out.println("Place: " + t),
-                        o -> System.out.println("Select: " + o));
+                        tileToPlaceRotationP::set,
+                        t -> {
+                            GameState gameState = gameStateO.getValue();
+                            gameStateO.set(gameState.withPlacedTile(new PlacedTile(gameState.tileToPlace(), gameState.currentPlayer(), tileToPlaceRotationP.getValue(), t)));
+                            tileToPlaceRotationP.set(Rotation.NONE);
+                            Set<Occupant> visibleOccupants = new HashSet<>(gameState.board().occupants());
+                            visibleOccupants.addAll(gameStateO.get().lastTilePotentialOccupants());
+                            visibleOccupantsP.set(visibleOccupants);
+                        },
+                        o -> {
+                            gameStateO.set(gameStateO.getValue().withNewOccupant(o));
+                            visibleOccupantsP.set(gameStateO.get().board().occupants());
+                        });
 
         var sideBar = new VBox(playersNode, messagesNode, decksNode);
         VBox.setVgrow(messagesNode, Priority.ALWAYS);
@@ -109,11 +121,11 @@ public final class ChaCuNUITest extends Application {
             var r = rotations.getOrDefault(t.id(), Rotation.NONE);
             return new PlacedTile(t, playersIt.next(), r, positions.get(t.id()));
         };
-        
+
         // Place all tiles
         int timelinePace = 1;
         Timeline timeline = new Timeline();
-        for (int i = 0; i < positions.size() - 2; i += 1) {
+        for (int i = 0; i < positions.size() - 1; i += 1) {
             KeyFrame keyFrame = new KeyFrame(Duration.seconds((i+1)*timelinePace), _ -> {
                 var placedTile = nextPlacedTile.apply(gameStateO.getValue());
                 gameStateO.setValue(gameStateO.getValue().withPlacedTile(placedTile));
