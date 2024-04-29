@@ -19,6 +19,7 @@ import javafx.scene.paint.Color;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -44,6 +45,19 @@ public final class BoardUI {
     private BoardUI() {
     }
 
+    /**
+     * Creates the board UI based on the given reach.
+     *
+     * @param reach               the reach of the board
+     * @param gameStateO          the observable game state
+     * @param rotationO           the observable rotation
+     * @param occupantsO          the observable set of occupants
+     * @param highlightedTileIdsO the observable set of highlighted tile ids
+     * @param rotationToApply     the consumer to apply a rotation
+     * @param tileToPlacePos      the consumer to place a tile
+     * @param selectedOccupant    the consumer to select an occupant
+     * @return the created board UI
+     */
     public static Node create(int reach, ObservableValue<GameState> gameStateO, ObservableValue<Rotation> rotationO,
                               ObservableValue<Set<Occupant>> occupantsO,
                               ObservableValue<Set<Integer>> highlightedTileIdsO,
@@ -58,30 +72,29 @@ public final class BoardUI {
         GridPane gridPane = new GridPane();
         gridPane.setId("board-grid");
 
-        // The default image to display when a position doesn't have any tile
-        WritableImage emptyTileImage = new WritableImage(1, 1);
-        emptyTileImage.getPixelWriter().setColor(0, 0, Color.gray(EMPTY_TILE_GRAY_SCALE));
         // Cache the tile images to avoid reloading them
         Map<Integer, Image> tilesCache = new HashMap<>();
 
         // Create a tile for each board position within the reach
         for (int x = -reach; x <= reach; ++x) {
             for (int y = -reach; y <= reach; ++y) {
+                Pos tilePos = new Pos(x, y);
                 Group tileContainer = new Group();
 
                 ImageView tileView = new ImageView();
                 tileView.setFitHeight(NORMAL_TILE_FIT_SIZE);
                 tileView.setFitWidth(NORMAL_TILE_FIT_SIZE);
 
-                Pos tilePos = new Pos(x, y);
+                ObjectBinding<CellData> cellData = CellData
+                        .createBinding(gameStateO, rotationO, highlightedTileIdsO, tileContainer, tilePos, tilesCache);
+
+                tileView.imageProperty().bind(cellData.map(CellData::tileImage));
+                tileContainer.rotateProperty().bind(cellData.map(data -> data.tileRotation().degreesCW()));
+                tileContainer.effectProperty().bind(cellData.map(CellData::createVeil));
+                tileContainer.getChildren().add(tileView);
+
                 ObservableValue<PlacedTile> placedTileO = gameStateO
                         .map(gameState -> gameState.board().tileAt(tilePos));
-
-                // Reactive image data
-                ObservableValue<Image> tileImageO = placedTileO.map(tile ->
-                        tilesCache.computeIfAbsent(tile.id(), ImageLoader::normalImageForTile)).orElse(emptyTileImage);
-                // tileView.imageProperty().bind(tileImageO);
-                tileContainer.getChildren().add(tileView);
 
                 // Handle tile rotation and placement
                 tileContainer.setOnMouseClicked(event -> {
@@ -105,90 +118,18 @@ public final class BoardUI {
                     // Add all potential markers to the tile
                     for (Zone.Meadow meadowZone : placedTile.meadowZones()) {
                         for (Animal animal : meadowZone.animals()) {
-                            ImageView markerView = new ImageView();
-                            // Style the marker
-                            markerView.setFitHeight(MARKER_FIT_SIZE);
-                            markerView.setFitWidth(MARKER_FIT_SIZE);
-                            markerView.getStyleClass().add("marker");
-                            markerView.setId(STR."marker_\{animal.id()}");
-                            // Hide the marker when not needed
-                            ObservableValue<Boolean> isCancelledO = gameStateO
-                                    .map(gameState -> gameState.board().cancelledAnimals().contains(animal));
-                            markerView.visibleProperty().bind(isCancelledO);
+                            Node markerView = createAnimalMarker(gameStateO, animal);
                             tileContainer.getChildren().add(markerView);
                         }
                     }
-
                     // Add all potential occupants to the tile
                     for (Occupant occupant : placedTile.potentialOccupants()) {
-                        Node occupantIcon = Icon.newFor(placedTile.placer(), occupant.kind());
-                        occupantIcon.setId(STR."\{occupant.kind().toString().toLowerCase()}_\{occupant.zoneId()}");
-                        // Ensure the occupant is always oriented upwards
-                        occupantIcon.setRotate(placedTile.rotation().negated().degreesCW());
-                        // Hide the occupant when not needed
-                        occupantIcon.visibleProperty().bind(occupantsO.map(occupants -> occupants.contains(occupant)));
-                        // Allow the player to select an occupant and place it/remove it
-                        occupantIcon.setOnMouseClicked(_ -> selectedOccupant.accept(occupant));
+                        Node occupantIcon = createTileOccupant(occupantsO, selectedOccupant, placedTile, occupant);
                         tileContainer.getChildren().add(occupantIcon);
                     }
-
                     // De-synchronize the tile rotation when it has been placed
                     tileContainer.rotateProperty().unbind();
                 });
-
-                ObservableValue<Set<Pos>> insertionPositionsO = gameStateO
-                        .map(gameState -> gameState.board().insertionPositions());
-
-                ObjectBinding<CellData> cellData = Bindings.createObjectBinding(() -> {
-                    GameState gameState = gameStateO.getValue();
-                    PlacedTile placedTile = gameState.board().tileAt(tilePos);
-                    Set<Integer> highlightedTileIds = highlightedTileIdsO.getValue();
-
-                    ColorInput veilColor = new ColorInput();
-                    veilColor.setHeight(NORMAL_TILE_FIT_SIZE);
-                    veilColor.setWidth(NORMAL_TILE_FIT_SIZE);
-
-                    Image tileImage = placedTile == null ?
-                            emptyTileImage : tilesCache.computeIfAbsent(placedTile.id(), ImageLoader::normalImageForTile);
-
-                    if (placedTile != null && !highlightedTileIds.isEmpty() && !highlightedTileIdsO.getValue().contains(placedTile.id())) {
-                        veilColor.setPaint(Color.BLACK);
-                        return new CellData(tileImage, placedTile.rotation(), veilColor);
-                    }
-
-                    if (gameState.tileToPlace() != null && gameState.board().insertionPositions().contains(tilePos)) {
-                        Image tileToPlaceImage = tilesCache.computeIfAbsent(gameState.tileToPlace().id(), ImageLoader::normalImageForTile);
-                        if (!tileContainer.isHover()) {
-                            veilColor.setPaint(ColorMap.fillColor(gameState.currentPlayer()));
-                            return new CellData(emptyTileImage, Rotation.NONE, veilColor);
-                        }
-
-                        PlacedTile tileToPlace =
-                                new PlacedTile(gameState.tileToPlace(), gameState.currentPlayer(), rotationO.getValue(), tilePos);
-                        if (!gameState.board().canAddTile(tileToPlace)) {
-                            veilColor.setPaint(Color.WHITE);
-                            return new CellData(tileToPlaceImage, rotationO.getValue(), veilColor);
-                        }
-
-                        return new CellData(tileToPlaceImage, rotationO.getValue(), null);
-                    }
-
-                    return new CellData(tileImage, Rotation.NONE, null);
-                }, rotationO, highlightedTileIdsO, tileContainer.hoverProperty(), gameStateO);
-
-                tileView.imageProperty().bind(cellData.map(CellData::tileImage));
-
-                tileContainer.rotateProperty().bind(cellData.map(data -> data.tileRotation().degreesCW()));
-
-                tileContainer.effectProperty().bind(cellData.map(data -> {
-                    Blend blend = new Blend();
-                    blend.setMode(BlendMode.SRC_OVER);
-                    blend.setTopInput(data.veilColor());
-                    blend.setOpacity(.5);
-                    return blend;
-                }));
-
-
                 // Add the tile to the grid while ensuring its coordinates are positive
                 gridPane.add(tileContainer, x + reach, y + reach);
             }
@@ -198,7 +139,148 @@ public final class BoardUI {
         return container;
     }
 
-    private record CellData(Image tileImage, Rotation tileRotation, ColorInput veilColor) {
+    /**
+     * Creates a marker for a given cancelled animal.
+     * <p>
+     * The marker is only visible when the animal has been cancelled.
+     *
+     * @param gameStateO the observable game state
+     * @param animal     the animal to create a marker for
+     * @return the created marker
+     */
+    private static Node createAnimalMarker(ObservableValue<GameState> gameStateO, Animal animal) {
+        ImageView markerView = new ImageView();
+        // Style the marker
+        markerView.setFitHeight(MARKER_FIT_SIZE);
+        markerView.setFitWidth(MARKER_FIT_SIZE);
+        markerView.getStyleClass().add("marker");
+        markerView.setId(STR."marker_\{animal.id()}");
+        // Hide the marker when not needed
+        ObservableValue<Boolean> isCancelledO = gameStateO
+                .map(gameState -> gameState.board().cancelledAnimals().contains(animal));
+        markerView.visibleProperty().bind(isCancelledO);
+        return markerView;
+    }
+
+    /**
+     * Creates an occupant icon for a given occupant.
+     * <p>
+     * The icon is only visible when the occupant is present on the tile.
+     *
+     * @param occupantsO       the observable set of occupants
+     * @param selectedOccupant the consumer to select an occupant
+     * @param placedTile       the placed tile
+     * @param occupant         the occupant to create an icon for
+     * @return the created occupant icon
+     */
+    private static Node createTileOccupant(ObservableValue<Set<Occupant>> occupantsO,
+                                           Consumer<Occupant> selectedOccupant,
+                                           PlacedTile placedTile, Occupant occupant) {
+        Node occupantIcon = Icon.newFor(placedTile.placer(), occupant.kind());
+        occupantIcon.setId(STR."\{occupant.kind().toString().toLowerCase()}_\{occupant.zoneId()}");
+        // Ensure the occupant is always oriented upwards
+        occupantIcon.setRotate(placedTile.rotation().negated().degreesCW());
+        // Hide the occupant when not needed
+        occupantIcon.visibleProperty().bind(occupantsO.map(occupants -> occupants.contains(occupant)));
+        // Allow the player to select an occupant and place it/remove it
+        occupantIcon.setOnMouseClicked(_ -> selectedOccupant.accept(occupant));
+        return occupantIcon;
+    }
+
+    /**
+     * Helper class to store the data of a cell.
+     *
+     * @param tileImage    the image of the tile
+     * @param tileRotation the rotation of the tile
+     * @param veilColor    the color of the veil to apply on the tile
+     */
+    private record CellData(Image tileImage, Rotation tileRotation, Color veilColor) {
+
+        /**
+         * The opacity of the veil to apply on the tile.
+         */
+        private static final double VEIL_OPACITY = .5;
+
+        /**
+         * The default image to display when a position doesn't have any tile.
+         */
+        private static final WritableImage emptyTileImage = new WritableImage(1, 1);
+
+        static {
+            // Fill the empty tile with a gray color
+            emptyTileImage.getPixelWriter().setColor(0, 0, Color.gray(EMPTY_TILE_GRAY_SCALE));
+        }
+
+
+        /**
+         * Validates the given tile image, rotation and veil color.
+         */
+        public CellData {
+            Objects.requireNonNull(tileImage);
+            Objects.requireNonNull(tileRotation);
+            Objects.requireNonNull(veilColor);
+        }
+
+        /**
+         * Returns the image of the tile with the given id and cache it.
+         *
+         * @param tileId the id of the tile
+         * @param cache  the cache to store the image
+         * @return the image of the tile
+         */
+        public static Image cachedTileImage(int tileId, Map<Integer, Image> cache) {
+            return cache.computeIfAbsent(tileId, ImageLoader::normalImageForTile);
+        }
+
+        public static ObjectBinding<CellData> createBinding(ObservableValue<GameState> gameStateO,
+                                                            ObservableValue<Rotation> rotationO,
+                                                            ObservableValue<Set<Integer>> highlightedTileIdsO,
+                                                            Group tileContainer, Pos tilePos,
+                                                            Map<Integer, Image> tilesCache) {
+            return Bindings.createObjectBinding(() -> {
+                GameState gameState = gameStateO.getValue();
+                PlacedTile placedTile = gameState.board().tileAt(tilePos);
+                Set<Integer> highlightedTileIds = highlightedTileIdsO.getValue();
+
+                Image tileImage = placedTile == null ?
+                        emptyTileImage : CellData.cachedTileImage(placedTile.id(), tilesCache);
+                Rotation rotation = placedTile == null ? Rotation.NONE : placedTile.rotation();
+
+                boolean isTileBeingPlaced = gameState.tileToPlace() != null
+                        && gameState.board().insertionPositions().contains(tilePos);
+
+                if (placedTile != null && !highlightedTileIds.isEmpty()
+                        && !highlightedTileIds.contains(placedTile.id()))
+                    return new CellData(tileImage, rotation, Color.BLACK);
+
+                if (isTileBeingPlaced) {
+                    if (tileContainer.isHover()) {
+                        Image image = CellData.cachedTileImage(gameState.tileToPlace().id(), tilesCache);
+                        PlacedTile tileCandidate = new PlacedTile(gameState.tileToPlace(), gameState.currentPlayer(),
+                                rotationO.getValue(), tilePos);
+                        Color veilColor = !gameState.board().canAddTile(tileCandidate)
+                                ? Color.WHITE : Color.TRANSPARENT;
+                        return new CellData(image, rotationO.getValue(), veilColor);
+                    }
+                    return new CellData(tileImage, Rotation.NONE, ColorMap.fillColor(gameState.currentPlayer()));
+                }
+
+                return new CellData(tileImage, rotation, Color.TRANSPARENT);
+            }, rotationO, highlightedTileIdsO, tileContainer.hoverProperty(), gameStateO);
+        }
+
+        /**
+         * Creates a veil to apply on the tile based on its current color.
+         *
+         * @return the created veil
+         */
+        public Blend createVeil() {
+            Blend blend = new Blend();
+            blend.setMode(BlendMode.SRC_OVER);
+            blend.setTopInput(new ColorInput(0, 0, NORMAL_TILE_FIT_SIZE, NORMAL_TILE_FIT_SIZE, veilColor));
+            blend.setOpacity(VEIL_OPACITY);
+            return blend;
+        }
 
     }
 
