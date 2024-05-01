@@ -127,8 +127,6 @@ public final class BoardUI {
                         Node occupantIcon = createTileOccupant(occupantsO, selectedOccupant, placedTile, occupant);
                         tileContainer.getChildren().add(occupantIcon);
                     }
-                    // De-synchronize the tile rotation when it has been placed
-                    tileContainer.rotateProperty().unbind();
                 });
                 // Add the tile to the grid while ensuring its coordinates are positive
                 gridPane.add(tileContainer, x + reach, y + reach);
@@ -214,6 +212,7 @@ public final class BoardUI {
 
         /**
          * Validates the given tile image, rotation and veil color.
+         *
          */
         public CellData {
             Objects.requireNonNull(tileImage);
