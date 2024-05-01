@@ -212,7 +212,6 @@ public final class BoardUI {
 
         /**
          * Validates the given tile image, rotation and veil color.
-         *
          */
         public CellData {
             Objects.requireNonNull(tileImage);
