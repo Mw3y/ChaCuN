@@ -1,7 +1,7 @@
 package ch.epfl.chacun;
 
 /**
- * Helper class to encode the game actions in base 32.
+ * Helper class to encode and decode values in base 32.
  *
  * @author Maxence Espagnet (sciper: 372808)
  * @author Balthazar Baillat (sciper: 373420)

@@ -1,0 +1,9 @@
+#actions {
+    -fx-spacing: 10;
+     -fx-alignment: baseline-center;
+      -fx-padding: 5;
+}
+
+#action-field {
+    -fx-pref-width: 60;
+}
