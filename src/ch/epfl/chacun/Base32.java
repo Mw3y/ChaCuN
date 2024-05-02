@@ -7,10 +7,16 @@ package ch.epfl.chacun;
  * @author Balthazar Baillat (sciper: 373420)
  */
 public class Base32 {
-    /*
-    The alphabet representing the base 32.
+
+    /**
+     * The alphabet representing the base 32.
      */
     public static final String ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+
+    /**
+     * The size of the base 32 alphabet.
+     */
+    public static final int ALPHABET_SIZE = ALPHABET.length();
 
     /**
      * Checks if the given string is valid in base 32.
@@ -19,7 +25,7 @@ public class Base32 {
      * @return true if and only if the string is valid and false otherwise
      */
     public static boolean isValid(String string) {
-        return string.chars().anyMatch(c -> ALPHABET.contains(String.valueOf(c)));
+        return string.chars().allMatch(c -> ALPHABET.indexOf(c) != -1);
     }
 
     /**
@@ -28,7 +34,7 @@ public class Base32 {
      * @param value the 5-bit integer value to be encoded
      * @return the string containing the encoded value
      */
-    public static String encodeBits5(int value){
+    public static String encodeBits5(int value) {
         // Keep only the 5 less significand bits
         int fiveLSB = value & ((1 << 5) - 1);
         return String.valueOf(ALPHABET.charAt(fiveLSB));
@@ -42,7 +48,7 @@ public class Base32 {
      */
     public static String encodeBits10(int value) {
         // Encoded independently two 5-bit parts and merge them
-        return (encodeBits5(value & (~(1 << 5))) + encodeBits5(value));
+        return encodeBits5(value >> 5) + encodeBits5(value);
     }
 
     /**
@@ -53,13 +59,12 @@ public class Base32 {
      * @param value the string value to be decoded
      * @return the integer corresponding to the decoded value
      */
-    public static int decode(String value){
+    public static int decode(String value) {
         int decodedValue = 0;
         // For each value, add its index in the base 32 alphabet times the corresponding power of 32
         // to the decoded integer value
         for (int i = 0; i < value.length(); ++i) {
-            decodedValue
-                    += (int) (ALPHABET.indexOf(value.charAt(i)) * Math.pow(ALPHABET.length(), i));
+            decodedValue += (int) (ALPHABET.indexOf(value.charAt(i)) * Math.pow(ALPHABET_SIZE, i));
         }
         return decodedValue;
     }
