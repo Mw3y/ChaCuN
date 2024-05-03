@@ -1,5 +1,6 @@
 package ch.epfl.chacun;
 
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
@@ -28,15 +29,24 @@ public class ActionEncoder {
      * @return a new state action with the updated game state and the encoded action
      */
     public static StateAction withPLacedTile(GameState gameState, PlacedTile placedTile) {
-        // Sort the positions in ascending order, first by their x-coordinate, then by their y-coordinate
-        Comparator<Pos> comparator = Comparator.comparing(Pos::x).thenComparing(Pos::y);
-        List<Pos> sortedFringe = gameState.board().insertionPositions()
-                .stream().sorted(comparator).toList();
+        List<Pos> sortedFringe = sortPos(gameState);
         // Encode the placed tile index then shift it of two positions to the left to merge the encoded rotation
         int fringeBits = sortedFringe.indexOf(placedTile.pos()) << 2;
         int rotationBits = placedTile.rotation().ordinal();
         return new StateAction(
                 gameState.withPlacedTile(placedTile), Base32.encodeBits10(fringeBits + rotationBits));
+    }
+
+    /**
+     * Sorts the positions of the given game state fringe in ascending order, first by their x-coordinate,
+     * then by their y-coordinate.
+     *
+     * @param gameState the given game state
+     * @return a list containing the sorted positions
+     */
+    private static List<Pos> sortPos(GameState gameState) {
+        Comparator<Pos> comparator = Comparator.comparing(Pos::x).thenComparing(Pos::y);
+        return gameState.board().insertionPositions().stream().sorted(comparator).toList();
     }
 
     /**
@@ -84,11 +94,33 @@ public class ActionEncoder {
     }
 
     public static StateAction decodeAndApply(GameState gameState, String action) {
-
+        return null;
     }
 
     private static StateAction decodeAndApplySlave(GameState gameState, String action) {
-
+        Preconditions.checkArgument(Base32.isValid(action) || action.isEmpty() || action.length() > 2);
+        int decodedAction = Base32.decode(action);
+        switch (gameState.nextAction()) {
+            case PLACE_TILE -> {
+                Rotation rotationToApply = Arrays.stream(Rotation.values()).toList().get(decodedAction & (1 << 2 - 1));
+                Pos placedTilePosition = sortPos(gameState).get(decodedAction);
+                PlacedTile placedTile = new PlacedTile(gameState.tileToPlace(), gameState.currentPlayer(),
+                        rotationToApply, placedTilePosition);
+                Preconditions.checkArgument(gameState.board().couldPlaceTile(placedTile.tile()));
+                GameState updatedGameState = gameState.withPlacedTile(placedTile);
+                return new StateAction(updatedGameState, action);
+            }
+            case OCCUPY_TILE -> {
+                Occupant.Kind occupantKind = decodedAction >> 4 == 0 ? Occupant.Kind.PAWN : Occupant.Kind.HUT;
+                int zoneID = decodedAction & (1 << 4 - 1);
+                Occupant newOccupant = action.equals(NO_OCCUPANT_ENCODED_ACTION)
+                        ? new Occupant(occupantKind, zoneID)
+                        : null;
+                GameState updatedGameState = gameState.withNewOccupant(newOccupant);
+                return new StateAction(updatedGameState, action);
+            }
+        }
+        return null;
     }
 
     /**
