@@ -14,7 +14,7 @@ public class ActionEncoder {
     /**
      * When the player doesn't want to add or remove an occupant, send 0b11111.
      */
-    public static final int NO_OCCUPANT_ENCODED_ACTION = 0x1F;
+    public static final String NO_OCCUPANT_ENCODED_ACTION = Base32.encodeBits5(0x1F);
 
     /**
      * Manages the encoding of the action of placing a tile.
@@ -28,17 +28,15 @@ public class ActionEncoder {
      * @return a new state action with the updated game state and the encoded action
      */
     public static StateAction withPLacedTile(GameState gameState, PlacedTile placedTile) {
-        // Sort the positions in ascending order, first by their x-coordinate,
-        // then by their y-coordinate
-        Comparator<Pos> comparator = Comparator.comparing(Pos::x);
-        comparator = comparator.thenComparing(Pos::y);
+        // Sort the positions in ascending order, first by their x-coordinate, then by their y-coordinate
+        Comparator<Pos> comparator = Comparator.comparing(Pos::x).thenComparing(Pos::y);
         List<Pos> sortedFringe = gameState.board().insertionPositions()
                 .stream().sorted(comparator).toList();
         // Encode the placed tile index then shift it of two positions to the left to merge the encoded rotation
-        String encodedAction = Base32.encodeBits10((sortedFringe.indexOf(placedTile.pos()) << 2)
-                + placedTile.rotation().ordinal());
-
-        return new StateAction(gameState.withPlacedTile(placedTile), encodedAction);
+        int fringeBits = sortedFringe.indexOf(placedTile.pos()) << 2;
+        int rotationBits = placedTile.rotation().ordinal();
+        return new StateAction(
+                gameState.withPlacedTile(placedTile), Base32.encodeBits10(fringeBits + rotationBits));
     }
 
     /**
@@ -60,7 +58,7 @@ public class ActionEncoder {
             return new StateAction(
                     gameState.withNewOccupant(occupantToPlace), Base32.encodeBits5(kindBits + zoneBits));
         }
-        return new StateAction(gameState.withNewOccupant(null), Base32.encodeBits5(NO_OCCUPANT_ENCODED_ACTION));
+        return new StateAction(gameState.withNewOccupant(null), NO_OCCUPANT_ENCODED_ACTION);
     }
 
     /**
@@ -82,7 +80,7 @@ public class ActionEncoder {
             return new StateAction(
                     gameState.withOccupantRemoved(occupantToRemove), Base32.encodeBits5(occupantIndex));
         }
-        return new StateAction(gameState.withOccupantRemoved(null), Base32.encodeBits5(NO_OCCUPANT_ENCODED_ACTION));
+        return new StateAction(gameState.withOccupantRemoved(null), NO_OCCUPANT_ENCODED_ACTION);
     }
 
     public static StateAction decodeAndApply(GameState gameState, String action) {
