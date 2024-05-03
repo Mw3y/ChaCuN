@@ -1,6 +1,5 @@
 package ch.epfl.chacun;
 
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
@@ -18,6 +17,30 @@ public class ActionEncoder {
     public static final String NO_OCCUPANT_ENCODED_ACTION = Base32.encodeBits5(0x1F);
 
     /**
+     * The number of bits to shift to encode the placed tile index.
+     * Encoded format: ppppp-ppprr, where p is a bit of the placed tile index and r is a bit of the rotation.
+     */
+    private static final int PLACED_TILE_INDEX_SHIFT = 2;
+
+    /**
+     * The mask to apply to the encoded action to get the placed tile index.
+     * Encoded format: ppppp-ppprr, where p is a bit of the placed tile index and r is a bit of the rotation.
+     */
+    private static final int PLACED_TILE_ROTATION_MASK = (1 << PLACED_TILE_INDEX_SHIFT) - 1;
+
+    /**
+     * The number of bits to shift to encode the occupant kind.
+     * Encoded format: kzzzz, where k is a bit of the occupant kind and z is a bit of the zone id.
+     */
+    private static final int OCCUPANT_KIND_SHIFT = 4;
+
+    /**
+     * The mask to apply to the encoded action to get the occupant zone id.
+     * Encoded format: kzzzz, where k is a bit of the occupant kind and z is a bit of the zone id.
+     */
+    private static final int OCCUPANT_ZONE_MASK = (1 << OCCUPANT_KIND_SHIFT) - 1;
+
+    /**
      * Manages the encoding of the action of placing a tile.
      * <p>
      * Sorts the fringe and encodes the index of the placedTile in the fringe and the applied rotation in a
@@ -31,10 +54,10 @@ public class ActionEncoder {
     public static StateAction withPLacedTile(GameState gameState, PlacedTile placedTile) {
         List<Pos> sortedFringe = sortPos(gameState);
         // Encode the placed tile index then shift it of two positions to the left to merge the encoded rotation
-        int fringeBits = sortedFringe.indexOf(placedTile.pos()) << 2;
+        int fringeBits = sortedFringe.indexOf(placedTile.pos()) << PLACED_TILE_INDEX_SHIFT;
         int rotationBits = placedTile.rotation().ordinal();
         return new StateAction(
-                gameState.withPlacedTile(placedTile), Base32.encodeBits10(fringeBits + rotationBits));
+                gameState.withPlacedTile(placedTile), Base32.encodeBits10(fringeBits | rotationBits));
     }
 
     /**
@@ -63,10 +86,10 @@ public class ActionEncoder {
         assert gameState.board().lastPlacedTile() != null;
         if (occupantToPlace != null) {
             // Format the action data
-            int kindBits = occupantToPlace.kind().ordinal() << 4;
+            int kindBits = occupantToPlace.kind().ordinal() << OCCUPANT_KIND_SHIFT;
             int zoneBits = gameState.board().lastPlacedTile().idOfZoneOccupiedBy(occupantToPlace.kind());
             return new StateAction(
-                    gameState.withNewOccupant(occupantToPlace), Base32.encodeBits5(kindBits + zoneBits));
+                    gameState.withNewOccupant(occupantToPlace), Base32.encodeBits5(kindBits | zoneBits));
         }
         return new StateAction(gameState.withNewOccupant(null), NO_OCCUPANT_ENCODED_ACTION);
     }
@@ -94,33 +117,75 @@ public class ActionEncoder {
     }
 
     public static StateAction decodeAndApply(GameState gameState, String action) {
-        return null;
+        try {
+            return unsafeDecodeAndApply(gameState, action);
+        } catch (IllegalActionException e) {
+            return null;
+        }
     }
 
-    private static StateAction decodeAndApplySlave(GameState gameState, String action) {
+    /**
+     * Unsafely decodes the given action and applies it to the given game state based on the next action.
+     *
+     * @param gameState the game state
+     * @param action the encoded action
+     * @return a new state action with an updated game state
+     * @throws IllegalActionException if the action is illegal
+     */
+    private static StateAction unsafeDecodeAndApply(GameState gameState, String action) throws IllegalActionException {
         Preconditions.checkArgument(Base32.isValid(action) || action.isEmpty() || action.length() > 2);
         int decodedAction = Base32.decode(action);
-        switch (gameState.nextAction()) {
+        // Execute the provided action based on the next action context
+        return switch (gameState.nextAction()) {
             case PLACE_TILE -> {
-                Rotation rotationToApply = Arrays.stream(Rotation.values()).toList().get(decodedAction & (1 << 2 - 1));
-                Pos placedTilePosition = sortPos(gameState).get(decodedAction);
+                Rotation placedTileRotation = Rotation.ALL.get(decodedAction & PLACED_TILE_ROTATION_MASK);
+                Pos placedTilePos = sortPos(gameState).get(decodedAction >> PLACED_TILE_INDEX_SHIFT);
                 PlacedTile placedTile = new PlacedTile(gameState.tileToPlace(), gameState.currentPlayer(),
-                        rotationToApply, placedTilePosition);
-                Preconditions.checkArgument(gameState.board().couldPlaceTile(placedTile.tile()));
-                GameState updatedGameState = gameState.withPlacedTile(placedTile);
-                return new StateAction(updatedGameState, action);
+                        placedTileRotation, placedTilePos);
+
+                // Check if the tile can be placed
+                if (!gameState.board().canAddTile(placedTile))
+                    throw new IllegalStateException();
+
+                yield new StateAction(gameState.withPlacedTile(placedTile), action);
             }
             case OCCUPY_TILE -> {
-                Occupant.Kind occupantKind = decodedAction >> 4 == 0 ? Occupant.Kind.PAWN : Occupant.Kind.HUT;
-                int zoneID = decodedAction & (1 << 4 - 1);
-                Occupant newOccupant = action.equals(NO_OCCUPANT_ENCODED_ACTION)
-                        ? new Occupant(occupantKind, zoneID)
-                        : null;
-                GameState updatedGameState = gameState.withNewOccupant(newOccupant);
-                return new StateAction(updatedGameState, action);
+                // Check if the player doesn't want to add an occupant
+                if (action.equals(NO_OCCUPANT_ENCODED_ACTION))
+                    yield new StateAction(gameState.withNewOccupant(null), action);
+
+                // Decode the action
+                int occupantZoneId = decodedAction & OCCUPANT_ZONE_MASK;
+                int occupantKindIndex = decodedAction >> OCCUPANT_KIND_SHIFT;
+                Occupant.Kind occupantKind = Occupant.Kind.values()[occupantKindIndex];
+                Occupant newOccupant = new Occupant(occupantKind, occupantZoneId);
+
+                // Check if the occupant can be placed
+                PlacedTile occupantPlacedTile = gameState.board().lastPlacedTile();
+                if (occupantPlacedTile == null || !occupantPlacedTile.potentialOccupants().contains(newOccupant))
+                    throw new IllegalActionException();
+
+                yield new StateAction(gameState.withNewOccupant(newOccupant), action);
             }
-        }
-        return null;
+            case RETAKE_PAWN -> {
+                // Check if the player doesn't want to retake an occupant
+                if (action.equals(NO_OCCUPANT_ENCODED_ACTION))
+                    yield new StateAction(gameState.withOccupantRemoved(null), action);
+
+                // Decode the action
+                List<Occupant> sortedOccupants = sortOccupants(gameState);
+                Occupant pawnToRemove = sortedOccupants.get(decodedAction);
+
+                // Check if the occupant can be removed
+                PlacedTile placedTileWithPawn = gameState.board().tileWithId(Zone.tileId(pawnToRemove.zoneId()));
+                if (placedTileWithPawn.placer() != gameState.currentPlayer()
+                        || placedTileWithPawn.occupant().equals(pawnToRemove))
+                    throw new IllegalActionException();
+
+                yield new StateAction(gameState.withOccupantRemoved(pawnToRemove), action);
+            }
+            default -> throw new IllegalActionException();
+        };
     }
 
     /**
@@ -131,8 +196,34 @@ public class ActionEncoder {
      *
      * @param gameState the game state
      * @param action    the encoded action
+     * @author Maxence Espagnet (sciper: 372808)
+     * @author Balthazar Baillat (sciper: 373420)
      */
     public record StateAction(GameState gameState, String action) {
+    }
+
+    /**
+     * Represents an illegal action exception.
+     *
+     * @author Maxence Espagnet (sciper: 372808)
+     * @author Balthazar Baillat (sciper: 373420)
+     */
+    public static class IllegalActionException extends Exception {
+
+        /**
+         * Constructs an illegal action exception.
+         */
+        public IllegalActionException() {
+            super();
+        }
+
+        /**
+         * Constructs an illegal action exception with a message.
+         * @param message the message
+         */
+        public IllegalActionException(String message) {
+            super(message);
+        }
     }
 
 
