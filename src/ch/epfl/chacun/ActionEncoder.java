@@ -14,7 +14,7 @@ public class ActionEncoder {
     /**
      * When the player doesn't want to add or remove an occupant, send 0b11111.
      */
-    public static final String NO_OCCUPANT_ENCODED_ACTION = Base32.encodeBits5(0x1F);
+    private static final String NO_OCCUPANT_ENCODED_ACTION = Base32.encodeBits5(0x1F);
 
     /**
      * The number of bits to shift to encode the placed tile index.
@@ -29,6 +29,11 @@ public class ActionEncoder {
     private static final int PLACED_TILE_ROTATION_MASK = (1 << PLACED_TILE_INDEX_SHIFT) - 1;
 
     /**
+     * The base 32 string length of the action of placing a tile.
+     */
+    private static final int PLACE_TILE_ENCODED_ACTION_LENGTH = 2;
+
+    /**
      * The number of bits to shift to encode the occupant kind.
      * Encoded format: kzzzz, where k is a bit of the occupant kind and z is a bit of the zone id.
      */
@@ -39,6 +44,11 @@ public class ActionEncoder {
      * Encoded format: kzzzz, where k is a bit of the occupant kind and z is a bit of the zone id.
      */
     private static final int OCCUPANT_ZONE_MASK = (1 << OCCUPANT_KIND_SHIFT) - 1;
+
+    /**
+     * The base 32 string length of the action of placing or removing an occupant.
+     */
+    private static final int OCCUPANT_ENCODED_ACTION_LENGTH = 1;
 
     /**
      * Manages the encoding of the action of placing a tile.
@@ -133,7 +143,10 @@ public class ActionEncoder {
      * @throws IllegalActionException if the action is illegal
      */
     private static StateAction unsafeDecodeAndApply(GameState gameState, String action) throws IllegalActionException {
-        Preconditions.checkArgument(Base32.isValid(action) || action.isEmpty() || action.length() > 2);
+        // Check if the received action is valid
+        if (!Base32.isValid(action) || action.isEmpty())
+            throw new IllegalActionException();
+
         int decodedAction = Base32.decode(action);
         // Execute the provided action based on the next action context
         return switch (gameState.nextAction()) {
@@ -144,8 +157,8 @@ public class ActionEncoder {
                         placedTileRotation, placedTilePos);
 
                 // Check if the tile can be placed
-                if (!gameState.board().canAddTile(placedTile))
-                    throw new IllegalStateException();
+                if (action.length() != PLACE_TILE_ENCODED_ACTION_LENGTH || !gameState.board().canAddTile(placedTile))
+                    throw new IllegalActionException();
 
                 yield new StateAction(gameState.withPlacedTile(placedTile), action);
             }
@@ -162,7 +175,9 @@ public class ActionEncoder {
 
                 // Check if the occupant can be placed
                 PlacedTile occupantPlacedTile = gameState.board().lastPlacedTile();
-                if (occupantPlacedTile == null || !occupantPlacedTile.potentialOccupants().contains(newOccupant))
+                if (action.length() != OCCUPANT_ENCODED_ACTION_LENGTH
+                        || occupantPlacedTile == null
+                        || !occupantPlacedTile.potentialOccupants().contains(newOccupant))
                     throw new IllegalActionException();
 
                 yield new StateAction(gameState.withNewOccupant(newOccupant), action);
@@ -178,7 +193,8 @@ public class ActionEncoder {
 
                 // Check if the occupant can be removed
                 PlacedTile placedTileWithPawn = gameState.board().tileWithId(Zone.tileId(pawnToRemove.zoneId()));
-                if (placedTileWithPawn.placer() != gameState.currentPlayer()
+                if (action.length() != OCCUPANT_ENCODED_ACTION_LENGTH
+                        || placedTileWithPawn.placer() != gameState.currentPlayer()
                         || placedTileWithPawn.occupant().equals(pawnToRemove))
                     throw new IllegalActionException();
 
