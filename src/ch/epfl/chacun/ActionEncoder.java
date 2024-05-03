@@ -62,7 +62,7 @@ public class ActionEncoder {
      * @return a new state action with the updated game state and the encoded action
      */
     public static StateAction withPLacedTile(GameState gameState, PlacedTile placedTile) {
-        List<Pos> sortedFringe = sortPos(gameState);
+        List<Pos> sortedFringe = sortFringePos(gameState);
         // Encode the placed tile index then shift it of two positions to the left to merge the encoded rotation
         int fringeBits = sortedFringe.indexOf(placedTile.pos()) << PLACED_TILE_INDEX_SHIFT;
         int rotationBits = placedTile.rotation().ordinal();
@@ -77,7 +77,7 @@ public class ActionEncoder {
      * @param gameState the given game state
      * @return a list containing the sorted positions
      */
-    private static List<Pos> sortPos(GameState gameState) {
+    private static List<Pos> sortFringePos(GameState gameState) {
         Comparator<Pos> comparator = Comparator.comparing(Pos::x).thenComparing(Pos::y);
         return gameState.board().insertionPositions().stream().sorted(comparator).toList();
     }
@@ -116,8 +116,7 @@ public class ActionEncoder {
      */
     public static StateAction withOccupantRemoved(GameState gameState, Occupant occupantToRemove) {
         if (occupantToRemove != null) {
-            List<Occupant> sortedOccupants = gameState.board().occupants().stream()
-                    .sorted(Comparator.comparing(Occupant::zoneId)).toList();
+            List<Occupant> sortedOccupants = sortOccupants(gameState);
             // Encode action
             int occupantIndex = sortedOccupants.indexOf(occupantToRemove);
             return new StateAction(
@@ -126,6 +125,18 @@ public class ActionEncoder {
         return new StateAction(gameState.withOccupantRemoved(null), NO_OCCUPANT_ENCODED_ACTION);
     }
 
+    private static List<Occupant> sortOccupants(GameState gameState) {
+        return gameState.board().occupants().stream()
+                .sorted(Comparator.comparing(Occupant::zoneId)).toList();
+    }
+
+    /**
+     * Decodes the given action and applies it to the given game state based on the next action.
+     *
+     * @param gameState the given game state
+     * @param action the encoded action
+     * @return a new state action with an updated game state or null if the action is not valid
+     */
     public static StateAction decodeAndApply(GameState gameState, String action) {
         try {
             return unsafeDecodeAndApply(gameState, action);
@@ -152,7 +163,13 @@ public class ActionEncoder {
         return switch (gameState.nextAction()) {
             case PLACE_TILE -> {
                 Rotation placedTileRotation = Rotation.ALL.get(decodedAction & PLACED_TILE_ROTATION_MASK);
-                Pos placedTilePos = sortPos(gameState).get(decodedAction >> PLACED_TILE_INDEX_SHIFT);
+                int posIndex = decodedAction >> PLACED_TILE_INDEX_SHIFT;
+                List<Pos> insertionPositions = sortFringePos(gameState);
+
+                if (insertionPositions.size() <= posIndex)
+                    throw new IllegalActionException();
+
+                Pos placedTilePos = sortFringePos(gameState).get(posIndex);
                 PlacedTile placedTile = new PlacedTile(gameState.tileToPlace(), gameState.currentPlayer(),
                         placedTileRotation, placedTilePos);
 
@@ -174,10 +191,9 @@ public class ActionEncoder {
                 Occupant newOccupant = new Occupant(occupantKind, occupantZoneId);
 
                 // Check if the occupant can be placed
-                PlacedTile occupantPlacedTile = gameState.board().lastPlacedTile();
                 if (action.length() != OCCUPANT_ENCODED_ACTION_LENGTH
-                        || occupantPlacedTile == null
-                        || !occupantPlacedTile.potentialOccupants().contains(newOccupant))
+                        || gameState.board().lastPlacedTile() == null
+                        || !gameState.lastTilePotentialOccupants().contains(newOccupant))
                     throw new IllegalActionException();
 
                 yield new StateAction(gameState.withNewOccupant(newOccupant), action);
