@@ -51,13 +51,13 @@ public class ActionEncoder {
     private static final int OCCUPANT_ENCODED_ACTION_LENGTH = 1;
 
     /**
-     * Sorts the positions of the given game state fringe in ascending order, first by their x-coordinate,
+     * Sorts the insertion positions of the given game state in ascending order, first by their x-coordinate,
      * then by their y-coordinate.
      *
      * @param gameState the given game state
      * @return a list containing the sorted positions
      */
-    private static List<Pos> sortInsertionPositions(GameState gameState) {
+    private static List<Pos> sortFringe(GameState gameState) {
         Comparator<Pos> comparator = Comparator.comparing(Pos::x).thenComparing(Pos::y);
         return gameState.board().insertionPositions().stream().sorted(comparator).toList();
     }
@@ -84,7 +84,7 @@ public class ActionEncoder {
      * @return a new state action with the updated game state and the encoded action
      */
     public static StateAction withPLacedTile(GameState gameState, PlacedTile placedTile) {
-        List<Pos> sortedFringe = sortInsertionPositions(gameState);
+        List<Pos> sortedFringe = sortFringe(gameState);
         // Encode the placed tile index then shift it of two positions to the left to merge the encoded rotation
         int fringeBits = sortedFringe.indexOf(placedTile.pos()) << PLACED_TILE_INDEX_SHIFT;
         int rotationBits = placedTile.rotation().ordinal();
@@ -169,12 +169,12 @@ public class ActionEncoder {
             case PLACE_TILE -> {
                 Rotation placedTileRotation = Rotation.ALL.get(decodedAction & PLACED_TILE_ROTATION_MASK);
                 int posIndex = decodedAction >> PLACED_TILE_INDEX_SHIFT;
-                List<Pos> insertionPositions = sortInsertionPositions(gameState);
-                // Check if the all the data is present and if the insertion position exists
-                if (action.length() != PLACE_TILE_ENCODED_ACTION_LENGTH || insertionPositions.size() <= posIndex)
+                List<Pos> fringe = sortFringe(gameState);
+                // Check if the all the data is present and if the insertion position exists in the fringe
+                if (action.length() != PLACE_TILE_ENCODED_ACTION_LENGTH || fringe.size() <= posIndex)
                     throw new IllegalActionException();
 
-                Pos placedTilePos = insertionPositions.get(posIndex);
+                Pos placedTilePos = fringe.get(posIndex);
                 PlacedTile placedTile = new PlacedTile(gameState.tileToPlace(), gameState.currentPlayer(),
                         placedTileRotation, placedTilePos);
 
