@@ -17,7 +17,6 @@ import java.util.random.RandomGeneratorFactory;
 import java.util.stream.Collectors;
 
 /**
- *
  * @author Maxence Espagnet (sciper: 372808)
  * @author Balthazar Baillat (sciper: 373420)
  */
@@ -83,37 +82,44 @@ public class Main extends Application {
 
         Consumer<Pos> placeTileAtPos = pos -> {
             GameState state = gameStateO.get();
-            PlacedTile placedTile = new PlacedTile(
-                    state.tileToPlace(), state.currentPlayer(), tileToPlaceRotationP.get(), pos);
+            if (state.tileToPlace() != null) {
+                PlacedTile placedTile = new PlacedTile(
+                        state.tileToPlace(), state.currentPlayer(), tileToPlaceRotationP.get(), pos);
 
-            if (state.board().canAddTile(placedTile)) {
-                ActionEncoder.StateAction stateAction = ActionEncoder.withPLacedTile(state, placedTile);
+                if (state.board().canAddTile(placedTile)) {
+                    ActionEncoder.StateAction stateAction = ActionEncoder.withPLacedTile(state, placedTile);
+                    // Add action
+                    List<String> actions = new ArrayList<>(actionsP.get());
+                    actions.add(stateAction.action());
+                    actionsP.set(actions);
+                    // Register action
+                    gameStateO.set(stateAction.gameState());
+                    tileToPlaceRotationP.set(Rotation.NONE);
+
+                    if (!gameStateO.get().lastTilePotentialOccupants().isEmpty()) {
+                        // Display potential occupants
+                        Set<Occupant> occupantsToDisplay = new HashSet<>(visibleOccupantsP.get());
+                        occupantsToDisplay.addAll(gameStateO.get().lastTilePotentialOccupants());
+                        visibleOccupantsP.set(Set.copyOf(occupantsToDisplay));
+                        textToDisplayP.set(textMaker.clickToOccupy());
+                    }
+                }
+            }
+        };
+
+        Consumer<Occupant> selectOccupant = occupant -> {
+            if (!gameStateO.get().board().occupants().contains(occupant)) {
+                ActionEncoder.StateAction stateAction = ActionEncoder.withNewOccupant(gameStateO.get(), occupant);
                 // Add action
                 List<String> actions = new ArrayList<>(actionsP.get());
                 actions.add(stateAction.action());
                 actionsP.set(actions);
                 // Register action
                 gameStateO.set(stateAction.gameState());
-                tileToPlaceRotationP.set(Rotation.NONE);
-                // Display potential occupants
-                Set<Occupant> occupantsToDisplay = new HashSet<>(visibleOccupantsP.get());
-                occupantsToDisplay.addAll(gameStateO.get().lastTilePotentialOccupants());
-                visibleOccupantsP.set(Set.copyOf(occupantsToDisplay));
-                textToDisplayP.set(textMaker.clickToOccupy());
+                // Reset properties
+                visibleOccupantsP.set(gameStateO.get().board().occupants());
+                textToDisplayP.set("");
             }
-        };
-
-        Consumer<Occupant> selectOccupant = occupant -> {
-            ActionEncoder.StateAction stateAction = ActionEncoder.withNewOccupant(gameStateO.get(), occupant);
-            // Add action
-            List<String> actions = new ArrayList<>(actionsP.get());
-            actions.add(stateAction.action());
-            actionsP.set(actions);
-            // Register action
-            gameStateO.set(stateAction.gameState());
-            // Reset properties
-            visibleOccupantsP.set(gameStateO.get().board().occupants());
-            textToDisplayP.set("");
         };
 
         Consumer<String> applyAction = action -> {
@@ -125,7 +131,19 @@ public class Main extends Application {
                 actionsP.set(newActions);
 
                 gameStateO.set(stateAction.gameState());
-                visibleOccupantsP.set(gameStateO.get().board().occupants());
+
+                switch (stateAction.gameState().nextAction()) {
+                    case PLACE_TILE -> {
+                        visibleOccupantsP.set(stateAction.gameState().board().occupants());
+                        textToDisplayP.set("");
+                    }
+                    case OCCUPY_TILE -> {
+                        Set<Occupant> occupantsToDisplay = new HashSet<>(visibleOccupantsP.get());
+                        occupantsToDisplay.addAll(gameStateO.get().lastTilePotentialOccupants());
+                        visibleOccupantsP.set(Set.copyOf(occupantsToDisplay));
+                        textToDisplayP.set(textMaker.clickToOccupy());
+                    }
+                }
             }
         };
 
