@@ -19,6 +19,36 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
                         Action nextAction, MessageBoard messageBoard) {
 
     /**
+     * The id of the tile containing the shaman
+     */
+    private static final int SHAMAN_TILE_ID = 88;
+
+    /**
+     * The id of the tile containing the hunting trap
+     */
+    private static final int HUNTING_TRAP_TILE_ID = 94;
+
+    /**
+     * The id of the tile containing the log boat
+     */
+    private static final int LOGBOAT_TILE_ID = 93;
+
+    /**
+     * The id of the tile containing the wildfire
+     */
+    private static final int WILD_FIRE_TILE_ID = 85;
+
+    /**
+     * The id of the tile containing the pit trap
+     */
+    private static final int PIT_TRAP_TILE_ID = 92;
+
+    /**
+     * The id of the tile containing the raft
+     */
+    private static final int RAFT_TILE_ID = 91;
+
+    /**
      * Checks the validity of the arguments.
      * <p>
      * Checks that either the tile to be placed is null, or the next action is PLACE_TILE.
@@ -144,11 +174,11 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
                 .withTurnFinishedIfOccupationImpossible();
 
         // Handle the MENHIR tiles special traits
-        return switch (placedTile.specialPowerZone().specialPower()) {
+        return switch (placedTile.specialPowerZone()) {
             /*
               The shaman tile allows the player to retake one of his pawns.
              */
-            case SHAMAN -> {
+            case Zone.Meadow meadow when meadow.specialPower() == Zone.SpecialPower.SHAMAN -> {
                 if (board.occupantCount(currentPlayer(), Occupant.Kind.PAWN) >= 1)
                     yield new GameState(players, tileDecks, null, boardWithTile,
                             Action.RETAKE_PAWN, messageBoard);
@@ -158,11 +188,13 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
               The hunting trap tile allows the player to get the points corresponding
               to the animals present in the adjacent meadow.
              */
-            case HUNTING_TRAP -> {
+            case Zone.Meadow meadow when meadow.specialPower() == Zone.SpecialPower.HUNTING_TRAP -> {
                 Area<Zone.Meadow> adjacentMeadows = boardWithTile.adjacentMeadow(placedTile.pos(),
                         (Zone.Meadow) placedTile.specialPowerZone());
                 // Determine deer to cancel in the adjacent meadows
+                Set<Animal> cancelledAnimals = computeCancelledAnimals(adjacentMeadows);
                 Board updatedBoard = boardWithTile
+                        .withMoreCancelledAnimals(cancelledAnimals)
                         .withMoreCancelledAnimals(Area.animals(adjacentMeadows, Set.of()));
                 MessageBoard updatedMessageBoard = messageBoard
                         .withScoredHuntingTrap(currentPlayer(), adjacentMeadows);
@@ -171,9 +203,9 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
             }
             /*
               The logboat tile allows the player to obtain points that depend on the number
-              of lakes in the hydro²graphic network containing it.
+              of lakes in the hydrographic network containing it.
              */
-            case LOGBOAT -> {
+            case Zone.Lake lake when lake.specialPower() == Zone.SpecialPower.LOGBOAT -> {
                 Area<Zone.Water> area = boardWithTile.riverSystemArea((Zone.Water) placedTile.specialPowerZone());
                 MessageBoard updatedMessageBoard = messageBoard.withScoredLogboat(currentPlayer(), area);
                 yield new GameState(players, tileDecks, null, boardWithTile,
@@ -182,7 +214,7 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
             /*
               Default next game state
              */
-            default -> normalNextGameState;
+            case null, default -> normalNextGameState;
         };
     }
 
@@ -317,11 +349,10 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
         MessageBoard updatedMessageBoard = messageBoard;
         // Add all points scored with meadow areas
         for (Area<Zone.Meadow> meadow : board.meadowAreas()) {
-            Zone pitTrapZone = meadow.zoneWithSpecialPower(Zone.SpecialPower.PIT_TRAP);
             // Check that the meadow does not contain a wildfire
-            if (meadow.zoneWithSpecialPower(Zone.SpecialPower.WILD_FIRE) == null) {
+            if (!meadow.tileIds().contains(WILD_FIRE_TILE_ID)) {
                 // Check if the meadow contains a pit trap
-                if (pitTrapZone != null) {
+                if (meadow.tileIds().contains(PIT_TRAP_TILE_ID)) {
                     // Change the cancelled animals to optimize the points scored by the pit trap
                     updatedBoard = updatedBoard
                             .withMoreCancelledAnimals(computeCancelledAnimalsWithPitTrap(meadow, updatedBoard));
@@ -331,10 +362,11 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
                         .withMoreCancelledAnimals(computeCancelledAnimals(meadow));
             }
             // Check if the meadow contains a pit trap
-            if (pitTrapZone != null) {
+            if (meadow.tileIds().contains(PIT_TRAP_TILE_ID)) {
                 // Determine the adjacent meadows of the pit trap
-                Area<Zone.Meadow> adjacentMeadow = updatedBoard.adjacentMeadow(
-                        board.tileWithId(pitTrapZone.tileId()).pos(), (Zone.Meadow) pitTrapZone);
+                Area<Zone.Meadow> adjacentMeadow = updatedBoard
+                        .adjacentMeadow(updatedBoard.tileWithId(PIT_TRAP_TILE_ID).pos(),
+                                (Zone.Meadow) meadow.zoneWithSpecialPower(Zone.SpecialPower.PIT_TRAP));
                 // Attribute points scored by the pit trap
                 updatedMessageBoard = updatedMessageBoard
                         .withScoredPitTrap(adjacentMeadow, updatedBoard.cancelledAnimals());
@@ -344,7 +376,7 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
 
         // Add all points scored with river systems
         for (Area<Zone.Water> riverSystem : board.riverSystemAreas()) {
-            updatedMessageBoard = riverSystem.zoneWithSpecialPower(Zone.SpecialPower.RAFT) != null
+            updatedMessageBoard = riverSystem.tileIds().contains(RAFT_TILE_ID)
                     ? updatedMessageBoard.withScoredRaft(riverSystem).withScoredRiverSystem(riverSystem)
                     : updatedMessageBoard.withScoredRiverSystem(riverSystem);
         }
@@ -411,7 +443,7 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
      * @return the set of cancelled animals
      */
     private Set<Animal> computeCancelledAnimalsWithPitTrap(Area<Zone.Meadow> meadow, Board board) {
-        PlacedTile pitTrapTile = board.tileWithId(meadow.zoneWithSpecialPower(Zone.SpecialPower.PIT_TRAP).tileId());
+        PlacedTile pitTrapTile = board.tileWithId(PIT_TRAP_TILE_ID);
         // The area containing the adjacent meadows
         Area<Zone.Meadow> adjacentMeadowArea = board.adjacentMeadow(pitTrapTile.pos(),
                 (Zone.Meadow) pitTrapTile.specialPowerZone());
