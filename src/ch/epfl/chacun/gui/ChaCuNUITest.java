@@ -8,9 +8,7 @@ import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
 import javafx.scene.control.ScrollPane;
-import javafx.scene.input.MouseButton;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
@@ -18,126 +16,23 @@ import javafx.stage.Stage;
 import javafx.util.Duration;
 
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public final class ChaCuNUITest extends Application {
-    public static void main(String[] args) { launch(args); }
+    private static final Collector<?, ?, ?> SHUFFLER = Collectors.collectingAndThen(
+            Collectors.toCollection(ArrayList::new),
+            list -> {
+                Collections.shuffle(list);
+                return list;
+            }
+    );
 
-    @Override
-    public void start(Stage primaryStage) throws InterruptedException {
-        var playerNames = Map.of(PlayerColor.RED, "Rose", PlayerColor.BLUE, "Bernard",
-                PlayerColor.GREEN, "Balthazar", PlayerColor.YELLOW, "Max", PlayerColor.PURPLE, "Maxim"
-        );
-
-        var tileToPlaceRotationP =
-                new SimpleObjectProperty<>(Rotation.NONE);
-        var visibleOccupantsP =
-                new SimpleObjectProperty<>(Set.<Occupant>of());
-        var highlightedTilesP =
-                new SimpleObjectProperty<>(Set.<Integer>of());
-
-        var textMaker = new TextMakerFr(playerNames);
-        var positions = Map.ofEntries(
-                Map.entry(34, new Pos(-3, -1)),
-                Map.entry(67, new Pos(-2, -1)),
-                Map.entry(31, new Pos(-1, -1)),
-                Map.entry(61, new Pos(0, -1)),
-                Map.entry(62, new Pos(-3, 0)),
-                Map.entry(18, new Pos(-2, 0)),
-                Map.entry(51, new Pos(-1, 0)),
-                Map.entry(1, new Pos(-3, 1)),
-                Map.entry(3, new Pos(-2, 1)),
-                Map.entry(49, new Pos(-1, 1)),
-                Map.entry(55, new Pos(0, 1)));
-
-        var occupants = Map.of(
-                61, new Occupant(Occupant.Kind.PAWN, 61_0), // hunter (RED)
-                55, new Occupant(Occupant.Kind.PAWN, 55_3), // fisher (BLUE)
-                51, new Occupant(Occupant.Kind.PAWN, 51_1), // fisher (GREEN)
-                18, new Occupant(Occupant.Kind.PAWN, 18_2), // hunter (YELLOW)
-                1, new Occupant(Occupant.Kind.HUT, 1_8), // fisher's hut (RED)
-                34, new Occupant(Occupant.Kind.PAWN, 34_1), // hunter (BLUE)
-                3, new Occupant(Occupant.Kind.PAWN, 3_5), // fisher (PURPLE)
-                49, new Occupant(Occupant.Kind.PAWN, 49_2) // hunter (RED)
-        );
-
-        var normalTilesIds = List.of(61, 55, 51, 18, 62, 1, 34, 67, 31, 3, 49);
-        var state = initialGameState(playerNames, normalTilesIds, List.of(92));
-        var gameStateO = new SimpleObjectProperty<>(state);
-        var unoccupyableTiles = Set.of(62);
-        Map<Integer, Rotation> rotations = Map.of();
-        var playersNode = PlayersUI.create(gameStateO, textMaker);
-        var messagesNode = MessageBoardUI.create(gameStateO.map(g -> g.messageBoard().messages()), highlightedTilesP);
-        var decksNode = DecksUI.create(gameStateO.map(GameState::tileToPlace), gameStateO.map(g -> g.tileDecks().normalTiles().size()), gameStateO.map(g -> g.tileDecks().menhirTiles().size()), new SimpleObjectProperty<>(""), o -> {});
-        var boardNode = (ScrollPane)BoardUI
-                .create(Board.REACH,
-                        gameStateO,
-                        tileToPlaceRotationP,
-                        visibleOccupantsP,
-                        highlightedTilesP,
-                        tileToPlaceRotationP::set,
-                        t -> {
-                            GameState gameState = gameStateO.getValue();
-                            gameStateO.set(gameState.withPlacedTile(new PlacedTile(gameState.tileToPlace(), gameState.currentPlayer(), tileToPlaceRotationP.getValue(), t)));
-                            tileToPlaceRotationP.set(Rotation.NONE);
-                            Set<Occupant> visibleOccupants = new HashSet<>(gameState.board().occupants());
-                            visibleOccupants.addAll(gameStateO.get().lastTilePotentialOccupants());
-                            visibleOccupantsP.set(visibleOccupants);
-                        },
-                        o -> {
-                            gameStateO.set(gameStateO.getValue().withNewOccupant(o));
-                            visibleOccupantsP.set(gameStateO.get().board().occupants());
-                        });
-
-        var sideBar = new VBox(playersNode, messagesNode, decksNode);
-        VBox.setVgrow(messagesNode, Priority.ALWAYS);
-
-        boardNode.setFitToHeight(true);
-        boardNode.setFitToWidth(true);
-        boardNode.setMinWidth(720);
-        boardNode.maxHeightProperty().bind(primaryStage.heightProperty());
-        boardNode.maxWidthProperty().bind(primaryStage.widthProperty().map(w -> w.doubleValue() - sideBar.getWidth()));
-        boardNode.setHvalue(.5);
-        boardNode.setVvalue(.5);
-
-        var rootNode = new HBox(boardNode, sideBar);
-        HBox.setHgrow(boardNode, Priority.ALWAYS);
-        primaryStage.setScene(new Scene(rootNode));
-
-        primaryStage.setTitle("ChaCuN test");
-        primaryStage.show();
-
-        gameStateO.setValue(truncateDeck(gameStateO.getValue(), Tile.Kind.NORMAL, normalTilesIds.size() - 1));
-
-        var players = gameStateO.getValue().players();
-        var playersIt = Stream.generate(() -> players)
-                .flatMap(Collection::stream)
-                .iterator();
-
-        var nextPlacedTile = (Function<GameState, PlacedTile>) s -> {
-            var t = s.tileToPlace();
-            var r = rotations.getOrDefault(t.id(), Rotation.NONE);
-            return new PlacedTile(t, playersIt.next(), r, positions.get(t.id()));
-        };
-
-        // Place all tiles
-        int timelinePace = 1;
-        Timeline timeline = new Timeline();
-        for (int i = 0; i < positions.size() - 1; i += 1) {
-            KeyFrame keyFrame = new KeyFrame(Duration.seconds((i+1)*timelinePace), _ -> {
-                var placedTile = nextPlacedTile.apply(gameStateO.getValue());
-                gameStateO.setValue(gameStateO.getValue().withPlacedTile(placedTile));
-                if (!unoccupyableTiles.contains(placedTile.id())) {
-                    gameStateO.setValue(gameStateO.getValue().withNewOccupant(occupants.get(placedTile.id())));
-                    visibleOccupantsP.set(gameStateO.get().board().occupants());
-                }
-            });
-            timeline.getKeyFrames().add(keyFrame);
-        }
-
-        Platform.runLater(timeline::play);
+    public static void main(String[] args) {
+        launch(args);
     }
 
     private static GameState initialGameState(Map<PlayerColor, String> players,
@@ -218,5 +113,149 @@ public final class ChaCuNUITest extends Application {
             }
         }
         return List.copyOf(reorderedTiles);
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T> Collector<T, ?, List<T>> toShuffledList() {
+        return (Collector<T, ?, List<T>>) SHUFFLER;
+    }
+
+    @Override
+    public void start(Stage primaryStage) throws InterruptedException {
+        var playerNames = Map.of(
+                PlayerColor.GREEN, "Balthazar", PlayerColor.YELLOW, "Max"
+        );
+
+        var tileToPlaceRotationP =
+                new SimpleObjectProperty<>(Rotation.NONE);
+        var visibleOccupantsP =
+                new SimpleObjectProperty<>(Set.<Occupant>of());
+        var highlightedTilesP =
+                new SimpleObjectProperty<>(Set.<Integer>of());
+
+        var textMaker = new TextMakerFr(playerNames);
+        var positions = Map.ofEntries(
+                Map.entry(34, new Pos(-3, -1)),
+                Map.entry(67, new Pos(-2, -1)),
+                Map.entry(31, new Pos(-1, -1)),
+                Map.entry(61, new Pos(0, -1)),
+                Map.entry(62, new Pos(-3, 0)),
+                Map.entry(18, new Pos(-2, 0)),
+                Map.entry(51, new Pos(-1, 0)),
+                Map.entry(1, new Pos(-3, 1)),
+                Map.entry(3, new Pos(-2, 1)),
+                Map.entry(49, new Pos(-1, 1)),
+                Map.entry(55, new Pos(0, 1)));
+
+        var occupants = Map.of(
+                61, new Occupant(Occupant.Kind.PAWN, 61_0), // hunter (RED)
+                55, new Occupant(Occupant.Kind.PAWN, 55_3), // fisher (BLUE)
+                51, new Occupant(Occupant.Kind.PAWN, 51_1), // fisher (GREEN)
+                18, new Occupant(Occupant.Kind.PAWN, 18_2), // hunter (YELLOW)
+                1, new Occupant(Occupant.Kind.HUT, 1_8), // fisher's hut (RED)
+                34, new Occupant(Occupant.Kind.PAWN, 34_1), // hunter (BLUE)
+                3, new Occupant(Occupant.Kind.PAWN, 3_5), // fisher (PURPLE)
+                49, new Occupant(Occupant.Kind.PAWN, 49_2) // hunter (RED)
+        );
+
+        var normalTilesIds = Tiles.TILES.stream().filter(tile -> tile.kind() == Tile.Kind.NORMAL)
+                .map(Tile::id).collect(toShuffledList());
+        var menhirTilesIds = Tiles.TILES.stream().filter(tile -> tile.kind() == Tile.Kind.MENHIR)
+                .map(Tile::id).collect(toShuffledList());
+        var state = initialGameState(playerNames, normalTilesIds, menhirTilesIds);
+        var gameStateO = new SimpleObjectProperty<>(state);
+        var unoccupyableTiles = Set.of(62);
+        Map<Integer, Rotation> rotations = Map.of();
+        var playersNode = PlayersUI.create(gameStateO, textMaker);
+        var messagesNode = MessageBoardUI.create(gameStateO.map(g -> g.messageBoard().messages()), highlightedTilesP);
+
+        Consumer<String> actionToApply = (action) -> {
+
+        };
+
+        SimpleObjectProperty<List<String>> actions = new SimpleObjectProperty<>(List.of());
+        var actionsUI = ActionsUI.create(actions, actionToApply);
+        var decksNode = DecksUI.create(gameStateO.map(GameState::tileToPlace), gameStateO.map(g -> g.tileDecks().normalTiles().size()), gameStateO.map(g -> g.tileDecks().menhirTiles().size()), new SimpleObjectProperty<>(""), o -> {
+        });
+        var boardNode = (ScrollPane) BoardUI
+                .create(Board.REACH,
+                        gameStateO,
+                        tileToPlaceRotationP,
+                        visibleOccupantsP,
+                        highlightedTilesP,
+                        tileToPlaceRotationP::set,
+                        t -> {
+                            GameState gameState = gameStateO.getValue();
+                            PlacedTile tileToPlace = new PlacedTile(gameState.tileToPlace(), gameState.currentPlayer(), tileToPlaceRotationP.getValue(), t);
+                            if (gameState.board().canAddTile(tileToPlace)) {
+                                ActionEncoder.StateAction stateAction = ActionEncoder.withPLacedTile(gameState, tileToPlace);
+                                gameStateO.set(stateAction.gameState());
+
+                                List<String> actionsList = new ArrayList<>(actions.get());
+                                actionsList.add(stateAction.action());
+                                actions.set(actionsList);
+
+                                tileToPlaceRotationP.set(Rotation.NONE);
+                                Set<Occupant> visibleOccupants = new HashSet<>(gameState.board().occupants());
+                                visibleOccupants.addAll(gameStateO.get().lastTilePotentialOccupants());
+                                visibleOccupantsP.set(visibleOccupants);
+                            }
+                        },
+                        o -> {
+                            ActionEncoder.StateAction stateAction = ActionEncoder.withNewOccupant(gameStateO.getValue(), o);
+                            gameStateO.set(stateAction.gameState());
+                            visibleOccupantsP.set(gameStateO.get().board().occupants());
+                            List<String> actionsList = new ArrayList<>(actions.get());
+                            actionsList.add(stateAction.action());
+                            actions.set(actionsList);
+                        });
+
+        var sideBar = new VBox(playersNode, messagesNode, actionsUI, decksNode);
+        VBox.setVgrow(messagesNode, Priority.ALWAYS);
+
+        boardNode.setFitToHeight(true);
+        boardNode.setFitToWidth(true);
+        boardNode.setMinWidth(720);
+        boardNode.maxHeightProperty().bind(primaryStage.heightProperty());
+        boardNode.maxWidthProperty().bind(primaryStage.widthProperty().map(w -> w.doubleValue() - sideBar.getWidth()));
+        boardNode.setHvalue(.5);
+        boardNode.setVvalue(.5);
+
+        var rootNode = new HBox(boardNode, sideBar);
+        HBox.setHgrow(boardNode, Priority.ALWAYS);
+        primaryStage.setScene(new Scene(rootNode));
+
+        primaryStage.setTitle("ChaCuN test");
+        primaryStage.show();
+
+        gameStateO.setValue(truncateDeck(gameStateO.getValue(), Tile.Kind.NORMAL, normalTilesIds.size() - 1));
+
+        var players = gameStateO.getValue().players();
+        var playersIt = Stream.generate(() -> players)
+                .flatMap(Collection::stream)
+                .iterator();
+
+        var nextPlacedTile = (Function<GameState, PlacedTile>) s -> {
+            var t = s.tileToPlace();
+            var r = rotations.getOrDefault(t.id(), Rotation.NONE);
+            return new PlacedTile(t, playersIt.next(), r, positions.get(t.id()));
+        };
+
+        // Place all tiles
+        int timelinePace = 1;
+        Timeline timeline = new Timeline();
+        for (int i = 0; i < 0; i += 1) {
+            KeyFrame keyFrame = new KeyFrame(Duration.seconds((i + 1) * timelinePace), _ -> {
+                var placedTile = nextPlacedTile.apply(gameStateO.getValue());
+                gameStateO.setValue(gameStateO.getValue().withPlacedTile(placedTile));
+                if (!unoccupyableTiles.contains(placedTile.id())) {
+                    gameStateO.setValue(gameStateO.getValue().withNewOccupant(occupants.get(placedTile.id())));
+                    visibleOccupantsP.set(gameStateO.get().board().occupants());
+                }
+            });
+            timeline.getKeyFrames().add(keyFrame);
+        }
+
+        Platform.runLater(timeline::play);
     }
 }
