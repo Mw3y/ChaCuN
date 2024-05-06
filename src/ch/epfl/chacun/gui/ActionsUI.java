@@ -61,8 +61,10 @@ public final class ActionsUI {
         }));
 
         actionField.setOnKeyPressed(event -> {
-            if (event.getCode() == KeyCode.ENTER)
+            if (event.getCode() == KeyCode.ENTER) {
                 actionToApply.accept(actionField.getText());
+                actionField.clear();
+            }
         });
 
         container.getChildren().add(fourPreviousActionsText);

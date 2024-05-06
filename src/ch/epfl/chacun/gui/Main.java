@@ -123,6 +123,9 @@ public class Main extends Application {
                 List<String> newActions = new ArrayList<>(previousActions);
                 newActions.add(action);
                 actionsP.set(newActions);
+
+                gameStateO.set(stateAction.gameState());
+                visibleOccupantsP.set(gameStateO.get().board().occupants());
             }
         };
 
