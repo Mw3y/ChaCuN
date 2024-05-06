@@ -14,7 +14,7 @@ public class ActionEncoder {
     /**
      * When the player doesn't want to add or remove an occupant, send 0b11111.
      */
-    private static final String NO_OCCUPANT_ENCODED_ACTION = Base32.encodeBits5(0x1F);
+    private static final String NO_OCCUPANT_ENCODED_ACTION = Base32.encodeBits5(0b11111);
 
     /**
      * The number of bits to shift to encode the placed tile index.
@@ -64,6 +64,7 @@ public class ActionEncoder {
 
     /**
      * Sorts the occupants of the given game state in ascending order by their zone id.
+     *
      * @param gameState the given game state
      * @return a list containing the sorted occupants
      */
@@ -107,7 +108,7 @@ public class ActionEncoder {
         if (occupantToPlace != null) {
             // Format the action data
             int kindBits = occupantToPlace.kind().ordinal() << OCCUPANT_KIND_SHIFT;
-            int zoneBits = gameState.board().lastPlacedTile().idOfZoneOccupiedBy(occupantToPlace.kind());
+            int zoneBits = Zone.localId(occupantToPlace.zoneId());
             return new StateAction(
                     gameState.withNewOccupant(occupantToPlace), Base32.encodeBits5(kindBits | zoneBits));
         }
@@ -139,7 +140,7 @@ public class ActionEncoder {
      * Decodes the given action and applies it to the given game state based on the next action.
      *
      * @param gameState the given game state
-     * @param action the encoded action
+     * @param action    the encoded action
      * @return a new state action with an updated game state or null if the action is not valid
      */
     public static StateAction decodeAndApply(GameState gameState, String action) {
@@ -154,7 +155,7 @@ public class ActionEncoder {
      * Unsafely decodes the given action and applies it to the given game state based on the next action.
      *
      * @param gameState the game state
-     * @param action the encoded action
+     * @param action    the encoded action
      * @return a new state action with an updated game state
      * @throws IllegalActionException if the action is illegal
      */
@@ -185,19 +186,24 @@ public class ActionEncoder {
                 yield new StateAction(gameState.withPlacedTile(placedTile), action);
             }
             case OCCUPY_TILE -> {
+                assert gameState.board().lastPlacedTile() != null;
                 // Check if the player doesn't want to add an occupant
                 if (action.equals(NO_OCCUPANT_ENCODED_ACTION))
                     yield new StateAction(gameState.withNewOccupant(null), action);
 
+                if (action.length() != OCCUPANT_ENCODED_ACTION_LENGTH)
+                    throw new IllegalActionException();
+
                 // Decode the action
-                int occupantZoneId = decodedAction & OCCUPANT_ZONE_MASK;
+                int occupantLocalId = decodedAction & OCCUPANT_ZONE_MASK;
+                // The zone id is the tile id * 10 + the local id of the zone
+                int occupantZoneId = gameState.board().lastPlacedTile().tile().id() * 10 + occupantLocalId;
                 int occupantKindIndex = decodedAction >> OCCUPANT_KIND_SHIFT;
                 Occupant.Kind occupantKind = Occupant.Kind.values()[occupantKindIndex];
                 Occupant newOccupant = new Occupant(occupantKind, occupantZoneId);
 
                 // Check if the occupant can be placed
-                if (action.length() != OCCUPANT_ENCODED_ACTION_LENGTH
-                        || gameState.board().lastPlacedTile() == null
+                if (gameState.board().lastPlacedTile() == null
                         || !gameState.lastTilePotentialOccupants().contains(newOccupant))
                     throw new IllegalActionException();
 
@@ -256,6 +262,7 @@ public class ActionEncoder {
 
         /**
          * Constructs an illegal action exception with a message.
+         *
          * @param message the message
          */
         public IllegalActionException(String message) {
