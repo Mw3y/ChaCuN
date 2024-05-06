@@ -108,7 +108,7 @@ public final class BoardUI {
                         if (event.getButton() == MouseButton.SECONDARY) {
                             // Allow for clockwise and counter-clockwise rotation using the ALT key
                             Rotation rotationToAdd = event.isAltDown() ? Rotation.RIGHT : Rotation.LEFT;
-                            rotationToApply.accept(rotationO.getValue().add(rotationToAdd));
+                            rotationToApply.accept(rotationToAdd);
                         }
                         // Place the tile
                         if (event.getButton() == MouseButton.PRIMARY) {
