@@ -40,7 +40,7 @@ public enum Direction {
      * @return the opposite of the receiver direction
      */
     public Direction opposite() {
-        // There is only four directions, so we can just add 2 to the ordinal
+        // Apply a half turn rotation
         return rotated(Rotation.HALF_TURN);
     }
 }

@@ -51,6 +51,6 @@
         <SOURCES />
       </library>
     </orderEntry>
-    <orderEntry type="library" name="OpenJFX 22" level="application" />
+    <orderEntry type="library" exported="" name="OpenJFX 22" level="application" />
   </component>
 </module>

@@ -194,10 +194,9 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
                 // Determine deer to cancel in the adjacent meadows
                 Set<Animal> cancelledAnimals = computeCancelledAnimals(adjacentMeadows);
                 Board updatedBoard = boardWithTile
-                        .withMoreCancelledAnimals(cancelledAnimals)
                         .withMoreCancelledAnimals(Area.animals(adjacentMeadows, Set.of()));
                 MessageBoard updatedMessageBoard = messageBoard
-                        .withScoredHuntingTrap(currentPlayer(), adjacentMeadows);
+                        .withScoredHuntingTrap(currentPlayer(), adjacentMeadows, cancelledAnimals);
                 yield new GameState(players, tileDecks, null, updatedBoard,
                         Action.OCCUPY_TILE, updatedMessageBoard).withTurnFinishedIfOccupationImpossible();
             }
@@ -464,7 +463,6 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
             cancelledAnimals.addAll(computeCancelledAnimals(adjacentMeadowArea, tigerCount));
         return cancelledAnimals;
     }
-
     /**
      * Returns a set of animals of the given kind from a given set of possibly different animals.
      *

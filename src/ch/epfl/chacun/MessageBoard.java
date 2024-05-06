@@ -102,13 +102,14 @@ public record MessageBoard(TextMaker textMaker, List<Message> messages) {
         if (river.isOccupied()) {
             ArrayList<Message> messages = new ArrayList<>(messages());
             // Calculate the data needed
-            int tileCount = river.tileIds().size();
+            Set<Integer> tileIds = river.tileIds();
             int fishCount = Area.riverFishCount(river);
-            int points = Points.forClosedRiver(tileCount, fishCount);
+            int points = Points.forClosedRiver(tileIds.size(), fishCount);
+            Set<PlayerColor> scorers = river.majorityOccupants();
             String messageContent = textMaker
-                    .playersScoredRiver(river.majorityOccupants(), points, fishCount, tileCount);
+                    .playersScoredRiver(scorers, points, fishCount, tileIds.size());
             // Create the message
-            messages.add(new Message(messageContent, points, river.majorityOccupants(), river.tileIds()));
+            messages.add(new Message(messageContent, points, scorers, tileIds));
             return new MessageBoard(textMaker, messages);
         }
         return this;
@@ -119,20 +120,20 @@ public record MessageBoard(TextMaker textMaker, List<Message> messages) {
      * resulted in points for the given player who laid it, in which case the scoreboard contains
      * a new message pointing this out.
      *
-     * @param scorer         the player who laid the hunting trap
-     * @param adjacentMeadow the meadow adjacent to the hunting trap
+     * @param scorer           the player who laid the hunting trap
+     * @param adjacentMeadow   the meadow adjacent to the hunting trap
+     * @param cancelledAnimals the set of cancelled animals
      * @return a new message board if the hunting trap enabled the given player to score points or the same
      * message board
      */
-    public MessageBoard withScoredHuntingTrap(PlayerColor scorer, Area<Zone.Meadow> adjacentMeadow) {
+    public MessageBoard withScoredHuntingTrap(PlayerColor scorer, Area<Zone.Meadow> adjacentMeadow,
+                                              Set<Animal> cancelledAnimals) {
         Set<Animal> animals = Area.animals(adjacentMeadow, new HashSet<>());
+        animals.retainAll(cancelledAnimals);
         ArrayList<Message> messages = new ArrayList<>(this.messages);
         // Calculate the data needed
         Map<Animal.Kind, Integer> animalCount = countAnimals(animals);
-        int points = Points.forMeadow(
-                animalCount.getOrDefault(Animal.Kind.MAMMOTH, 0),
-                animalCount.getOrDefault(Animal.Kind.AUROCHS, 0),
-                animalCount.getOrDefault(Animal.Kind.DEER, 0));
+        int points = pointsForMeadow(animalCount);
         // Check if the hunting trap enabled the player to score points
         if (points > 0) {
             // Create the message
@@ -179,7 +180,7 @@ public record MessageBoard(TextMaker textMaker, List<Message> messages) {
             Set<PlayerColor> scorers = riverSystem.majorityOccupants();
             // Don't create a message if no points are scored
             if (points > 0) {
-                String messageContent = textMaker.playersScoredRiverSystem(riverSystem.majorityOccupants(),
+                String messageContent = textMaker.playersScoredRiverSystem(scorers,
                         points, fishCount);
                 // Create the message
                 ArrayList<Message> messages = new ArrayList<>(this.messages);
@@ -207,11 +208,7 @@ public record MessageBoard(TextMaker textMaker, List<Message> messages) {
             // Calculate the data needed
             Set<Animal> animals = Area.animals(meadow, cancelledAnimals);
             Map<Animal.Kind, Integer> animalCount = countAnimals(animals);
-            int points = Points.forMeadow(
-                    animalCount.getOrDefault(Animal.Kind.MAMMOTH, 0),
-                    animalCount.getOrDefault(Animal.Kind.AUROCHS, 0),
-                    animalCount.getOrDefault(Animal.Kind.DEER, 0));
-
+            int points = pointsForMeadow(animalCount);
             Set<PlayerColor> scorers = meadow.majorityOccupants();
             // Don't create a message if no points are scored
             if (points > 0) {
@@ -296,6 +293,19 @@ public record MessageBoard(TextMaker textMaker, List<Message> messages) {
         String messageContent = textMaker.playersWon(winners, points);
         messages.add(new Message(messageContent, 0, Set.of(), Set.of()));
         return new MessageBoard(textMaker, messages);
+    }
+
+    /**
+     * Counts the number of points given by the animals.
+     *
+     * @param animalCount the map of the animals and the points each one gives
+     * @return the total of points given by the animals
+     */
+    private int pointsForMeadow (Map<Animal.Kind, Integer> animalCount) {
+        return Points.forMeadow(
+                animalCount.getOrDefault(Animal.Kind.MAMMOTH, 0),
+                animalCount.getOrDefault(Animal.Kind.AUROCHS, 0),
+                animalCount.getOrDefault(Animal.Kind.DEER, 0));
     }
 
     /**
