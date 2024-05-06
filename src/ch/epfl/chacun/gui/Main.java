@@ -87,7 +87,7 @@ public class Main extends Application {
                     state.tileToPlace(), state.currentPlayer(), tileToPlaceRotationP.get(), pos);
 
             if (state.board().canAddTile(placedTile)) {
-                ActionEncoder.StateAction stateAction = ActionEncoder.withPLacedTile(gameState, placedTile);
+                ActionEncoder.StateAction stateAction = ActionEncoder.withPLacedTile(state, placedTile);
                 // Add action
                 List<String> actions = new ArrayList<>(actionsP.get());
                 actions.add(stateAction.action());
@@ -104,7 +104,7 @@ public class Main extends Application {
         };
 
         Consumer<Occupant> selectOccupant = occupant -> {
-            ActionEncoder.StateAction stateAction = ActionEncoder.withNewOccupant(gameState, occupant);
+            ActionEncoder.StateAction stateAction = ActionEncoder.withNewOccupant(gameStateO.get(), occupant);
             // Add action
             List<String> actions = new ArrayList<>(actionsP.get());
             actions.add(stateAction.action());
