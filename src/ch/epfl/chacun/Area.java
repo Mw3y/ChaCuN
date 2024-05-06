@@ -158,18 +158,19 @@ public record Area<Z extends Zone>(Set<Z> zones, List<PlayerColor> occupants, in
      * @return the new area resulting from the connection
      */
     public Area<Z> connectTo(Area<Z> newArea) {
-        Set<Z> zones = new HashSet<>(this.zones);
-        List<PlayerColor> occupants = new ArrayList<>(this.occupants);
         // Calculate the new number of open connections
         // The new area will have 2 less open connections, as each area had at least one open connection
         int openConnections = this.openConnections - 2;
         // Merge the zones of both areas into one
         // Add the new occupants to the current ones
         if(!this.equals(newArea)) {
+            Set<Z> zones = new HashSet<>(this.zones);
             zones.addAll(newArea.zones);
+            List<PlayerColor> occupants = new ArrayList<>(this.occupants);
             occupants.addAll(newArea.occupants);
             // In case both areas are not the same, we need to add the open connections of the new area
             openConnections += newArea.openConnections;
+            return new Area<>(zones, occupants, openConnections);
         }
         // Create the new area
         return new Area<>(zones, occupants, openConnections);

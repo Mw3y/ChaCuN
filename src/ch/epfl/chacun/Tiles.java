@@ -1,14 +1,17 @@
-package ch.epfl.chacun.tile;
+package ch.epfl.chacun;
 
 import ch.epfl.chacun.Animal;
-import ch.epfl.chacun.Direction;
 import ch.epfl.chacun.Tile;
 import ch.epfl.chacun.TileSide;
 import ch.epfl.chacun.Zone;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public final class Tiles {
+    private Tiles() {}
+
     public static final List<Tile> TILES = createTiles();
 
     private static List<Tile> createTiles() {
@@ -367,7 +370,7 @@ public final class Tiles {
         {   // Tile 24
             var l1 = new Zone.Lake(24_8, 1, null);
             var z0 = new Zone.Meadow(24_0, List.of(), null);
-            var z1 = new Zone.River(24_1, 0, null);
+            var z1 = new Zone.River(24_1, 0, l1);
             var a2_0 = new Animal(24_2_0, Animal.Kind.AUROCHS);
             var z2 = new Zone.Meadow(24_2, List.of(a2_0), null);
             var z3 = new Zone.Forest(24_3, Zone.Forest.Kind.PLAIN);
@@ -432,7 +435,7 @@ public final class Tiles {
             tiles.add(new Tile(28, Tile.Kind.NORMAL, sN, sE, sS, sW));
         }
         {   // Tile 29
-            var z0 = new Zone.Forest(29_0, Zone.Forest.Kind.PLAIN);
+            var z0 = new Zone.Forest(29_0, Zone.Forest.Kind.WITH_MENHIR);
             var z1 = new Zone.Meadow(29_1, List.of(), null);
             var z2 = new Zone.River(29_2, 0, null);
             var z3 = new Zone.Meadow(29_3, List.of(), null);
@@ -619,13 +622,12 @@ public final class Tiles {
             var z3 = new Zone.Forest(45_3, Zone.Forest.Kind.PLAIN);
             var a4_0 = new Animal(45_4_0, Animal.Kind.DEER);
             var z4 = new Zone.Meadow(45_4, List.of(a4_0), null);
-            var z5 = new Zone.River(45_5, 0, null);
-            var z6 = new Zone.Meadow(45_6, List.of(), null);
-            var z7 = new Zone.Forest(45_7, Zone.Forest.Kind.PLAIN);
+            var z5 = new Zone.Meadow(45_5, List.of(), null);
+            var z6 = new Zone.Forest(45_6, Zone.Forest.Kind.PLAIN);
             var sN = new TileSide.River(z0, z1, z2);
             var sE = new TileSide.Forest(z3);
-            var sS = new TileSide.River(z4, z5, z6);
-            var sW = new TileSide.Forest(z7);
+            var sS = new TileSide.River(z4, z1, z5);
+            var sW = new TileSide.Forest(z6);
             assert tiles.size() == 45;
             tiles.add(new Tile(45, Tile.Kind.NORMAL, sN, sE, sS, sW));
         }

@@ -41,6 +41,6 @@ public enum Direction {
      */
     public Direction opposite() {
         // There is only four directions, so we can just add 2 to the ordinal
-        return ALL.get((ordinal() + 2) % COUNT);
+        return rotated(Rotation.HALF_TURN);
     }
 }

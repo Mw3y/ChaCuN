@@ -15,11 +15,6 @@ import java.util.stream.Collectors;
 public final class Board {
 
     /**
-     * An empty board.
-     */
-    public static final Board EMPTY = new Board(new PlacedTile[625], new int[0], ZonePartitions.EMPTY, Set.of());
-
-    /**
      * The number of tiles that can be placed on one side of the board.
      */
     public static final int REACH = 12;
@@ -28,6 +23,12 @@ public final class Board {
      * The number of elements that can be placed vertically or horizontally on the board.
      */
     private static final int SIZE = REACH * 2 + 1;
+
+    /**
+     * An empty board.
+     */
+    public static final Board EMPTY =
+            new Board(new PlacedTile[SIZE * SIZE], new int[0], ZonePartitions.EMPTY, Set.of());
 
     private final ZonePartitions zonePartitions;
     private final PlacedTile[] placedTiles;
@@ -73,7 +74,7 @@ public final class Board {
      */
     public PlacedTile tileAt(Pos pos) {
         int index = calculateRowMajorIndex(pos);
-        if (index < 0 || index >= placedTiles.length)
+        if (!isPosWithinBoard(pos))
             return null;
         return placedTiles[index];
     }
@@ -98,10 +99,10 @@ public final class Board {
      * Returns the cancelled animals.
      * <p>Cancelled animals can be, for example, deer eaten by smilodons.
      *
-     * @return the set of cancelled animals
+     * @return a vue of the set of cancelled animals
      */
     public Set<Animal> cancelledAnimals() {
-        // Defensive copy
+        // Defensive vue
         return Collections.unmodifiableSet(cancelledAnimals);
     }
 
@@ -298,7 +299,7 @@ public final class Board {
      */
     public boolean canAddTile(PlacedTile tile) {
         // Check if the tile cannot be placed on the board
-        if (!insertionPositions().contains(tile.pos()) || tileAt(tile.pos()) != null)
+        if (!insertionPositions().contains(tile.pos()))
             return false;
         // Check for potential conflicts with adjacent tiles
         for (Direction direction : Direction.ALL) {
@@ -360,7 +361,7 @@ public final class Board {
             }
         }
         // Create a new board with the new tile
-        return new Board(newPlacedTiles, newTileIndices, builder.build(), cancelledAnimals());
+        return new Board(newPlacedTiles, newTileIndices, builder.build(), cancelledAnimals);
     }
 
     /**
@@ -372,7 +373,6 @@ public final class Board {
      */
     public Board withOccupant(Occupant occupant) {
         PlacedTile placedTile = tileWithId(Zone.tileId(occupant.zoneId()));
-        Preconditions.checkArgument(placedTile.occupant() == null);
         // Create the updated zone partitions
         ZonePartitions.Builder builder = new ZonePartitions.Builder(zonePartitions);
         builder.addInitialOccupant(placedTile.placer(), occupant.kind(),
@@ -381,7 +381,7 @@ public final class Board {
         PlacedTile[] newPlacedTiles = placedTiles.clone();
         newPlacedTiles[calculateRowMajorIndex(placedTile.pos())] = placedTile.withOccupant(occupant);
         // Create the new Board instance
-        return new Board(newPlacedTiles, tileIndices.clone(), builder.build(), cancelledAnimals());
+        return new Board(newPlacedTiles, tileIndices, builder.build(), cancelledAnimals);
     }
 
     /**
@@ -402,7 +402,7 @@ public final class Board {
         ZonePartitions.Builder builder = new ZonePartitions.Builder(zonePartitions);
         builder.removePawn(placedTile.placer(), zone);
         // Create the new Board instance
-        return new Board(newPlacedTiles, tileIndices.clone(), builder.build(), cancelledAnimals());
+        return new Board(newPlacedTiles, tileIndices, builder.build(), cancelledAnimals);
     }
 
     /**
@@ -448,20 +448,16 @@ public final class Board {
     public Board withMoreCancelledAnimals(Set<Animal> newlyCancelledAnimals) {
         Set<Animal> newCancelledAnimals = new HashSet<>(cancelledAnimals);
         newCancelledAnimals.addAll(newlyCancelledAnimals);
-        return new Board(placedTiles.clone(), tileIndices.clone(), zonePartitions, newCancelledAnimals);
+        return new Board(placedTiles, tileIndices, zonePartitions, newCancelledAnimals);
     }
 
     @Override
     public boolean equals(Object obj) {
         if (obj instanceof Board board) {
-            boolean isPlacedTilesEqual = Arrays.equals(placedTiles, board.placedTiles);
-            boolean isTileIndicesEqual = Arrays.equals(tileIndices, board.tileIndices);
-            boolean areCancelledAnimalsEqual =
-                    Arrays.equals(cancelledAnimals.toArray(), board.cancelledAnimals.toArray());
-            boolean areZonePartitionsEqual = zonePartitions.equals(board.zonePartitions);
-
-            return isPlacedTilesEqual && isTileIndicesEqual
-                    && areCancelledAnimalsEqual && areZonePartitionsEqual;
+            return Arrays.equals(placedTiles, board.placedTiles)
+                    && Arrays.equals(tileIndices, board.tileIndices)
+                    && Arrays.equals(cancelledAnimals.toArray(), board.cancelledAnimals.toArray())
+                    && zonePartitions.equals(board.zonePartitions);
         }
         return false;
     }

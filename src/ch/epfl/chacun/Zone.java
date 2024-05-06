@@ -30,7 +30,7 @@ public sealed interface Zone {
      */
     static int localId(int zoneId) {
         // zoneId = 10 * tileId + localId
-        return zoneId - 10 * tileId(zoneId);
+        return zoneId % 10;
     }
 
     /**

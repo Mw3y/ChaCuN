@@ -99,7 +99,7 @@ public record TileDecks(List<Tile> startTiles, List<Tile> normalTiles, List<Tile
      * @return a new deck of tiles after removing the tiles that does not respect the given predicate
      */
     private List<Tile> filterDeck(List<Tile> deck, Predicate<Tile> predicate) {
-        List<Tile> filteredDeck = List.copyOf(deck);
+        List<Tile> filteredDeck = deck;
         while (!filteredDeck.isEmpty() && !predicate.test(filteredDeck.getFirst())) {
             filteredDeck = removeDeckFirstTile(filteredDeck);
         }
