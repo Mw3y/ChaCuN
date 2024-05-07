@@ -84,12 +84,24 @@ public class Main extends Application {
                     gameStateO.set(stateAction.gameState());
                     tileToPlaceRotationP.set(Rotation.NONE);
 
-                    if (gameStateO.get().nextAction() == GameState.Action.OCCUPY_TILE) {
-                        // Display potential occupants
-                        Set<Occupant> occupantsToDisplay = new HashSet<>(visibleOccupantsP.get());
-                        occupantsToDisplay.addAll(gameStateO.get().lastTilePotentialOccupants());
-                        visibleOccupantsP.set(Set.copyOf(occupantsToDisplay));
-                        textToDisplayP.set(textMaker.clickToOccupy());
+                    switch (gameStateO.get().nextAction()) {
+                        case OCCUPY_TILE -> {
+                            // Display potential occupants
+                            Set<Occupant> occupantsToDisplay = new HashSet<>(visibleOccupantsP.get());
+                            occupantsToDisplay.addAll(gameStateO.get().lastTilePotentialOccupants());
+                            visibleOccupantsP.set(Set.copyOf(occupantsToDisplay));
+                            textToDisplayP.set(textMaker.clickToOccupy());
+                        }
+                        case RETAKE_PAWN -> {
+                            Board board = stateAction.gameState().board();
+                            Set<Occupant> playerOccupants = board.occupants().stream().filter(occupant -> {
+                                PlacedTile tile = board.tileWithId(Zone.tileId(occupant.zoneId()));
+                                return tile.placer() == stateAction.gameState().currentPlayer();
+                            }).collect(Collectors.toSet());
+
+                            visibleOccupantsP.set(playerOccupants);
+                            textToDisplayP.set(textMaker.clickToUnoccupy());
+                        }
                     }
                 }
             }
@@ -107,6 +119,24 @@ public class Main extends Application {
                 // Reset properties
                 visibleOccupantsP.set(gameStateO.get().board().occupants());
                 textToDisplayP.set("");
+            }
+            else if(gameStateO.get().nextAction() == GameState.Action.RETAKE_PAWN) {
+                ActionEncoder.StateAction stateAction = ActionEncoder.withOccupantRemoved(gameStateO.get(), occupant);
+                // Add action
+                List<String> actions = new ArrayList<>(actionsP.get());
+                actions.add(stateAction.action());
+                actionsP.set(actions);
+                // Register action
+                gameStateO.set(stateAction.gameState());
+                // Reset properties
+                visibleOccupantsP.set(gameStateO.get().board().occupants());
+                textToDisplayP.set("");
+
+                // Display potential occupants
+                Set<Occupant> occupantsToDisplay = new HashSet<>(visibleOccupantsP.get());
+                occupantsToDisplay.addAll(gameStateO.get().lastTilePotentialOccupants());
+                visibleOccupantsP.set(Set.copyOf(occupantsToDisplay));
+                textToDisplayP.set(textMaker.clickToOccupy());
             }
         };
 
@@ -132,7 +162,13 @@ public class Main extends Application {
                         textToDisplayP.set(textMaker.clickToOccupy());
                     }
                     case RETAKE_PAWN -> {
-                        // display player's occupants
+                        Board board = stateAction.gameState().board();
+                        Set<Occupant> playerOccupants = board.occupants().stream().filter(occupant -> {
+                            PlacedTile tile = board.tileWithId(Zone.tileId(occupant.zoneId()));
+                            return tile.placer() == stateAction.gameState().currentPlayer();
+                        }).collect(Collectors.toSet());
+
+                        visibleOccupantsP.set(playerOccupants);
                         textToDisplayP.set(textMaker.clickToUnoccupy());
                     }
                 }
@@ -187,6 +223,10 @@ public class Main extends Application {
         }
 
         List<Tile> tiles = new ArrayList<>(Tiles.TILES);
+        for (int i = 79; i <= 94; ++i) {
+            if (i != 88)
+                tiles.remove(Tiles.TILES.get(i));
+        }
         Collections.shuffle(tiles, shuffler);
         // Group tiles by kind to create the decks
         return new TileDecks(tiles.stream().collect(Collectors.groupingBy(Tile::kind)));
