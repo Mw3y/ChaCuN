@@ -22,7 +22,14 @@ import java.util.stream.Collectors;
  */
 public class Main extends Application {
 
+    /**
+     * The initial width of the window.
+     */
     private static final int INITIAL_WIDTH = 1440;
+
+    /**
+     * The initial height of the window.
+     */
     private static final int INITIAL_HEIGHT = 1080;
 
     public static void main(String[] args) {
@@ -37,44 +44,25 @@ public class Main extends Application {
         // Check if the number of players is valid
         Preconditions.checkArgument(playerNames.size() >= 2 && playerNames.size() <= 5);
         // Create the player map
-        List<PlayerColor> playerColors = PlayerColor.ALL.subList(0, playerNames.size());
-        Map<PlayerColor, String> players = new HashMap<>();
-        for (int i = 0; i < playerNames.size(); ++i) {
-            players.put(playerColors.get(i), playerNames.get(i));
-        }
+        Map<PlayerColor, String> players = createPlayers(playerNames);
 
         // Apply the seed to ALL tiles
         String rawSeed = params.getNamed().get("seed");
-        RandomGeneratorFactory<RandomGenerator> defaultRandomFactory = RandomGeneratorFactory.getDefault();
-
-        RandomGenerator shuffler;
-        if (rawSeed != null) {
-            long seed = Long.parseUnsignedLong(rawSeed);
-            shuffler = defaultRandomFactory.create(seed);
-        } else {
-            shuffler = defaultRandomFactory.create();
-        }
-
-        List<Tile> tiles = new ArrayList<>(Tiles.TILES);
-        Collections.shuffle(tiles, shuffler);
-        // Group tiles by kind to create the decks
-        Map<Tile.Kind, List<Tile>> decks = tiles.stream().collect(Collectors.groupingBy(Tile::kind));
-        TileDecks tileDecks = new TileDecks(decks);
+        TileDecks tileDecks = createTileDecksWithSeed(rawSeed);
 
         TextMaker textMaker = new TextMakerFr(players);
-        GameState gameState = GameState.initial(players.keySet().stream().toList(), tileDecks, textMaker);
+        GameState initialGameState = GameState.initial(players.keySet().stream().toList(), tileDecks, textMaker);
 
+        // Dynamic UI properties
         SimpleObjectProperty<Rotation> tileToPlaceRotationP = new SimpleObjectProperty<>(Rotation.NONE);
         SimpleObjectProperty<Set<Occupant>> visibleOccupantsP = new SimpleObjectProperty<>(Set.of());
         SimpleObjectProperty<Set<Integer>> highlightedTilesP = new SimpleObjectProperty<>(Set.of());
         SimpleObjectProperty<String> textToDisplayP = new SimpleObjectProperty<>("");
         SimpleObjectProperty<List<String>> actionsP = new SimpleObjectProperty<>(List.of());
 
-        SimpleObjectProperty<GameState> gameStateO = new SimpleObjectProperty<>(gameState);
+        // Dynamic game state properties
+        SimpleObjectProperty<GameState> gameStateO = new SimpleObjectProperty<>(initialGameState);
         ObservableValue<MessageBoard> messageBoardO = gameStateO.map(GameState::messageBoard);
-
-        gameStateO.set(gameState);
-        gameStateO.set(gameStateO.get().withStartingTilePlaced());
 
         Consumer<Rotation> applyRotation = rotation -> {
             tileToPlaceRotationP.set(tileToPlaceRotationP.get().add(rotation));
@@ -143,6 +131,10 @@ public class Main extends Application {
                         visibleOccupantsP.set(Set.copyOf(occupantsToDisplay));
                         textToDisplayP.set(textMaker.clickToOccupy());
                     }
+                    case RETAKE_PAWN -> {
+                        // display player's occupants
+                        textToDisplayP.set(textMaker.clickToUnoccupy());
+                    }
                 }
             }
         };
@@ -170,5 +162,33 @@ public class Main extends Application {
         primaryStage.setHeight(INITIAL_HEIGHT);
         primaryStage.setTitle("ChaCuN");
         primaryStage.show();
+
+        gameStateO.set(gameStateO.get().withStartingTilePlaced());
+    }
+
+    private Map<PlayerColor, String> createPlayers(List<String> playerNames) {
+        List<PlayerColor> playerColors = PlayerColor.ALL.subList(0, playerNames.size());
+        Map<PlayerColor, String> players = new HashMap<>();
+        for (int i = 0; i < playerNames.size(); ++i) {
+            players.put(playerColors.get(i), playerNames.get(i));
+        }
+        return Collections.unmodifiableMap(players);
+    }
+
+    private TileDecks createTileDecksWithSeed(String rawSeed) {
+        RandomGeneratorFactory<RandomGenerator> defaultRandomFactory = RandomGeneratorFactory.getDefault();
+
+        RandomGenerator shuffler;
+        if (rawSeed != null) {
+            long seed = Long.parseUnsignedLong(rawSeed);
+            shuffler = defaultRandomFactory.create(seed);
+        } else {
+            shuffler = defaultRandomFactory.create();
+        }
+
+        List<Tile> tiles = new ArrayList<>(Tiles.TILES);
+        Collections.shuffle(tiles, shuffler);
+        // Group tiles by kind to create the decks
+        return new TileDecks(tiles.stream().collect(Collectors.groupingBy(Tile::kind)));
     }
 }
