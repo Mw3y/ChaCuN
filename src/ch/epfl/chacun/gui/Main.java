@@ -32,6 +32,9 @@ public class Main extends Application {
      */
     private static final int INITIAL_HEIGHT = 1080;
 
+    private final SimpleObjectProperty<List<String>> actionsP = new SimpleObjectProperty<>(List.of());
+    private final SimpleObjectProperty<GameState> gameStateO = new SimpleObjectProperty<>();
+
     public static void main(String[] args) {
         launch(args);
     }
@@ -58,11 +61,36 @@ public class Main extends Application {
         SimpleObjectProperty<Set<Occupant>> visibleOccupantsP = new SimpleObjectProperty<>(Set.of());
         SimpleObjectProperty<Set<Integer>> highlightedTilesP = new SimpleObjectProperty<>(Set.of());
         SimpleObjectProperty<String> textToDisplayP = new SimpleObjectProperty<>("");
-        SimpleObjectProperty<List<String>> actionsP = new SimpleObjectProperty<>(List.of());
 
         // Dynamic game state properties
-        SimpleObjectProperty<GameState> gameStateO = new SimpleObjectProperty<>(initialGameState);
         ObservableValue<MessageBoard> messageBoardO = gameStateO.map(GameState::messageBoard);
+        ObservableValue<GameState.Action> nextGameAction = gameStateO.map(GameState::nextAction);
+
+        // Initialize game state observer
+        gameStateO.set(initialGameState);
+
+        textToDisplayP.bind(nextGameAction.map(nextAction -> switch (nextAction) {
+            case RETAKE_PAWN -> textMaker.clickToUnoccupy();
+            case OCCUPY_TILE -> textMaker.clickToOccupy();
+            default -> "";
+        }));
+
+        visibleOccupantsP.bind(nextGameAction.map(nextAction -> {
+            GameState currentGameState = gameStateO.get();
+            Board board = currentGameState.board();
+            return switch (nextAction) {
+                case OCCUPY_TILE -> {
+                    Set<Occupant> occupantsToDisplay = new HashSet<>(board.occupants());
+                    occupantsToDisplay.addAll(currentGameState.lastTilePotentialOccupants());
+                    yield Set.copyOf(occupantsToDisplay);
+                }
+                case RETAKE_PAWN -> board.occupants().stream().filter(occupant -> {
+                    PlacedTile tile = board.tileWithId(Zone.tileId(occupant.zoneId()));
+                    return tile.placer() == currentGameState.currentPlayer();
+                }).collect(Collectors.toSet());
+                default -> gameStateO.get().board().occupants();
+            };
+        }));
 
         Consumer<Rotation> applyRotation = rotation -> {
             tileToPlaceRotationP.set(tileToPlaceRotationP.get().add(rotation));
@@ -76,67 +104,20 @@ public class Main extends Application {
 
                 if (state.board().canAddTile(placedTile)) {
                     ActionEncoder.StateAction stateAction = ActionEncoder.withPLacedTile(state, placedTile);
-                    // Add action
-                    List<String> actions = new ArrayList<>(actionsP.get());
-                    actions.add(stateAction.action());
-                    actionsP.set(actions);
-                    // Register action
-                    gameStateO.set(stateAction.gameState());
+                    registerActionToGameState(stateAction);
                     tileToPlaceRotationP.set(Rotation.NONE);
-
-                    switch (gameStateO.get().nextAction()) {
-                        case OCCUPY_TILE -> {
-                            // Display potential occupants
-                            Set<Occupant> occupantsToDisplay = new HashSet<>(visibleOccupantsP.get());
-                            occupantsToDisplay.addAll(gameStateO.get().lastTilePotentialOccupants());
-                            visibleOccupantsP.set(Set.copyOf(occupantsToDisplay));
-                            textToDisplayP.set(textMaker.clickToOccupy());
-                        }
-                        case RETAKE_PAWN -> {
-                            Board board = stateAction.gameState().board();
-                            Set<Occupant> playerOccupants = board.occupants().stream().filter(occupant -> {
-                                PlacedTile tile = board.tileWithId(Zone.tileId(occupant.zoneId()));
-                                return tile.placer() == stateAction.gameState().currentPlayer();
-                            }).collect(Collectors.toSet());
-
-                            visibleOccupantsP.set(playerOccupants);
-                            textToDisplayP.set(textMaker.clickToUnoccupy());
-                        }
-                    }
                 }
             }
         };
 
         Consumer<Occupant> selectOccupant = occupant -> {
-            if (gameStateO.get().nextAction() == GameState.Action.OCCUPY_TILE && !gameStateO.get().board().occupants().contains(occupant)) {
+            if (gameStateO.get().nextAction() == GameState.Action.OCCUPY_TILE
+                    && !gameStateO.get().board().occupants().contains(occupant)) {
                 ActionEncoder.StateAction stateAction = ActionEncoder.withNewOccupant(gameStateO.get(), occupant);
-                // Add action
-                List<String> actions = new ArrayList<>(actionsP.get());
-                actions.add(stateAction.action());
-                actionsP.set(actions);
-                // Register action
-                gameStateO.set(stateAction.gameState());
-                // Reset properties
-                visibleOccupantsP.set(gameStateO.get().board().occupants());
-                textToDisplayP.set("");
-            }
-            else if (gameStateO.get().nextAction() == GameState.Action.RETAKE_PAWN) {
+                registerActionToGameState(stateAction);
+            } else if (gameStateO.get().nextAction() == GameState.Action.RETAKE_PAWN) {
                 ActionEncoder.StateAction stateAction = ActionEncoder.withOccupantRemoved(gameStateO.get(), occupant);
-                // Add action
-                List<String> actions = new ArrayList<>(actionsP.get());
-                actions.add(stateAction.action());
-                actionsP.set(actions);
-                // Register action
-                gameStateO.set(stateAction.gameState());
-                // Reset properties
-                visibleOccupantsP.set(gameStateO.get().board().occupants());
-                textToDisplayP.set("");
-
-                // Display potential occupants
-                Set<Occupant> occupantsToDisplay = new HashSet<>(visibleOccupantsP.get());
-                occupantsToDisplay.addAll(gameStateO.get().lastTilePotentialOccupants());
-                visibleOccupantsP.set(Set.copyOf(occupantsToDisplay));
-                textToDisplayP.set(textMaker.clickToOccupy());
+                registerActionToGameState(stateAction);
             }
         };
 
@@ -149,29 +130,6 @@ public class Main extends Application {
                 actionsP.set(newActions);
 
                 gameStateO.set(stateAction.gameState());
-
-                switch (stateAction.gameState().nextAction()) {
-                    case PLACE_TILE -> {
-                        visibleOccupantsP.set(stateAction.gameState().board().occupants());
-                        textToDisplayP.set("");
-                    }
-                    case OCCUPY_TILE -> {
-                        Set<Occupant> occupantsToDisplay = new HashSet<>(visibleOccupantsP.get());
-                        occupantsToDisplay.addAll(gameStateO.get().lastTilePotentialOccupants());
-                        visibleOccupantsP.set(Set.copyOf(occupantsToDisplay));
-                        textToDisplayP.set(textMaker.clickToOccupy());
-                    }
-                    case RETAKE_PAWN -> {
-                        Board board = stateAction.gameState().board();
-                        Set<Occupant> playerOccupants = board.occupants().stream().filter(occupant -> {
-                            PlacedTile tile = board.tileWithId(Zone.tileId(occupant.zoneId()));
-                            return tile.placer() == stateAction.gameState().currentPlayer();
-                        }).collect(Collectors.toSet());
-
-                        visibleOccupantsP.set(playerOccupants);
-                        textToDisplayP.set(textMaker.clickToUnoccupy());
-                    }
-                }
             }
         };
 
@@ -200,6 +158,13 @@ public class Main extends Application {
         primaryStage.show();
 
         gameStateO.set(gameStateO.get().withStartingTilePlaced());
+    }
+
+    private void registerActionToGameState(ActionEncoder.StateAction stateAction) {
+        List<String> actions = new ArrayList<>(actionsP.get());
+        actions.add(stateAction.action());
+        actionsP.set(actions);
+        gameStateO.set(stateAction.gameState());
     }
 
     private Map<PlayerColor, String> createPlayers(List<String> playerNames) {
