@@ -138,6 +138,9 @@ public final class BoardUI {
         }
 
         container.setContent(gridPane);
+        // Center board
+        container.setVvalue(.5);
+        container.setHvalue(.5);
         return container;
     }
 

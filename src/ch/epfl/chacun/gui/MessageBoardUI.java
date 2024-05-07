@@ -65,7 +65,10 @@ public final class MessageBoardUI {
                 wrapper.getChildren().add(message);
             });
             // Scroll to the last message
-            Platform.runLater(() -> container.setVvalue(1));
+            Platform.runLater(() -> {
+                container.setVvalue(1);
+                container.layout();
+            });
         });
 
         wrapper.setSpacing(MESSAGES_SPACING);

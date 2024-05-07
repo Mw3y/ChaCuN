@@ -96,7 +96,7 @@ public class Main extends Application {
                     gameStateO.set(stateAction.gameState());
                     tileToPlaceRotationP.set(Rotation.NONE);
 
-                    if (!gameStateO.get().lastTilePotentialOccupants().isEmpty()) {
+                    if (gameStateO.get().nextAction() == GameState.Action.OCCUPY_TILE) {
                         // Display potential occupants
                         Set<Occupant> occupantsToDisplay = new HashSet<>(visibleOccupantsP.get());
                         occupantsToDisplay.addAll(gameStateO.get().lastTilePotentialOccupants());
