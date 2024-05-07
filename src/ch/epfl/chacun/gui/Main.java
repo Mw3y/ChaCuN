@@ -108,7 +108,7 @@ public class Main extends Application {
         };
 
         Consumer<Occupant> selectOccupant = occupant -> {
-            if (!gameStateO.get().board().occupants().contains(occupant)) {
+            if (gameStateO.get().nextAction() == GameState.Action.OCCUPY_TILE && !gameStateO.get().board().occupants().contains(occupant)) {
                 ActionEncoder.StateAction stateAction = ActionEncoder.withNewOccupant(gameStateO.get(), occupant);
                 // Add action
                 List<String> actions = new ArrayList<>(actionsP.get());
@@ -120,7 +120,7 @@ public class Main extends Application {
                 visibleOccupantsP.set(gameStateO.get().board().occupants());
                 textToDisplayP.set("");
             }
-            else if(gameStateO.get().nextAction() == GameState.Action.RETAKE_PAWN) {
+            else if (gameStateO.get().nextAction() == GameState.Action.RETAKE_PAWN) {
                 ActionEncoder.StateAction stateAction = ActionEncoder.withOccupantRemoved(gameStateO.get(), occupant);
                 // Add action
                 List<String> actions = new ArrayList<>(actionsP.get());
