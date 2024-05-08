@@ -54,9 +54,12 @@ public final class ActionsUI {
         actionField.setId("action-field");
 
         actionField.setTextFormatter(new TextFormatter<>(change -> {
-            change.setText(change.getText().replaceAll(change.getText()
-                    .chars().filter(c -> !Base32.isValid(String.valueOf(c))).toString(), ""));
             change.setText(change.getText().toUpperCase());
+            change.getText().chars().forEach(i -> {
+                String c = String.valueOf((char) i);
+                if (!Base32.isValid(String.valueOf(c)))
+                    change.setText(change.getText().replace(c, ""));
+            });
             return change;
         }));
 
