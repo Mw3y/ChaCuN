@@ -188,10 +188,10 @@ public class Main extends Application {
         }
 
         List<Tile> tiles = new ArrayList<>(Tiles.TILES);
-        for (int i = 79; i <= 94; ++i) {
-            if (i != 88)
-                tiles.remove(Tiles.TILES.get(i));
-        }
+        // for (int i = 79; i <= 94; ++i) {
+        //     if (i != 88)
+        //         tiles.remove(Tiles.TILES.get(i));
+        /// }
         Collections.shuffle(tiles, shuffler);
         // Group tiles by kind to create the decks
         return new TileDecks(tiles.stream().collect(Collectors.groupingBy(Tile::kind)));

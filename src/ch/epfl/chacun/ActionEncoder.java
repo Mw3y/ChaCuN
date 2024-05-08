@@ -160,10 +160,6 @@ public class ActionEncoder {
      * @throws IllegalActionException if the action is illegal
      */
     private static StateAction unsafeDecodeAndApply(GameState gameState, String action) throws IllegalActionException {
-        // Check if the received action is valid
-        if (!Base32.isValid(action) || action.isEmpty())
-            throw new IllegalActionException();
-
         int decodedAction = Base32.decode(action);
         // Execute the provided action based on the next action context
         return switch (gameState.nextAction()) {

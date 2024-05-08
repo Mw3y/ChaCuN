@@ -14,9 +14,9 @@ public class Base32 {
     public static final String ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 
     /**
-     * The size of the base 32 alphabet.
+     * The number of bits to represent a symbol in base 32.
      */
-    public static final int ALPHABET_SIZE = ALPHABET.length();
+    private static final int BASE_32_SYMBOL_BITS = 5;
 
     /**
      * Checks if the given string is valid in base 32.
@@ -36,7 +36,7 @@ public class Base32 {
      */
     public static String encodeBits5(int value) {
         // Keep only the 5 less significand bits
-        int fiveLSB = value & ((1 << 5) - 1);
+        int fiveLSB = value & ((1 << BASE_32_SYMBOL_BITS) - 1);
         return String.valueOf(ALPHABET.charAt(fiveLSB));
     }
 
@@ -48,7 +48,7 @@ public class Base32 {
      */
     public static String encodeBits10(int value) {
         // Encoded independently two 5-bit parts and merge them
-        return encodeBits5(value) + encodeBits5(value >> 5);
+        return encodeBits5(value  >> BASE_32_SYMBOL_BITS) + encodeBits5(value);
     }
 
     /**
@@ -60,11 +60,12 @@ public class Base32 {
      * @return the integer corresponding to the decoded value
      */
     public static int decode(String value) {
+        Preconditions.checkArgument(value.length() == 1 || value.length() == 2);
+        Preconditions.checkArgument(isValid(value));
         int decodedValue = 0;
-        // For each value, add its index in the base 32 alphabet times the corresponding power of 32
-        // to the decoded integer value
+        // For each value, add its index in the base 32 alphabet times
         for (int i = 0; i < value.length(); ++i) {
-            decodedValue += (int) (ALPHABET.indexOf(value.charAt(i)) * Math.pow(ALPHABET_SIZE, i));
+            decodedValue = decodedValue << BASE_32_SYMBOL_BITS | ALPHABET.indexOf(value.charAt(i));
         }
         return decodedValue;
     }
