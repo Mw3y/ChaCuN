@@ -128,8 +128,7 @@ public record MessageBoard(TextMaker textMaker, List<Message> messages) {
      */
     public MessageBoard withScoredHuntingTrap(PlayerColor scorer, Area<Zone.Meadow> adjacentMeadow,
                                               Set<Animal> cancelledAnimals) {
-        Set<Animal> animals = Area.animals(adjacentMeadow, new HashSet<>());
-        animals.retainAll(cancelledAnimals);
+        Set<Animal> animals = Area.animals(adjacentMeadow, cancelledAnimals);
         ArrayList<Message> messages = new ArrayList<>(this.messages);
         // Calculate the data needed
         Map<Animal.Kind, Integer> animalCount = countAnimals(animals);
