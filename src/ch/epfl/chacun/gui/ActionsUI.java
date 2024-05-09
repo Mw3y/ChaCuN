@@ -57,7 +57,7 @@ public final class ActionsUI {
             change.setText(change.getText().toUpperCase());
             change.getText().chars().forEach(i -> {
                 String c = String.valueOf((char) i);
-                if (!Base32.isValid(String.valueOf(c)))
+                if (!Base32.isValid(c))
                     change.setText(change.getText().replace(c, ""));
             });
             return change;
