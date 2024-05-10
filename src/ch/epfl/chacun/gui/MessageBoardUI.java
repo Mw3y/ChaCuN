@@ -7,7 +7,6 @@ import javafx.scene.Node;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
-import javafx.scene.text.TextAlignment;
 
 import java.util.List;
 import java.util.Set;
@@ -23,14 +22,9 @@ import static ch.epfl.chacun.gui.ImageLoader.LARGE_TILE_FIT_SIZE;
 public final class MessageBoardUI {
 
     /**
-     * The width of the scroll bar, in pixels.
+     * The scale to scroll to the bottom of the message board.
      */
-    private static final int SCROLL_BAR_WIDTH = 12;
-
-    /**
-     * The spacing between messages, in pixels.
-     */
-    private static final int MESSAGES_SPACING = 10;
+    private static final int SCROLL_BOTTOM_SCALE = 1;
 
     /**
      * Non-instantiable class constructor
@@ -56,8 +50,7 @@ public final class MessageBoardUI {
             // Add the new messages to the container
             currentMessages.stream().skip(previousMessages.size()).forEach(newMessage -> {
                 Text message = new Text(newMessage.text());
-                message.setTextAlignment(TextAlignment.JUSTIFY);
-                message.setWrappingWidth(LARGE_TILE_FIT_SIZE - SCROLL_BAR_WIDTH);
+                message.setWrappingWidth(LARGE_TILE_FIT_SIZE);
                 // Dynamically update the tile ids mentioned in the message if needed
                 message.setOnMouseEntered(_ -> tileIdsP.set(newMessage.tileIds()));
                 message.setOnMouseExited(_ -> tileIdsP.set(Set.of()));
@@ -65,10 +58,9 @@ public final class MessageBoardUI {
             });
             // Scroll to the last message
             container.layout();
-            container.setVvalue(1);
+            container.setVvalue(SCROLL_BOTTOM_SCALE);
         });
 
-        wrapper.setSpacing(MESSAGES_SPACING);
         container.setContent(wrapper);
         return container;
     }
