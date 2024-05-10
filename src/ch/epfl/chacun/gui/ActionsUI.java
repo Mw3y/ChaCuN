@@ -5,7 +5,6 @@ import javafx.beans.value.ObservableValue;
 import javafx.scene.Node;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextFormatter;
-import javafx.scene.input.KeyCode;
 import javafx.scene.layout.HBox;
 import javafx.scene.text.Text;
 
@@ -23,7 +22,8 @@ public final class ActionsUI {
     /**
      * Non-instantiable class constructor.
      */
-    private ActionsUI() {}
+    private ActionsUI() {
+    }
 
     /**
      * Creates the actions UI.
@@ -54,6 +54,7 @@ public final class ActionsUI {
         actionField.setId("action-field");
 
         actionField.setTextFormatter(new TextFormatter<>(change -> {
+            // TODO: Use streams
             change.setText(change.getText().toUpperCase());
             change.getText().chars().forEach(i -> {
                 String c = String.valueOf((char) i);
@@ -63,11 +64,10 @@ public final class ActionsUI {
             return change;
         }));
 
-        actionField.setOnKeyPressed(event -> {
-            if (event.getCode() == KeyCode.ENTER) {
-                actionToApply.accept(actionField.getText());
-                actionField.clear();
-            }
+        // Define the action to apply when the user presses enter
+        actionField.setOnAction(_ -> {
+            actionToApply.accept(actionField.getText());
+            actionField.clear();
         });
 
         container.getChildren().add(fourPreviousActionsText);

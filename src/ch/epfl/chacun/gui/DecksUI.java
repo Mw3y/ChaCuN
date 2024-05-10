@@ -45,9 +45,13 @@ public final class DecksUI {
      * @param occupantConsumer    the consumer of the occupant to skip the special action of retaking a pawn
      * @return the decks UI
      */
-    public static Node create(ObservableValue<Tile> tileToPlaceO, ObservableValue<Integer> normalTileDeckSizeO,
-                              ObservableValue<Integer> menhirTileDeckSizeO, ObservableValue<String> textToDisplayO,
-                              Consumer<Occupant> occupantConsumer) {
+    public static Node create(
+            ObservableValue<Tile> tileToPlaceO,
+            ObservableValue<Integer> normalTileDeckSizeO,
+            ObservableValue<Integer> menhirTileDeckSizeO,
+            ObservableValue<String> textToDisplayO,
+            Consumer<Occupant> occupantConsumer
+    ) {
         VBox container = new VBox();
         container.getStylesheets().add("/decks.css");
         // Create the decks container
@@ -93,9 +97,11 @@ public final class DecksUI {
      * @param occupantConsumer the consumer of the occupant
      * @return the next tile to place cover UI
      */
-    private static StackPane createNextTileCover(ObservableValue<Tile> tileToPlaceO,
-                                                 ObservableValue<String> textToDisplayO,
-                                                 Consumer<Occupant> occupantConsumer) {
+    private static StackPane createNextTileCover(
+            ObservableValue<Tile> tileToPlaceO,
+            ObservableValue<String> textToDisplayO,
+            Consumer<Occupant> occupantConsumer
+    ) {
         StackPane tileToPlace = new StackPane();
         tileToPlace.setId("next-tile");
 

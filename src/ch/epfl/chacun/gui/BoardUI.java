@@ -45,6 +45,11 @@ public final class BoardUI {
     private static final Map<Integer, Image> tilesCache = new HashMap<>();
 
     /**
+     * The value to scroll to center the board.
+     */
+    private static final double SCROLL_CENTER_SCALE = .5;
+
+    /**
      * Non-instantiable class constructor.
      */
     private BoardUI() {
@@ -63,13 +68,16 @@ public final class BoardUI {
      * @param selectedOccupant    the consumer to select an occupant
      * @return the created board UI
      */
-    public static Node create(int reach, ObservableValue<GameState> gameStateO,
-                              ObservableValue<Rotation> rotationO,
-                              ObservableValue<Set<Occupant>> occupantsO,
-                              ObservableValue<Set<Integer>> highlightedTileIdsO,
-                              Consumer<Rotation> rotationToApply,
-                              Consumer<Pos> tileToPlacePos,
-                              Consumer<Occupant> selectedOccupant) {
+    public static Node create(
+            int reach,
+            ObservableValue<GameState> gameStateO,
+            ObservableValue<Rotation> rotationO,
+            ObservableValue<Set<Occupant>> occupantsO,
+            ObservableValue<Set<Integer>> highlightedTileIdsO,
+            Consumer<Rotation> rotationToApply,
+            Consumer<Pos> tileToPlacePos,
+            Consumer<Occupant> selectedOccupant
+    ) {
         Preconditions.checkArgument(reach > 0);
 
         ScrollPane container = new ScrollPane();
@@ -78,6 +86,9 @@ public final class BoardUI {
 
         GridPane gridPane = new GridPane();
         gridPane.setId("board-grid");
+
+        ObservableValue<Board> boardO = gameStateO.map(GameState::board);
+        ObservableValue<Set<Pos>> insertionPositionsO = boardO.map(Board::insertionPositions);
 
         // Create a tile for each board position within the reach
         for (int x = -reach; x <= reach; ++x) {
@@ -89,8 +100,8 @@ public final class BoardUI {
                 tileView.setFitHeight(NORMAL_TILE_FIT_SIZE);
                 tileView.setFitWidth(NORMAL_TILE_FIT_SIZE);
 
-                ObjectBinding<CellData> cellData = CellData
-                        .createBinding(gameStateO, rotationO, highlightedTileIdsO, tileContainer, tilePos);
+                ObjectBinding<CellData> cellData = CellData.createBinding(gameStateO, boardO,
+                        insertionPositionsO, rotationO, highlightedTileIdsO, tileContainer, tilePos);
 
                 tileView.imageProperty().bind(cellData.map(CellData::tileImage));
                 tileContainer.rotateProperty().bind(cellData.map(data -> data.tileRotation().degreesCW()));
@@ -139,8 +150,8 @@ public final class BoardUI {
 
         container.setContent(gridPane);
         // Center board
-        container.setVvalue(.5);
-        container.setHvalue(.5);
+        container.setVvalue(SCROLL_CENTER_SCALE);
+        container.setHvalue(SCROLL_CENTER_SCALE);
         return container;
     }
 
@@ -252,16 +263,23 @@ public final class BoardUI {
         /**
          * Creates a binding to update the cell data based on the game state, rotation and highlighted tile ids.
          * @param gameStateO the observable game state
+         * @param boardO the observable board
+         * @param insertionPositionsO the observable set of insertion positions
          * @param rotationO the observable rotation
          * @param highlightedTileIdsO the observable set of highlighted tile ids
          * @param tileContainer the tile container
          * @param tilePos the position of the tile
          * @return the created binding
          */
-        public static ObjectBinding<CellData> createBinding(ObservableValue<GameState> gameStateO, ObservableValue<Rotation> rotationO, ObservableValue<Set<Integer>> highlightedTileIdsO, Group tileContainer, Pos tilePos) {
-            ObservableValue<Board> boardO = gameStateO.map(GameState::board);
+        public static ObjectBinding<CellData> createBinding(
+                ObservableValue<GameState> gameStateO,
+                ObservableValue<Board> boardO,
+                ObservableValue<Set<Pos>> insertionPositionsO,
+                ObservableValue<Rotation> rotationO,
+                ObservableValue<Set<Integer>> highlightedTileIdsO,
+                Group tileContainer,
+                Pos tilePos) {
             ObservableValue<PlacedTile> placedTileO = boardO.map(board -> board.tileAt(tilePos));
-            ObservableValue<Set<Pos>> insertionPositionsO = boardO.map(Board::insertionPositions);
 
             return Bindings.createObjectBinding(() -> {
                 GameState gameState = gameStateO.getValue();
@@ -296,6 +314,7 @@ public final class BoardUI {
          * @return the created veil
          */
         public Blend createVeil() {
+            // TODO: Create only one time
             Blend blend = new Blend();
             blend.setMode(BlendMode.SRC_OVER);
             blend.setTopInput(new ColorInput(0, 0, NORMAL_TILE_FIT_SIZE, NORMAL_TILE_FIT_SIZE, veilColor));

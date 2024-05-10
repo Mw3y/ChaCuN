@@ -1,7 +1,6 @@
 package ch.epfl.chacun.gui;
 
 import ch.epfl.chacun.MessageBoard;
-import javafx.application.Platform;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.scene.Node;
@@ -26,7 +25,7 @@ public final class MessageBoardUI {
     /**
      * The width of the scroll bar, in pixels.
      */
-    private static final int SCROLL_BAR_WIDTH = 8;
+    private static final int SCROLL_BAR_WIDTH = 12;
 
     /**
      * The spacing between messages, in pixels.
@@ -65,10 +64,8 @@ public final class MessageBoardUI {
                 wrapper.getChildren().add(message);
             });
             // Scroll to the last message
-            Platform.runLater(() -> {
-                container.setVvalue(1);
-                container.layout();
-            });
+            container.layout();
+            container.setVvalue(1);
         });
 
         wrapper.setSpacing(MESSAGES_SPACING);
