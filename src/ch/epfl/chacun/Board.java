@@ -415,26 +415,23 @@ public final class Board {
     public Board withoutGatherersOrFishersIn(Set<Area<Zone.Forest>> forests, Set<Area<Zone.River>> rivers) {
         ZonePartitions.Builder builder = new ZonePartitions.Builder(zonePartitions);
         PlacedTile[] newPlacedTiles = placedTiles.clone();
-        // Remove gatherers
-        for (Area<Zone.Forest> forest : forests) {
-            builder.clearGatherers(forest);
-            for (Zone.Forest zone : forest.zones()) {
-                PlacedTile placedTile = tileWithId(zone.tileId());
-                int occupantZoneId = placedTile.idOfZoneOccupiedBy(Occupant.Kind.PAWN);
-                if (occupantZoneId != -1 && placedTile.zoneWithId(occupantZoneId) instanceof Zone.Forest)
-                    newPlacedTiles[calculateRowMajorIndex(placedTile.pos())] = placedTile.withNoOccupant();
+
+        for (int tileIndex : tileIndices) {
+            PlacedTile placedTile = placedTiles[tileIndex];
+            Occupant occupant = placedTile.occupant();
+            if (occupant != null && occupant.kind() == Occupant.Kind.PAWN) {
+                Zone zone = placedTile.zoneWithId(occupant.zoneId());
+                if (zone instanceof Zone.Forest forest && forests.contains(forestArea(forest))) {
+                    builder.removePawn(placedTile.placer(), forest);
+                    newPlacedTiles[tileIndex] = placedTile.withNoOccupant();
+                }
+                else if (zone instanceof Zone.River river && rivers.contains(riverArea(river))) {
+                    builder.removePawn(placedTile.placer(), river);
+                    newPlacedTiles[tileIndex] = placedTile.withNoOccupant();
+                }
             }
         }
-        // Remove fishermen
-        for (Area<Zone.River> river : rivers) {
-            builder.clearFishers(river);
-            for (Zone.River zone : river.zones()) {
-                PlacedTile placedTile = tileWithId(zone.tileId());
-                int occupantZoneId = placedTile.idOfZoneOccupiedBy(Occupant.Kind.PAWN);
-                if (occupantZoneId != -1 && placedTile.zoneWithId(occupantZoneId) instanceof Zone.River)
-                    newPlacedTiles[calculateRowMajorIndex(placedTile.pos())] = placedTile.withNoOccupant();
-            }
-        }
+
         // Create the new board
         return new Board(newPlacedTiles, tileIndices.clone(), builder.build(), cancelledAnimals());
     }
