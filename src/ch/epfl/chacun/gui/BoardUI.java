@@ -114,7 +114,8 @@ public final class BoardUI {
                 // Handle tile rotation and placement
                 tileContainer.setOnMouseClicked(event -> {
                     // Prevent the player from interacting with the tile when it has been placed
-                    if (placedTileO.getValue() == null) {
+                    // Allows the player to keep his mouse button pressed to move on the board
+                    if (placedTileO.getValue() == null && event.isStillSincePress()) {
                         // Rotate the tile
                         if (event.getButton() == MouseButton.SECONDARY) {
                             // Allow for clockwise and counter-clockwise rotation using the ALT key
