@@ -17,37 +17,6 @@ import java.util.stream.Collectors;
  */
 public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile tileToPlace, Board board,
                         Action nextAction, MessageBoard messageBoard) {
-
-    /**
-     * The id of the tile containing the shaman
-     */
-    private static final int SHAMAN_TILE_ID = 88;
-
-    /**
-     * The id of the tile containing the hunting trap
-     */
-    private static final int HUNTING_TRAP_TILE_ID = 94;
-
-    /**
-     * The id of the tile containing the log boat
-     */
-    private static final int LOGBOAT_TILE_ID = 93;
-
-    /**
-     * The id of the tile containing the wildfire
-     */
-    private static final int WILD_FIRE_TILE_ID = 85;
-
-    /**
-     * The id of the tile containing the pit trap
-     */
-    private static final int PIT_TRAP_TILE_ID = 92;
-
-    /**
-     * The id of the tile containing the raft
-     */
-    private static final int RAFT_TILE_ID = 91;
-
     /**
      * Checks the validity of the arguments.
      * <p>
@@ -347,35 +316,27 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
         Board updatedBoard = board;
         MessageBoard updatedMessageBoard = messageBoard;
         // Add all points scored with meadow areas
-        for (Area<Zone.Meadow> meadow : board.meadowAreas()) {
-            // Check that the meadow does not contain a wildfire
-            if (!meadow.tileIds().contains(WILD_FIRE_TILE_ID)) {
-                // Check if the meadow contains a pit trap
-                if (meadow.tileIds().contains(PIT_TRAP_TILE_ID)) {
-                    // Change the cancelled animals to optimize the points scored by the pit trap
-                    updatedBoard = updatedBoard
-                            .withMoreCancelledAnimals(computeCancelledAnimalsWithPitTrap(meadow, updatedBoard));
+        for (Area<Zone.Meadow> meadow : updatedBoard.meadowAreas()) {
+            boolean containsWildFire = meadow.zoneWithSpecialPower(Zone.SpecialPower.WILD_FIRE) != null;
+            Zone.Meadow zoneWithPitTrap = (Zone.Meadow) meadow.zoneWithSpecialPower(Zone.SpecialPower.PIT_TRAP);
+            if (zoneWithPitTrap != null) {
+                PlacedTile tileWithPitTrap = updatedBoard.tileWithId(zoneWithPitTrap.tileId());
+                if (!containsWildFire) {
+                    updatedBoard = updatedBoard.withMoreCancelledAnimals(computeCancelledAnimalsWithPitTrap(meadow));
                 }
-                // Determine the cancelled animals of the meadow
-                updatedBoard = updatedBoard
-                        .withMoreCancelledAnimals(computeCancelledAnimals(meadow));
+                Area<Zone.Meadow> adjacentMeadows = updatedBoard.adjacentMeadow(tileWithPitTrap.pos(), zoneWithPitTrap);
+                updatedMessageBoard =
+                        updatedMessageBoard.withScoredPitTrap(adjacentMeadows, updatedBoard.cancelledAnimals());
+            } else if (!containsWildFire) {
+                updatedBoard = updatedBoard.withMoreCancelledAnimals(computeCancelledAnimals(meadow));
             }
-            // Check if the meadow contains a pit trap
-            if (meadow.tileIds().contains(PIT_TRAP_TILE_ID)) {
-                // Determine the adjacent meadows of the pit trap
-                Area<Zone.Meadow> adjacentMeadow = updatedBoard
-                        .adjacentMeadow(updatedBoard.tileWithId(PIT_TRAP_TILE_ID).pos(),
-                                (Zone.Meadow) meadow.zoneWithSpecialPower(Zone.SpecialPower.PIT_TRAP));
-                // Attribute points scored by the pit trap
-                updatedMessageBoard = updatedMessageBoard
-                        .withScoredPitTrap(adjacentMeadow, updatedBoard.cancelledAnimals());
-            }
+
             updatedMessageBoard = updatedMessageBoard.withScoredMeadow(meadow, updatedBoard.cancelledAnimals());
         }
 
         // Add all points scored with river systems
         for (Area<Zone.Water> riverSystem : board.riverSystemAreas()) {
-            updatedMessageBoard = riverSystem.tileIds().contains(RAFT_TILE_ID)
+            updatedMessageBoard = riverSystem.zoneWithSpecialPower(Zone.SpecialPower.RAFT) != null
                     ? updatedMessageBoard.withScoredRaft(riverSystem).withScoredRiverSystem(riverSystem)
                     : updatedMessageBoard.withScoredRiverSystem(riverSystem);
         }
@@ -438,11 +399,10 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
      * in priority.
      *
      * @param meadow the meadow containing the pit trap
-     * @param board  the current board
      * @return the set of cancelled animals
      */
-    private Set<Animal> computeCancelledAnimalsWithPitTrap(Area<Zone.Meadow> meadow, Board board) {
-        PlacedTile pitTrapTile = board.tileWithId(PIT_TRAP_TILE_ID);
+    private Set<Animal> computeCancelledAnimalsWithPitTrap(Area<Zone.Meadow> meadow) {
+        PlacedTile pitTrapTile = board.tileWithId(meadow.zoneWithSpecialPower(Zone.SpecialPower.PIT_TRAP).tileId());
         // The area containing the adjacent meadows
         Area<Zone.Meadow> adjacentMeadowArea = board.adjacentMeadow(pitTrapTile.pos(),
                 (Zone.Meadow) pitTrapTile.specialPowerZone());
