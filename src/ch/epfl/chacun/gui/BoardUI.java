@@ -201,7 +201,10 @@ public final class BoardUI {
         // Hide the occupant when not needed
         occupantIcon.visibleProperty().bind(occupantsO.map(occupants -> occupants.contains(occupant)));
         // Allow the player to select an occupant and place it/remove it
-        occupantIcon.setOnMouseClicked(_ -> selectedOccupant.accept(occupant));
+        occupantIcon.setOnMouseClicked(e -> {
+            e.consume();
+            selectedOccupant.accept(occupant);
+        });
         return occupantIcon;
     }
 
