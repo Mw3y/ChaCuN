@@ -1,0 +1,14 @@
+name: Trigger Tests Synchronization
+
+on: [push]
+
+jobs:
+  http_request_job:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+      
+    - name: Send webhook
+      run: |
+        curl -X POST -H "Authorization: Bearer ${{ secrets.PAT }}" -H "Content-Type: application/json" -d '{"event_type":"webhook"}' https://api.github.com/repos/Mw3y/ChaCuN-tests/dispatches

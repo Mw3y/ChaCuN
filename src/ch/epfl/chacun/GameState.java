@@ -92,7 +92,8 @@ public record GameState(List<PlayerColor> players, TileDecks tileDecks, Tile til
             // Prevent the player from placing a pawn on a zone within an occupied area
             return switch (zone) {
                 case Zone.Forest forest -> board.forestArea(forest).isOccupied();
-                case Zone.River river when occupant.kind() == Occupant.Kind.PAWN -> board.riverArea(river).isOccupied();
+                case Zone.River river when occupant.kind() == Occupant.Kind.PAWN ->
+                        board.riverArea(river).isOccupied();
                 case Zone.Meadow meadow -> board.meadowArea(meadow).isOccupied();
                 case Zone.Water water -> board.riverSystemArea(water).isOccupied();
             };
