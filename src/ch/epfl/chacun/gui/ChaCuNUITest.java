@@ -173,7 +173,7 @@ public final class ChaCuNUITest extends Application {
         };
 
         SimpleObjectProperty<List<String>> actions = new SimpleObjectProperty<>(List.of());
-        var actionsUI = ActionsUI.create(actions, actionToApply);
+        var actionsUI = ActionUI.create(actions, actionToApply);
         var decksNode = DecksUI.create(gameStateO.map(GameState::tileToPlace), gameStateO.map(g -> g.tileDecks().normalTiles().size()), gameStateO.map(g -> g.tileDecks().menhirTiles().size()), new SimpleObjectProperty<>(""), o -> {
         });
         var boardNode = (ScrollPane) BoardUI

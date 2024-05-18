@@ -17,12 +17,12 @@ import java.util.function.Consumer;
  * @author Maxence Espagnet (sciper: 372808)
  * @author Balthazar Baillat (sciper: 373420)
  */
-public final class ActionsUI {
+public final class ActionUI {
 
     /**
      * Non-instantiable class constructor.
      */
-    private ActionsUI() {
+    private ActionUI() {
     }
 
     /**

@@ -146,7 +146,7 @@ public class Main extends Application {
         Node playersUI = PlayersUI.create(gameStateO, textMaker);
         Node messageBoardUI = MessageBoardUI.create(messageBoardO.map(MessageBoard::messages), highlightedTilesP);
         Node decksUI = DecksUI.create(tileToPlaceO, normalTilesSizeO, menhirTilesSizeO, textToDisplayP, selectOccupant);
-        Node actionsUI = ActionsUI.create(actionsP, applyAction);
+        Node actionsUI = ActionUI.create(actionsP, applyAction);
         // Put all elements into the side panel
         BorderPane sidePanel = new BorderPane(
                 messageBoardUI, playersUI, null, new VBox(actionsUI, decksUI), null);
