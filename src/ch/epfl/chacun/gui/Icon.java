@@ -40,7 +40,10 @@ public final class Icon {
         SVGPath occupantIcon = new SVGPath();
         occupantIcon.setFill(ColorMap.fillColor(playerColor));
         occupantIcon.setStroke(ColorMap.strokeColor(playerColor));
-        occupantIcon.setContent(occupantKind == Occupant.Kind.PAWN ? PAWN_SVG_PATH : HUT_SVG_PATH);
+        occupantIcon.setContent(switch (occupantKind) {
+            case PAWN -> PAWN_SVG_PATH;
+            case HUT -> HUT_SVG_PATH;
+        });
         return occupantIcon;
     }
 

@@ -89,7 +89,7 @@ public record PlacedTile(Tile tile, PlayerColor placer, Rotation rotation, Pos p
      */
     public Zone zoneWithId(int id) {
         return tile.zones().stream().filter(z -> z.id() == id)
-                .findFirst().orElseThrow(() -> new IllegalArgumentException("Unknown zone id: " + id));
+                .findFirst().orElseThrow(() -> new IllegalArgumentException(STR."Unknown zone id: \{id}"));
     }
 
     /**

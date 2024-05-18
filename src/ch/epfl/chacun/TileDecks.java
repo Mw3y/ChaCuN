@@ -1,7 +1,7 @@
 package ch.epfl.chacun;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Predicate;
 
 /**
@@ -25,6 +25,14 @@ public record TileDecks(List<Tile> startTiles, List<Tile> normalTiles, List<Tile
         startTiles = List.copyOf(startTiles);
         normalTiles = List.copyOf(normalTiles);
         menhirTiles = List.copyOf(menhirTiles);
+    }
+
+    /**
+     * Constructs a triplet of decks of tiles from a map associating a kind of tile to a list of tiles.
+     * @param tilesByKind the map associating a kind of tile to a list of tiles
+     */
+    public TileDecks(Map<Tile.Kind, List<Tile>> tilesByKind) {
+        this(tilesByKind.get(Tile.Kind.START), tilesByKind.get(Tile.Kind.NORMAL), tilesByKind.get(Tile.Kind.MENHIR));
     }
 
     /**
@@ -99,7 +107,7 @@ public record TileDecks(List<Tile> startTiles, List<Tile> normalTiles, List<Tile
      * @return a new deck of tiles after removing the tiles that does not respect the given predicate
      */
     private List<Tile> filterDeck(List<Tile> deck, Predicate<Tile> predicate) {
-        List<Tile> filteredDeck = List.copyOf(deck);
+        List<Tile> filteredDeck = deck;
         while (!filteredDeck.isEmpty() && !predicate.test(filteredDeck.getFirst())) {
             filteredDeck = removeDeckFirstTile(filteredDeck);
         }

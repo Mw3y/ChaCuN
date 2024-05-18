@@ -1,11 +1,9 @@
 package ch.epfl.chacun.gui;
 
 import ch.epfl.chacun.*;
-import ch.epfl.chacun.tile.Tiles;
 import javafx.application.Application;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.scene.Scene;
-import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
@@ -62,7 +60,7 @@ public final class PlayersUITest extends Application {
         var gameStateO = new SimpleObjectProperty<>(initialGameState(playerNames, normalTilesIds, List.of()));
         var playersNode = PlayersUI.create(gameStateO, textMaker);
         var messagesNode = MessageBoardUI.create(gameStateO.map(g -> g.messageBoard().messages()), new SimpleObjectProperty<>(Set.of()));
-        var decksNode = DecksUI.create(new SimpleObjectProperty<>(gameStateO.getValue().tileToPlace()), new SimpleObjectProperty<>(normalTilesIds.size()), new SimpleObjectProperty<>(0), new SimpleObjectProperty<>("Lorem ipsum dolor sit amet"), o -> {});
+        var decksNode = DecksUI.create(gameStateO.map(GameState::tileToPlace), gameStateO.map(g -> g.tileDecks().normalTiles().size()), gameStateO.map(g -> g.tileDecks().menhirTiles().size()), new SimpleObjectProperty<>(""), o -> {});
         var rootNode = new VBox(playersNode, messagesNode, decksNode);
         primaryStage.setScene(new Scene(rootNode, 271, 720));
 

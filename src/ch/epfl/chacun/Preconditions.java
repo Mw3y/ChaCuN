@@ -21,8 +21,7 @@ public final class Preconditions {
      * @throws IllegalArgumentException if the precondition is false
      */
     public static void checkArgument(boolean precondition) {
-        if (!precondition) {
+        if (!precondition)
             throw new IllegalArgumentException();
-        }
     }
 }

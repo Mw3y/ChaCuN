@@ -31,7 +31,7 @@ public enum Direction {
      * @return the direction after applying the rotation
      */
     public Direction rotated(Rotation rotation) {
-        return ALL.get((this.ordinal() + rotation.ordinal()) % COUNT);
+        return ALL.get((ordinal() + rotation.ordinal()) % COUNT);
     }
 
     /**
@@ -40,7 +40,7 @@ public enum Direction {
      * @return the opposite of the receiver direction
      */
     public Direction opposite() {
-        // There is only four directions, so we can just add 2 to the ordinal
-        return ALL.get((this.ordinal() + 2) % COUNT);
+        // Apply a half turn rotation
+        return rotated(Rotation.HALF_TURN);
     }
 }

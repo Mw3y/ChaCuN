@@ -20,7 +20,7 @@
 }
 
 #next-tile {
-    -fx-padding: 3;
+    -fx-padding: 0 0 5 0;
 }
 
 #next-tile Text {

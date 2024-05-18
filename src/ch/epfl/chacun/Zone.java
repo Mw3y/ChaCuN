@@ -30,7 +30,7 @@ public sealed interface Zone {
      */
     static int localId(int zoneId) {
         // zoneId = 10 * tileId + localId
-        return zoneId - 10 * tileId(zoneId);
+        return zoneId % 10;
     }
 
     /**
@@ -93,7 +93,9 @@ public sealed interface Zone {
      * @param kind the kind of the forest
      */
     record Forest(int id, Kind kind) implements Zone {
-        // Represents the different kinds of forests.
+        /**
+         * Represents the different kinds of forests.
+         */
         public enum Kind {
             PLAIN, WITH_MENHIR, WITH_MUSHROOMS
         }
@@ -135,7 +137,12 @@ public sealed interface Zone {
      * @param lake      (optional) the lake connected to the river
      */
     record River(int id, int fishCount, Lake lake) implements Water {
-        // Returns True if the river is connected to a lake.
+
+        /**
+         * Returns whether the river has a lake or not.
+         *
+         * @return whether the river has a lake or not
+         */
         public boolean hasLake() {
             return lake != null;
         }

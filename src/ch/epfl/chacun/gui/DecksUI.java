@@ -45,9 +45,13 @@ public final class DecksUI {
      * @param occupantConsumer    the consumer of the occupant to skip the special action of retaking a pawn
      * @return the decks UI
      */
-    public static Node create(ObservableValue<Tile> tileToPlaceO, ObservableValue<Integer> normalTileDeckSizeO,
-                              ObservableValue<Integer> menhirTileDeckSizeO, ObservableValue<String> textToDisplayO,
-                              Consumer<Occupant> occupantConsumer) {
+    public static Node create(
+            ObservableValue<Tile> tileToPlaceO,
+            ObservableValue<Integer> normalTileDeckSizeO,
+            ObservableValue<Integer> menhirTileDeckSizeO,
+            ObservableValue<String> textToDisplayO,
+            Consumer<Occupant> occupantConsumer
+    ) {
         VBox container = new VBox();
         container.getStylesheets().add("/decks.css");
         // Create the decks container
@@ -80,7 +84,6 @@ public final class DecksUI {
         view.setId(kind.toString());
         // Configure the text
         tileCount.textProperty().bind(sizeO.map(String::valueOf));
-        tileCount.visibleProperty().bind(sizeO.map(size -> size > 0));
         tileCount.setWrappingWidth(TILE_COUNT_WRAPPING_FACTOR * NORMAL_TILE_FIT_SIZE);
 
         return new StackPane(view, tileCount);
@@ -94,9 +97,11 @@ public final class DecksUI {
      * @param occupantConsumer the consumer of the occupant
      * @return the next tile to place cover UI
      */
-    private static StackPane createNextTileCover(ObservableValue<Tile> tileToPlaceO,
-                                                 ObservableValue<String> textToDisplayO,
-                                                 Consumer<Occupant> occupantConsumer) {
+    private static StackPane createNextTileCover(
+            ObservableValue<Tile> tileToPlaceO,
+            ObservableValue<String> textToDisplayO,
+            Consumer<Occupant> occupantConsumer
+    ) {
         StackPane tileToPlace = new StackPane();
         tileToPlace.setId("next-tile");
 
@@ -106,19 +111,14 @@ public final class DecksUI {
         view.setFitWidth(LARGE_TILE_FIT_SIZE);
         view.visibleProperty().bind(textToDisplayO.map(String::isEmpty));
         // Display the image of the tile to place
-        Image image = ImageLoader.largeImageForTile(tileToPlaceO.getValue().id());
-        view.setImage(image);
-        tileToPlaceO.addListener((o, oldTile, newTile) -> {
-            Image newImage = ImageLoader.largeImageForTile(newTile.id());
-            view.setImage(newImage);
-        });
-
+        ObservableValue<Image> nextTileImage = tileToPlaceO.map(tile -> ImageLoader.largeImageForTile(tile.id()));
+        view.imageProperty().bind(nextTileImage);
         // Display the text of the special action and register a mouse click event to skip it
         Text text = new Text();
         text.textProperty().bind(textToDisplayO);
         text.visibleProperty().bind(textToDisplayO.map(s -> !s.isEmpty()));
         text.setWrappingWidth(TILE_COUNT_WRAPPING_FACTOR * LARGE_TILE_FIT_SIZE);
-        text.setOnMouseClicked(e -> occupantConsumer.accept(null));
+        text.setOnMouseClicked(_ -> occupantConsumer.accept(null));
 
         tileToPlace.getChildren().addAll(view, text);
         return tileToPlace;

@@ -41,16 +41,26 @@ public final class ColorMap {
     /**
      * Returns the stroke color for the given player color.
      *
-     * @param playerColor the player color
+     * @param color the player color
      * @return the stroke color
      */
-    public static Color strokeColor(PlayerColor playerColor) {
+    public static Color strokeColor(PlayerColor color) {
         // For better contrast with light colors, use a darker stroke color
-        if (playerColor == PlayerColor.YELLOW || playerColor == PlayerColor.GREEN)
-            return fillColor(playerColor)
-                    .deriveColor(0, 1, STROKE_BRIGHTNESS_FACTOR, 1);
         // For dark colors, use a lighter stroke color
-        return Color.WHITE;
+        return switch (color) {
+            case PlayerColor.RED, PlayerColor.BLUE, PlayerColor.PURPLE -> Color.WHITE;
+            case PlayerColor.YELLOW, PlayerColor.GREEN -> deriveStrokeColor(color);
+        };
+    }
+
+    /**
+     * Derives the stroke color from the fill color to prevent low contrast.
+     * @param color the fill color
+     * @return the derived stroke color
+     */
+    private static Color deriveStrokeColor(PlayerColor color) {
+        return fillColor(color)
+                .deriveColor(0, 1, STROKE_BRIGHTNESS_FACTOR, 1);
     }
 
 }
