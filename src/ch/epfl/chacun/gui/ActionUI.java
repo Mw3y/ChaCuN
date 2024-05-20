@@ -58,7 +58,8 @@ public final class ActionUI {
             change.setText(change.getText().toUpperCase());
             change.getText().chars().forEach(i -> {
                 String c = String.valueOf((char) i);
-                if (!Base32.isValid(c))
+                // TODO: Optimize
+                if (!Base32.isValid(c) || actionField.getText().length() >= 2)
                     change.setText(change.getText().replace(c, ""));
             });
             return change;
