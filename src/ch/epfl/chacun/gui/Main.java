@@ -17,6 +17,7 @@ import java.util.random.RandomGeneratorFactory;
 import java.util.stream.Collectors;
 
 /**
+ * The main class of the game.
  * @author Maxence Espagnet (sciper: 372808)
  * @author Balthazar Baillat (sciper: 373420)
  */
@@ -98,15 +99,18 @@ public class Main extends Application {
             return board.occupants();
         }));
 
+        // Apply an action to the game state
         Consumer<String> applyAction = action -> {
             ActionEncoder.StateAction stateAction = ActionEncoder.decodeAndApply(gameStateO.get(), action);
             if (stateAction != null)
                 applyStateAction(stateAction, gameStateO, actionsP);
         };
 
+        // Apply a rotation to the tile to place
         Consumer<Rotation> applyRotation = rotation ->
                 tileToPlaceRotationP.set(tileToPlaceRotationP.get().add(rotation));
 
+        // Place a tile at a given position if possible
         Consumer<Pos> placeTileAtPos = pos -> {
             GameState state = gameStateO.get();
             if (state.tileToPlace() != null) {
@@ -123,9 +127,11 @@ public class Main extends Application {
             }
         };
 
+        // Place or remove an occupant on the board if possible
         Consumer<Occupant> selectOccupant = occupant -> {
             GameState gameState = gameStateO.get();
             switch (gameState.nextAction()) {
+                // Normal tile has been placed
                 case GameState.Action.OCCUPY_TILE  -> {
                     // Check if the player has clicked on a potential occupant and not one already on the board
                     if (!gameState.board().occupants().contains(occupant)) {
@@ -134,6 +140,7 @@ public class Main extends Application {
                         applyStateAction(stateAction, gameStateO, actionsP);
                     }
                 }
+                // Shaman tile has been placed
                 case RETAKE_PAWN -> {
                     ActionEncoder.StateAction stateAction =
                             ActionEncoder.withOccupantRemoved(gameStateO.get(), occupant);

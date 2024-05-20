@@ -48,7 +48,7 @@ public class Base32 {
      */
     public static String encodeBits10(int value) {
         // Encoded independently two 5-bit parts and merge them
-        return encodeBits5(value  >> BASE_32_SYMBOL_BITS) + encodeBits5(value);
+        return encodeBits5(value >> BASE_32_SYMBOL_BITS) + encodeBits5(value);
     }
 
     /**
