@@ -197,7 +197,7 @@ public class Main extends Application {
      */
     private Map<PlayerColor, String> createPlayers(List<String> playerNames) {
         List<PlayerColor> playerColors = PlayerColor.ALL.subList(0, playerNames.size());
-        Map<PlayerColor, String> players = new HashMap<>();
+        Map<PlayerColor, String> players = new EnumMap<>(PlayerColor.class);
         for (int i = 0; i < playerNames.size(); ++i) {
             players.put(playerColors.get(i), playerNames.get(i));
         }
