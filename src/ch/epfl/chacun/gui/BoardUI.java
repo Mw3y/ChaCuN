@@ -287,7 +287,7 @@ public final class BoardUI {
 
             return Bindings.createObjectBinding(() -> {
                 GameState gameState = gameStateO.getValue();
-                PlacedTile placedTile = boardO.getValue().tileAt(tilePos);
+                PlacedTile placedTile = placedTileO.getValue();
                 Set<Integer> highlightedTileIds = highlightedTileIdsO.getValue();
 
                 boolean isTileBeingPlaced = gameState.tileToPlace() != null;
