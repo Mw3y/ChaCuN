@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 
 /**
  * The main class of the game.
+ *
  * @author Maxence Espagnet (sciper: 372808)
  * @author Balthazar Baillat (sciper: 373420)
  */
@@ -178,6 +179,7 @@ public class Main extends Application {
 
     /**
      * Apply the state action to the game state and actions list.
+     *
      * @param stateAction the state action to apply
      * @param gameStateO the game state property
      * @param actionsP the actions list property
@@ -192,6 +194,7 @@ public class Main extends Application {
 
     /**
      * Maps each player color to a player name if any.
+     *
      * @param playerNames the list of player names
      * @return the map of player colors to player names
      */
@@ -206,6 +209,7 @@ public class Main extends Application {
 
     /**
      * Creates the tile decks with a seed if any, or randomly picks one.
+     *
      * @param rawSeed the raw seed to use
      * @return the created tile decks
      */
