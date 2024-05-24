@@ -71,11 +71,11 @@ public class Main extends Application {
         SimpleObjectProperty<String> textToDisplayP = new SimpleObjectProperty<>("");
         SimpleObjectProperty<List<String>> actionsP = new SimpleObjectProperty<>(List.of());
 
-        // Dynamic game state properties
+        // Dynamic game properties
         SimpleObjectProperty<GameState> gameStateO = new SimpleObjectProperty<>(initialGameState);
         ObservableValue<MessageBoard> messageBoardO = gameStateO.map(GameState::messageBoard);
         ObservableValue<GameState.Action> nextGameAction = gameStateO.map(GameState::nextAction);
-
+        // Dynamic game properties based on the game state
         ObservableValue<Tile> tileToPlaceO = gameStateO.map(GameState::tileToPlace);
         ObservableValue<TileDecks> decksO = gameStateO.map(GameState::tileDecks);
         ObservableValue<Integer> normalTilesSizeO = decksO.map(gameDecks -> gameDecks.normalTiles().size());
@@ -94,8 +94,9 @@ public class Main extends Application {
             Board board = currentGameState.board();
             if (nextAction == GameState.Action.OCCUPY_TILE) {
                 Set<Occupant> occupantsToDisplay = new HashSet<>(board.occupants());
+                // Also display the potential occupants of the last tile placed
                 occupantsToDisplay.addAll(currentGameState.lastTilePotentialOccupants());
-                return Set.copyOf(occupantsToDisplay);
+                return Collections.unmodifiableSet(occupantsToDisplay);
             }
             return board.occupants();
         }));
@@ -188,7 +189,7 @@ public class Main extends Application {
                              SimpleObjectProperty<GameState> gameStateO, SimpleObjectProperty<List<String>> actionsP) {
         List<String> actions = new ArrayList<>(actionsP.get());
         actions.add(stateAction.action());
-        actionsP.set(actions);
+        actionsP.set(Collections.unmodifiableList(actions));
         gameStateO.set(stateAction.gameState());
     }
 
@@ -221,6 +222,7 @@ public class Main extends Application {
             long seed = Long.parseUnsignedLong(rawSeed);
             shuffler = defaultRandomFactory.create(seed);
         } else {
+            // Generate a random seed
             shuffler = defaultRandomFactory.create();
         }
 
