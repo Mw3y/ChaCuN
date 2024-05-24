@@ -58,8 +58,10 @@ public final class DecksUI {
         HBox decks = new HBox();
         decks.setId("decks");
         // Create the decks UI
-        decks.getChildren().add(createDeckCover(Tile.Kind.NORMAL, normalTileDeckSizeO));
-        decks.getChildren().add(createDeckCover(Tile.Kind.MENHIR, menhirTileDeckSizeO));
+        decks.getChildren().addAll(
+                createDeckCover(Tile.Kind.NORMAL, normalTileDeckSizeO),
+                createDeckCover(Tile.Kind.MENHIR, menhirTileDeckSizeO)
+        );
         container.getChildren().add(decks);
         // Create the next tile to place UI
         container.getChildren().add(createNextTileCover(tileToPlaceO, textToDisplayO, occupantConsumer));

@@ -70,7 +70,8 @@ public class ActionEncoder {
      */
     private static List<Occupant> sortOccupants(GameState gameState) {
         return gameState.board().occupants().stream()
-                .sorted(Comparator.comparing(Occupant::zoneId)).toList();
+                .sorted(Comparator.comparing(Occupant::zoneId))
+                .toList();
     }
 
     /**
@@ -248,22 +249,6 @@ public class ActionEncoder {
      * @author Balthazar Baillat (sciper: 373420)
      */
     public static class IllegalActionException extends Exception {
-
-        /**
-         * Constructs an illegal action exception.
-         */
-        public IllegalActionException() {
-            super();
-        }
-
-        /**
-         * Constructs an illegal action exception with a message.
-         *
-         * @param message the message
-         */
-        public IllegalActionException(String message) {
-            super(message);
-        }
     }
 
 
