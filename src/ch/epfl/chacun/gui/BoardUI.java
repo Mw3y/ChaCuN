@@ -37,7 +37,7 @@ public final class BoardUI {
     /**
      * The gray scale of the empty tile.
      */
-    private static final double EMPTY_TILE_GRAY_SCALE = 0.98;
+    private static final double EMPTY_TILE_GRAY_SCALE = .98;
 
     /**
      * The cache to store the images of the tiles.
@@ -302,8 +302,8 @@ public final class BoardUI {
 
                 // Check if the tile is being placed and if it is in the fringe
                 if (isTileBeingPlaced && isInFringe) {
+                    // By default, display the insertion positions with a veil of the current player color
                     if (!tileContainer.isHover()) {
-                        // By default, display the insertion positions with a veil of the current player color
                         return new CellData(placedTile, ColorMap.fillColor(gameState.currentPlayer()));
                     }
                     // Display the tile to place on this position
