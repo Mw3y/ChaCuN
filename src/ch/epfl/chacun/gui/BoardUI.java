@@ -100,16 +100,22 @@ public final class BoardUI {
                 tileView.setFitHeight(NORMAL_TILE_FIT_SIZE);
                 tileView.setFitWidth(NORMAL_TILE_FIT_SIZE);
 
-                ObjectBinding<CellData> cellData = CellData.createBinding(gameStateO, boardO,
-                        insertionPositionsO, rotationO, highlightedTileIdsO, tileContainer, tilePos);
+                // Keep track of the tile placed at this position
+                ObservableValue<PlacedTile> placedTileO =
+                        gameStateO.map(gameState -> gameState.board().tileAt(tilePos));
+
+                // Bind the tile image, rotation and veil color to a CellData record
+                ObjectBinding<CellData> cellData = CellData.createBinding(gameStateO, placedTileO, insertionPositionsO,
+                        rotationO, highlightedTileIdsO, tileContainer, tilePos);
 
                 tileView.imageProperty().bind(cellData.map(CellData::tileImage));
                 tileContainer.rotateProperty().bind(cellData.map(data -> data.tileRotation().degreesCW()));
-                tileContainer.effectProperty().bind(cellData.map(CellData::createVeil));
                 tileContainer.getChildren().add(tileView);
 
-                ObservableValue<PlacedTile> placedTileO =
-                        gameStateO.map(gameState -> gameState.board().tileAt(tilePos));
+                // Initialize and bind the tile veil
+                Blend veil = CellData.createVeil();
+                veil.topInputProperty().bind(cellData.map(CellData::getVeilColor));
+                tileContainer.setEffect(veil);
 
                 // Handle tile rotation and placement
                 tileContainer.setOnMouseClicked(event -> {
@@ -150,7 +156,7 @@ public final class BoardUI {
         }
 
         container.setContent(gridPane);
-        // Center board
+        // Center to the middle of the scroll pane
         container.setVvalue(SCROLL_CENTER_SCALE);
         container.setHvalue(SCROLL_CENTER_SCALE);
         return container;
@@ -201,10 +207,7 @@ public final class BoardUI {
         // Hide the occupant when not needed
         occupantIcon.visibleProperty().bind(occupantsO.map(occupants -> occupants.contains(occupant)));
         // Allow the player to select an occupant and place it/remove it
-        occupantIcon.setOnMouseClicked(e -> {
-            e.consume();
-            selectedOccupant.accept(occupant);
-        });
+        occupantIcon.setOnMouseClicked(_ -> selectedOccupant.accept(occupant));
         return occupantIcon;
     }
 
@@ -236,7 +239,7 @@ public final class BoardUI {
          * The default image to display when a position doesn't have any tile.
          */
         private static final Image EMPTY_TILE_IMAGE;
-
+        // Initialize the empty tile image
         static {
             WritableImage writableImage = new WritableImage(1, 1);
             // Fill the empty tile with a gray color
@@ -267,7 +270,7 @@ public final class BoardUI {
         /**
          * Creates a binding to update the cell data based on the game state, rotation and highlighted tile ids.
          * @param gameStateO the observable game state
-         * @param boardO the observable board
+         * @param placedTileO the observable placed tile at this position
          * @param insertionPositionsO the observable set of insertion positions
          * @param rotationO the observable rotation
          * @param highlightedTileIdsO the observable set of highlighted tile ids
@@ -277,15 +280,14 @@ public final class BoardUI {
          */
         public static ObjectBinding<CellData> createBinding(
                 ObservableValue<GameState> gameStateO,
-                ObservableValue<Board> boardO,
+                ObservableValue<PlacedTile> placedTileO,
                 ObservableValue<Set<Pos>> insertionPositionsO,
                 ObservableValue<Rotation> rotationO,
                 ObservableValue<Set<Integer>> highlightedTileIdsO,
                 Group tileContainer,
                 Pos tilePos) {
-            ObservableValue<PlacedTile> placedTileO = boardO.map(board -> board.tileAt(tilePos));
-
             return Bindings.createObjectBinding(() -> {
+                // Current game data
                 GameState gameState = gameStateO.getValue();
                 PlacedTile placedTile = placedTileO.getValue();
                 Set<Integer> highlightedTileIds = highlightedTileIdsO.getValue();
@@ -293,19 +295,23 @@ public final class BoardUI {
                 boolean isTileBeingPlaced = gameState.tileToPlace() != null;
                 boolean isInFringe = insertionPositionsO.getValue().contains(tilePos);
 
+                // Display the tile with a black veil if it is not highlighted
                 if (placedTile != null && !highlightedTileIds.isEmpty()
                         && !highlightedTileIds.contains(placedTile.id()))
                     return new CellData(placedTile, Color.BLACK);
 
+                // Check if the tile is being placed and if it is in the fringe
                 if (isTileBeingPlaced && isInFringe) {
-                    if (tileContainer.isHover()) {
-                        PlacedTile tileCandidate = new PlacedTile(
-                                gameState.tileToPlace(), gameState.currentPlayer(), rotationO.getValue(), tilePos);
-                        Color veilColor = !gameState.board().canAddTile(tileCandidate)
-                                ? Color.WHITE : Color.TRANSPARENT;
-                        return new CellData(tileCandidate, veilColor);
+                    if (!tileContainer.isHover()) {
+                        // By default, display the insertion positions with a veil of the current player color
+                        return new CellData(placedTile, ColorMap.fillColor(gameState.currentPlayer()));
                     }
-                    return new CellData(placedTile, ColorMap.fillColor(gameState.currentPlayer()));
+                    // Display the tile to place on this position
+                    PlacedTile tileCandidate = new PlacedTile(
+                            gameState.tileToPlace(), gameState.currentPlayer(), rotationO.getValue(), tilePos);
+                    // Add a white veil if the tile cannot be placed here
+                    Color veilColor = !gameState.board().canAddTile(tileCandidate) ? Color.WHITE : Color.TRANSPARENT;
+                    return new CellData(tileCandidate, veilColor);
                 }
 
                 return new CellData(placedTile, Color.TRANSPARENT);
@@ -313,17 +319,23 @@ public final class BoardUI {
         }
 
         /**
-         * Creates a veil to apply on the tile based on its current color.
+         * Creates the base veil object.
          *
-         * @return the created veil
+         * @return the created veil, without any color
          */
-        public Blend createVeil() {
-            // TODO: Create only one time
+        public static Blend createVeil() {
             Blend blend = new Blend();
             blend.setMode(BlendMode.SRC_OVER);
-            blend.setTopInput(new ColorInput(0, 0, NORMAL_TILE_FIT_SIZE, NORMAL_TILE_FIT_SIZE, veilColor));
             blend.setOpacity(VEIL_OPACITY);
             return blend;
+        }
+
+        /**
+         * Returns the color input to apply on the tile veil.
+         * @return the color input to apply on the tile veil
+         */
+        public ColorInput getVeilColor() {
+            return new ColorInput(0, 0, NORMAL_TILE_FIT_SIZE, NORMAL_TILE_FIT_SIZE, veilColor);
         }
 
     }
