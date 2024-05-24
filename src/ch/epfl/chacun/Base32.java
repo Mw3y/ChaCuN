@@ -60,7 +60,6 @@ public class Base32 {
      * @return the integer corresponding to the decoded value
      */
     public static int decode(String value) {
-        Preconditions.checkArgument(value.length() == 1 || value.length() == 2);
         Preconditions.checkArgument(isValid(value));
         int decodedValue = 0;
         // For each value, add its index in the base 32 alphabet times

@@ -27,11 +27,6 @@ public final class ActionUI {
     private static final int NUMBER_OF_ACTIONS_TO_DISPLAY = 4;
 
     /**
-     * The maximum length of an action in characters.
-     */
-    private static final int MAX_ACTION_LENGTH = 2;
-
-    /**
      * Non-instantiable class constructor.
      */
     private ActionUI() {
@@ -64,9 +59,6 @@ public final class ActionUI {
         // Sanitize the user input
         actionField.setTextFormatter(new TextFormatter<>(change -> {
             String sanitizedInput = sanitizeInput(change.getText());
-            // Limit the input to 2 characters
-            if (actionField.getCharacters().length() + sanitizedInput.length() > MAX_ACTION_LENGTH)
-                sanitizedInput =  sanitizedInput.substring(0, MAX_ACTION_LENGTH - actionField.getCharacters().length());
             change.setText(sanitizedInput);
             return change;
         }));
