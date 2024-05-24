@@ -81,7 +81,7 @@ public final class ActionUI {
     private static String sanitizeInput(String input) {
         StringBuilder sanitizedInput = new StringBuilder();
         for (char character : input.toUpperCase().toCharArray()) {
-            if (Base32.ALPHABET.indexOf(character) != -1)
+            if (Base32.isValid(character))
                 sanitizedInput.append(character);
         }
         return sanitizedInput.toString();
