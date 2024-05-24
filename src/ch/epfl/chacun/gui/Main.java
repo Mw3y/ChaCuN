@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 
 /**
  * The main class of the game.
+ *
  * @author Maxence Espagnet (sciper: 372808)
  * @author Balthazar Baillat (sciper: 373420)
  */
@@ -70,11 +71,11 @@ public class Main extends Application {
         SimpleObjectProperty<String> textToDisplayP = new SimpleObjectProperty<>("");
         SimpleObjectProperty<List<String>> actionsP = new SimpleObjectProperty<>(List.of());
 
-        // Dynamic game state properties
+        // Dynamic game properties
         SimpleObjectProperty<GameState> gameStateO = new SimpleObjectProperty<>(initialGameState);
         ObservableValue<MessageBoard> messageBoardO = gameStateO.map(GameState::messageBoard);
         ObservableValue<GameState.Action> nextGameAction = gameStateO.map(GameState::nextAction);
-
+        // Dynamic game properties based on the game state
         ObservableValue<Tile> tileToPlaceO = gameStateO.map(GameState::tileToPlace);
         ObservableValue<TileDecks> decksO = gameStateO.map(GameState::tileDecks);
         ObservableValue<Integer> normalTilesSizeO = decksO.map(gameDecks -> gameDecks.normalTiles().size());
@@ -93,8 +94,9 @@ public class Main extends Application {
             Board board = currentGameState.board();
             if (nextAction == GameState.Action.OCCUPY_TILE) {
                 Set<Occupant> occupantsToDisplay = new HashSet<>(board.occupants());
+                // Also display the potential occupants of the last tile placed
                 occupantsToDisplay.addAll(currentGameState.lastTilePotentialOccupants());
-                return Set.copyOf(occupantsToDisplay);
+                return Collections.unmodifiableSet(occupantsToDisplay);
             }
             return board.occupants();
         }));
@@ -178,6 +180,7 @@ public class Main extends Application {
 
     /**
      * Apply the state action to the game state and actions list.
+     *
      * @param stateAction the state action to apply
      * @param gameStateO the game state property
      * @param actionsP the actions list property
@@ -186,12 +189,13 @@ public class Main extends Application {
                              SimpleObjectProperty<GameState> gameStateO, SimpleObjectProperty<List<String>> actionsP) {
         List<String> actions = new ArrayList<>(actionsP.get());
         actions.add(stateAction.action());
-        actionsP.set(actions);
+        actionsP.set(Collections.unmodifiableList(actions));
         gameStateO.set(stateAction.gameState());
     }
 
     /**
      * Maps each player color to a player name if any.
+     *
      * @param playerNames the list of player names
      * @return the map of player colors to player names
      */
@@ -206,6 +210,7 @@ public class Main extends Application {
 
     /**
      * Creates the tile decks with a seed if any, or randomly picks one.
+     *
      * @param rawSeed the raw seed to use
      * @return the created tile decks
      */
@@ -217,6 +222,7 @@ public class Main extends Application {
             long seed = Long.parseUnsignedLong(rawSeed);
             shuffler = defaultRandomFactory.create(seed);
         } else {
+            // Generate a random seed
             shuffler = defaultRandomFactory.create();
         }
 

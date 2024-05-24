@@ -30,7 +30,12 @@ public final class PlayersUI {
     /**
      * The opacity of the occupant icon when it is used.
      */
-    private static final float OCCUPANT_USED_OPACITY = 0.1f;
+    private static final float OCCUPANT_USED_OPACITY = .1f;
+
+    /**
+     * The radius of the player circle.
+     */
+    private static final int PLAYER_CIRCLE_RADIUS = 5;
 
     /**
      * Non-instantiable class constructor
@@ -62,7 +67,6 @@ public final class PlayersUI {
 
             TextFlow textFlow = new TextFlow();
             Text pointsText = new Text();
-            HBox occupantsBox = new HBox();
 
             // Dynamically update the points text
             ObservableValue<String> pointsTextO = pointsO.map(points -> {
@@ -77,14 +81,13 @@ public final class PlayersUI {
             });
 
             // Add the player's name and points to the UI
-            textFlow.getChildren().add(new Circle(5, ColorMap.fillColor(playerColor)));
+            textFlow.getChildren().add(new Circle(PLAYER_CIRCLE_RADIUS, ColorMap.fillColor(playerColor)));
             pointsText.textProperty().bind(pointsTextO);
             textFlow.getChildren().add(pointsText);
             textFlow.getStyleClass().add("player");
             // Add the player's occupants to the UI
             for (int i = Occupant.Kind.values().length - 1; i >= 0; --i) {
                 Occupant.Kind kind = Occupant.Kind.values()[i];
-                HBox box = new HBox();
                 for (int j = 0; j < Occupant.occupantsCount(kind); ++j) {
                     Node icon = Icon.newFor(playerColor, kind);
                     // Make the opacity of the icon dependent on the number of free occupants
@@ -94,14 +97,13 @@ public final class PlayersUI {
                         return hutsCount > occupantId ? DEFAULT_OCCUPANT_OPACITY : OCCUPANT_USED_OPACITY;
                     });
                     icon.opacityProperty().bind(opacityO);
-                    box.getChildren().add(icon);
+                    textFlow.getChildren().add(icon);
                 }
-                occupantsBox.getChildren().add(box);
+                // Add some space between the occupant types
+                textFlow.getChildren().add(new Text("   "));
             }
 
-            occupantsBox.setSpacing(10);
             // Add everything to the UI
-            textFlow.getChildren().add(occupantsBox);
             container.getChildren().add(textFlow);
         }
         return container;

@@ -25,7 +25,17 @@ public class Base32 {
      * @return true if and only if the string is valid and false otherwise
      */
     public static boolean isValid(String string) {
-        return string.chars().allMatch(c -> ALPHABET.indexOf(c) != -1);
+        return string.chars().allMatch(c -> isValid((char) c));
+    }
+
+    /**
+     * Checks if the given character is valid in base 32.
+     *
+     * @param character the character to be checked
+     * @return true if and only if the character is valid and false otherwise
+     */
+    public static boolean isValid(char character) {
+        return ALPHABET.indexOf(character) != -1;
     }
 
     /**
@@ -60,7 +70,6 @@ public class Base32 {
      * @return the integer corresponding to the decoded value
      */
     public static int decode(String value) {
-        Preconditions.checkArgument(value.length() == 1 || value.length() == 2);
         Preconditions.checkArgument(isValid(value));
         int decodedValue = 0;
         // For each value, add its index in the base 32 alphabet times
