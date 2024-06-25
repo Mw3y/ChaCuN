@@ -25,3 +25,6 @@ replay_pid*
 
 out/**/*
 submissions/**/*
+gradle/
+.gradle/
+build/

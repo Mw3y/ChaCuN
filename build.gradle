@@ -1,0 +1,58 @@
+plugins {
+    id 'application'
+    id 'org.openjfx.javafxplugin' version '0.1.0'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Cross platform support
+    runtimeOnly "org.openjfx:javafx-graphics:$javafx.version:win"
+    runtimeOnly "org.openjfx:javafx-graphics:$javafx.version:linux"
+    runtimeOnly "org.openjfx:javafx-graphics:$javafx.version:mac"
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ["src"]
+        }
+        resources {
+            srcDirs = ["resources"]
+            includes = ["**/*.*"]
+        }
+    }
+}
+
+String ENABLE_PREVIEW = "--enable-preview"
+
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs += ENABLE_PREVIEW
+}
+
+tasks.withType(Test).configureEach {
+    jvmArgs += ENABLE_PREVIEW
+}
+
+tasks.withType(JavaExec).configureEach {
+    jvmArgs += ENABLE_PREVIEW
+}
+
+javafx {
+    version = "21"
+    modules = [ 'javafx.controls', 'javafx.graphics', 'javafx.media', 'javafx.swing', 'javafx.base' ]
+}
+
+mainClassName = 'ch.epfl.chacun.gui.Main'
+
+jar {
+    manifest {
+        attributes 'Main-Class': 'ch.epfl.chacun.gui.Launcher'
+    }
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
